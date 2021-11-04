@@ -22,23 +22,23 @@ program main_CDR3d
   call GeneralInfo( )
   call ReadIntegerFile(10,File_element, Nelem, nUne + 1, elements)  
   call ReadRealFile(20,File_nodes, n_nodes,3, nodes) !Para dreducir el numero de subrutinas, usar la sentencia option par
-  call ReadReal(30,File_material, materials)    !Para dreducir el numero de subrutinas, usar la sentencia option para      
-  call ReadIntegerFile(40,File_pnodes, n_nodes,2, pnodes)
-  call ReadIntegerFile(50,File_pelement, Nelem,nPne + 1, pelements)
+  !call ReadReal(30,File_material, materials)    !Para dreducir el numero de subrutinas, usar la sentencia option para      
+  !call ReadIntegerFile(40,File_pnodes, n_nodes,2, pnodes)
+  !call ReadIntegerFile(50,File_pelement, Nelem,nPne + 1, pelements)
   print*, ' '
   print*, '!=============== INFO DURING EXECUTION ===============!'
   
   call GaussQuadrature(gauss_points, gauss_weights)
   call ShapeFunctions(gauss_points, nUne, N, dN_dxi, dN_deta)  
   
-  allocate(A_K(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes), AK_LU(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes) )
+  allocate(A_K(2*n_nodes, 2*n_nodes), AK_LU(2*n_nodes, 2*n_nodes) )
   call SetBounCond( NoBV, NoBVcol) !Esta funcion crea el archivo bcsVP.dat
   allocate( Fbcsvp(NoBV, NoBVcol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
   call ReadIntegerFile(60,"Fbcsvp.dat", NoBV, NoBVcol, Fbcsvp)!Llamo el archivo de valores en la frontera y lo guardo en Fbcsvp
   
   call GlobalK( A_K, dN_dxi, dN_deta)
 
-  allocate(Sv(2*n_nodes+n_pnodes, 1), Solution(2*n_nodes+n_pnodes, 1))
+  allocate(Sv(2*n_nodes, 1), Solution(2*n_nodes, 1))
   Sv = 0.0 !initializing source vector (Sv) 
   call ApplyBoundCond(NoBV, Fbcsvp, A_K, Sv )
   
