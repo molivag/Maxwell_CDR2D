@@ -6,9 +6,9 @@ program main_CDR3d
   implicit none
   
   ! - - - - - - - - - - * * * Variables que se usan aqui en main * * * * * * * - - - - - - - - - -
-  double precision, allocatable, dimension(:,:) :: A_K, Sv, AK_LU, Solution, N, dN_dxi, dN_deta
-  integer, allocatable, dimension(:,:) :: Fbcsvp
-  integer                              :: NoBV, NoBVcol
+  double precision, allocatable, dimension(:,:) :: A_K, rhsgl, AK_LU, Solution, N, dN_dxi, dN_deta
+  integer, allocatable, dimension(:,:) :: BVs
+  integer                              :: nBVs, nBVscol
   real                                 :: start, finish
  
   !=============== S O L V E R ============================ 
@@ -20,35 +20,35 @@ program main_CDR3d
   call cpu_time(start)
 
   call GeneralInfo( )
-  call ReadIntegerFile(10,File_element, Nelem, nUne + 1, elements)  
-  call ReadRealFile(20,File_nodes, n_nodes,3, nodes) !Para dreducir el numero de subrutinas, usar la sentencia option par
+  call ReadIntegerFile(10,File_element, nelem, nne + 1, lnods)  
+  call ReadRealFile(20,File_coord, nnodes,3, coord) !Para dreducir el numero de subrutinas, usar la sentencia option par
   !call ReadReal(30,File_material, materials)    !Para dreducir el numero de subrutinas, usar la sentencia option para      
-  !call ReadIntegerFile(40,File_pnodes, n_nodes,2, pnodes)
-  !call ReadIntegerFile(50,File_pelement, Nelem,nPne + 1, pelements)
+  !call ReadIntegerFile(40,File_pcoord, nnodes,2, pcoord)
+  !call ReadIntegerFile(50,File_pelement, nelem,nPne + 1, plnods)
   print*, ' '
   print*, '!=============== INFO DURING EXECUTION ===============!'
   
-  call GaussQuadrature(gauss_points, gauss_weights)
-  call ShapeFunctions(gauss_points, nUne, N, dN_dxi, dN_deta)  
+  call GaussQuadrature(ngaus, weigp)
+  call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta)  
   
-  allocate(A_K(2*n_nodes, 2*n_nodes), AK_LU(2*n_nodes, 2*n_nodes) )
-  call SetBounCond( NoBV, NoBVcol) !Esta funcion crea el archivo bcsVP.dat
-  allocate( Fbcsvp(NoBV, NoBVcol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
-  call ReadIntegerFile(60,"Fbcsvp.dat", NoBV, NoBVcol, Fbcsvp)!Llamo el archivo de valores en la frontera y lo guardo en Fbcsvp
+  allocate(A_K(2*nnodes, 2*nnodes), AK_LU(2*nnodes, 2*nnodes) )
+  call SetBounCond( nBVs, nBVscol) !Esta funcion crea el archivo bcsVP.dat
+  allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
+  call ReadIntegerFile(60,"BVs.dat", nBVs, nBVscol, BVs)!Llamo el archivo de valores en la frontera y lo guardo en BVs
   
   call GlobalK( A_K, dN_dxi, dN_deta)
 
-  allocate(Sv(2*n_nodes, 1), Solution(2*n_nodes, 1))
-  Sv = 0.0 !initializing source vector (Sv) 
-  call ApplyBoundCond(NoBV, Fbcsvp, A_K, Sv )
+  allocate(rhsgl(2*nnodes, 1), Solution(2*nnodes, 1))
+  rhsgl = 0.0 !initializing source vector (rhsgl) 
+  call ApplyBoundCond(nBVs, BVs, A_K, rhsgl )
   
-  Solution = Sv !Solucion sera reescrito por la solucion de lapack asi no reescribo el vector global.
+  Solution = rhsgl !Solucion sera reescrito por la solucion de lapack asi no reescribo el vector global.
   AK_LU    = A_K
   DEALLOCATE(N)
   DEALLOCATE(dN_dxi)
   DEALLOCATE(dN_deta)
-  DEALLOCATE(Fbcsvp)
-  DEALLOCATE(Sv )
+  DEALLOCATE(BVs)
+  DEALLOCATE(rhsgl )
   
   print*,' '
   print*,'!=============== SOLVER (LAPACK) ===============!'
