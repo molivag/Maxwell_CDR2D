@@ -3,94 +3,94 @@ module biunit
  
   contains
     
-    subroutine GaussQuadrature(gauss_points, gauss_weights)
+    subroutine GaussQuadrature(ngaus, weigp)
       implicit none
       
-      double precision, allocatable, dimension(:,:),intent(out) :: gauss_points, gauss_weights
+      double precision, allocatable, dimension(:,:),intent(out) :: ngaus, weigp
       real :: a,b, ex1,et1,ez1,ex2,et2,ez2
       
-      allocate(gauss_points(totGp,2))
-      allocate(gauss_weights(totGp,1))
+      allocate(ngaus(totGp,2))
+      allocate(weigp(totGp,1))
       
-      gauss_points = 0
-      gauss_weights = 0
+      ngaus = 0
+      weigp = 0
       
       Select case(ElemType) 
         case('Quadrilateral')
           if(totGp.eq.1)then 
-            gauss_points(1,1) = 0.0
-            gauss_points(1,2) = 0.0
-            gauss_weights(1,1) = 4.0
+            ngaus(1,1) = 0.0
+            ngaus(1,2) = 0.0
+            weigp(1,1) = 4.0
           else if(totGp.eq.4) then
-            gauss_points(1,1) = -sqrt(1.0/3.0)
-            gauss_points(2,1) = sqrt(1.0/3.0)
-            gauss_points(3,1) = -sqrt(1.0/3.0)
-            gauss_points(4,1) = sqrt(1.0/3.0)
-            gauss_points(1,2) = -sqrt(1.0/3.0)
-            gauss_points(2,2) = -sqrt(1.0/3.0)
-            gauss_points(3,2) = sqrt(1.0/3.0)
-            gauss_points(4,2) = sqrt(1.0/3.0)
-            gauss_weights(1,1)=1.0
-            gauss_weights(2,1)=1.0
-            gauss_weights(3,1)=1.0
-            gauss_weights(4,1)=1.0
+            ngaus(1,1) = -sqrt(1.0/3.0)
+            ngaus(2,1) = sqrt(1.0/3.0)
+            ngaus(3,1) = -sqrt(1.0/3.0)
+            ngaus(4,1) = sqrt(1.0/3.0)
+            ngaus(1,2) = -sqrt(1.0/3.0)
+            ngaus(2,2) = -sqrt(1.0/3.0)
+            ngaus(3,2) = sqrt(1.0/3.0)
+            ngaus(4,2) = sqrt(1.0/3.0)
+            weigp(1,1)=1.0
+            weigp(2,1)=1.0
+            weigp(3,1)=1.0
+            weigp(4,1)=1.0
           else if(totGp.eq.9) then
-            gauss_points(1,1)=sqrt(3.0/5.0)
-            gauss_points(2,1)= 0.0
-            gauss_points(3,1)=-sqrt(3.0/5.0)
-            gauss_points(4,1)=-sqrt(3.0/5.0)
-            gauss_points(5,1)=-sqrt(3.0/5.0) 
-            gauss_points(6,1)= 0.0
-            gauss_points(7,1)=sqrt(3.0/5.0)
-            gauss_points(8,1)=sqrt(3.0/5.0)
-            gauss_points(9,1)= 0.0
-            gauss_points(1,2)=sqrt(3.0/5.0)
-            gauss_points(2,2)=sqrt(3.0/5.0)
-            gauss_points(3,2)=sqrt(3.0/5.0)
-            gauss_points(4,2)= 0.0
-            gauss_points(5,2)=-sqrt(3.0/5.0)
-            gauss_points(6,2)=-sqrt(3.0/5.0)
-            gauss_points(7,2)=-sqrt(3.0/5.0)
-            gauss_points(8,2)= 0.0
-            gauss_points(9,2)= 0.0
-            gauss_weights(1,1)= 25.0/81.0
-            gauss_weights(2,1)= 40.0/81.0
-            gauss_weights(3,1)= 25.0/81.0
-            gauss_weights(4,1)= 40.0/81.0
-            gauss_weights(5,1)= 25.0/81.0
-            gauss_weights(6,1)= 40.0/81.0
-            gauss_weights(7,1)= 25.0/81.0
-            gauss_weights(8,1)= 40.0/81.0
-            gauss_weights(9,1)= 64.0/81.0
+            ngaus(1,1)=sqrt(3.0/5.0)
+            ngaus(2,1)= 0.0
+            ngaus(3,1)=-sqrt(3.0/5.0)
+            ngaus(4,1)=-sqrt(3.0/5.0)
+            ngaus(5,1)=-sqrt(3.0/5.0) 
+            ngaus(6,1)= 0.0
+            ngaus(7,1)=sqrt(3.0/5.0)
+            ngaus(8,1)=sqrt(3.0/5.0)
+            ngaus(9,1)= 0.0
+            ngaus(1,2)=sqrt(3.0/5.0)
+            ngaus(2,2)=sqrt(3.0/5.0)
+            ngaus(3,2)=sqrt(3.0/5.0)
+            ngaus(4,2)= 0.0
+            ngaus(5,2)=-sqrt(3.0/5.0)
+            ngaus(6,2)=-sqrt(3.0/5.0)
+            ngaus(7,2)=-sqrt(3.0/5.0)
+            ngaus(8,2)= 0.0
+            ngaus(9,2)= 0.0
+            weigp(1,1)= 25.0/81.0
+            weigp(2,1)= 40.0/81.0
+            weigp(3,1)= 25.0/81.0
+            weigp(4,1)= 40.0/81.0
+            weigp(5,1)= 25.0/81.0
+            weigp(6,1)= 40.0/81.0
+            weigp(7,1)= 25.0/81.0
+            weigp(8,1)= 40.0/81.0
+            weigp(9,1)= 64.0/81.0
           end if
         case('Triangle') 
           if(totGp.eq.1) then
-            gauss_points(1,1) = 1.0/3.0
-            gauss_points(1,2) = 1.0/3.0
-            gauss_weights(1,1) = 0.5
+            ngaus(1,1) = 1.0/3.0
+            ngaus(1,2) = 1.0/3.0
+            weigp(1,1) = 0.5
           else if(totGp.eq.3) then
-            gauss_points(1,1) = 0.0
-            gauss_points(2,1) = 0.5
-            gauss_points(3,1) = 0.5
-            gauss_points(1,2) = 0.5
-            gauss_points(2,2) = 0.0
-            gauss_points(3,2) = 0.5
-            gauss_weights(1,1) =1.0/6.0
-            gauss_weights(2,1) =1.0/6.0
-            gauss_weights(3,1) =1.0/6.0
+            ngaus(1,1) = 0.0
+            ngaus(2,1) = 0.5
+            ngaus(3,1) = 0.5
+            ngaus(1,2) = 0.5
+            ngaus(2,2) = 0.0
+            ngaus(3,2) = 0.5
+            weigp(1,1) =1.0/6.0
+            weigp(2,1) =1.0/6.0
+            weigp(3,1) =1.0/6.0
           else if(totGp.eq.4) then
-            gauss_points(1,1) =  1.0/3.0
-            gauss_points(2,1) =  1.0/5.0
-            gauss_points(3,1) =  1.0/5.0
-            gauss_points(4,1) =  3.0/5.0
-            gauss_points(1,2) =  1.0/3.0
-            gauss_points(2,2) =  3.0/5.0
-            gauss_points(3,2) =  1.0/5.0
-            gauss_points(4,2) =  1.0/5.0
-            gauss_weights(1,1) = -27.0/96.0
-            gauss_weights(2,1) = 25.0/96.0
-            gauss_weights(3,1) = 25.0/96.0
-            gauss_weights(4,1) = 25.0/96.0
+            ngaus(1,1) =  1.0/3.0
+            ngaus(2,1) =  1.0/5.0
+            ngaus(3,1) =  1.0/5.0
+            ngaus(4,1) =  3.0/5.0
+            ngaus(1,2) =  1.0/3.0
+            ngaus(2,2) =  3.0/5.0
+            ngaus(3,2) =  1.0/5.0
+            ngaus(4,2) =  1.0/5.0
+            weigp(1,1) = -27.0/96.0
+            weigp(2,1) = 25.0/96.0
+            weigp(3,1) = 25.0/96.0
+            weigp(4,1) = 25.0/96.0
           else if(totGp.eq.6) then
             ex1 = 0.816847572980459 !0.81684 75729 80459 verificar si es un vector fila o un real de 18 digitos
             et1 = 0.091576213509771
@@ -98,26 +98,26 @@ module biunit
             ex2 = 0.108103018168070
             et2 = 0.445948490915965
             ez2 = 0.445948490915965
-            gauss_points(1,1) = ex1
-            gauss_points(2,1) = et1
-            gauss_points(3,1) = ez1
-            gauss_points(4,1) = ex2
-            gauss_points(5,1) = et2
-            gauss_points(6,1) = ez2
-            gauss_points(1,2) = et1
-            gauss_points(2,2) = ez1
-            gauss_points(3,2) = ex1
-            gauss_points(4,2) = et2
-            gauss_points(5,2) = ez2
-            gauss_points(6,2) = ex2
+            ngaus(1,1) = ex1
+            ngaus(2,1) = et1
+            ngaus(3,1) = ez1
+            ngaus(4,1) = ex2
+            ngaus(5,1) = et2
+            ngaus(6,1) = ez2
+            ngaus(1,2) = et1
+            ngaus(2,2) = ez1
+            ngaus(3,2) = ex1
+            ngaus(4,2) = et2
+            ngaus(5,2) = ez2
+            ngaus(6,2) = ex2
             a = 0.054975870996713638
             b = 0.1116907969117165    
-            gauss_weights(1,1) = a
-            gauss_weights(2,1) = a
-            gauss_weights(3,1) = a
-            gauss_weights(4,1) = b
-            gauss_weights(5,1) = b
-            gauss_weights(6,1) = b
+            weigp(1,1) = a
+            weigp(2,1) = a
+            weigp(3,1) = a
+            weigp(4,1) = b
+            weigp(5,1) = b
+            weigp(6,1) = b
           end if
         case DEFAULT
           write(*,*) 'Invalid type of element.'   
@@ -127,10 +127,10 @@ module biunit
       
     end subroutine GaussQuadrature
 
-    subroutine ShapeFunctions(gauss_points, Nne,  N, dN_dxi, dN_deta )  
+    subroutine ShapeFunctions(ngaus, Nne,  N, dN_dxi, dN_deta )  
       implicit None
 
-      double precision, dimension(:,:), intent(in)               :: gauss_points
+      double precision, dimension(:,:), intent(in)               :: ngaus
       double precision, allocatable, dimension(:,:), intent(out) :: N
       double precision, allocatable, dimension(:,:), intent(out), optional :: dN_dxi, dN_deta
       double precision, dimension(totGp) :: xi_vector, eta_vector
@@ -143,8 +143,8 @@ module biunit
       
       allocate( N(Nne,totGp) )
       N = 0.0
-      xi_vector  = gauss_points(:,1)     ! xi-coordinate of point j
-      eta_vector = gauss_points(:,2)
+      xi_vector  = ngaus(:,1)     ! xi-coordinate of point j
+      eta_vector = ngaus(:,2)
 
       select case(ElemType)
 
