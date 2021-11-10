@@ -65,118 +65,112 @@ module library
       close (UnitNum)
       
     end subroutine ReadIntegerFile
-   ! 
-   ! subroutine ReadTensors(UnitNum, FileName, value)
-   !   
-   !   character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
-   !   character (len=*), intent (in) :: FileName
-   !   double precision               :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
-   !   integer :: status, UnitNum, nevab, nr
-   !   
-   !   
-   !   open (unit = nr, file =fileplace//FileName, status='old', action='read' , iostat = status)
-   !   
-   !   if (status.ne.0) then
-   !     print *, "Status_Single_Val", status
-   !   else
-   !     continue
-   !   end if
-   !   
-   !  
-   !   nr = 8
-   !   difma = 0.0
-   !   conma = 0.0
-   !   reama = 0.0
-   !   force = 0.0
-   !   
-   !   !read(nr,1) npoin,nelem,nnode,ngaut,ndofn
-   !   
-   !   if(ndofn.eq.2) then
-   !     read(nr,2) difma(1,1,1,1),difma(1,2,1,1), difma(2,1,1,1),difma(2,2,1,1)
-   !     read(nr,2) difma(1,1,1,2),difma(1,2,1,2), difma(2,1,1,2),difma(2,2,1,2)
-   !     read(nr,2) difma(1,1,2,2),difma(1,2,2,2), difma(2,1,2,2),difma(2,2,2,2)
-   !     
-   !     read(nr,2) conma(1,1,1), conma(1,2,1), conma(2,1,1), conma(2,2,1)
-   !     read(nr,2) conma(1,1,2), conma(1,2,2), conma(2,1,2), conma(2,2,2)
-   !     
-   !     read(nr,2) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
-   !     
-   !     read(nr,3) force(1)      ,force(2)
-   !     
-   !   else if(ndofn.eq.3) then                              
-   !     read(nr,5)
-   !     difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1),&
-   !     difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1),&
-   !     difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1)
-   !     
-   !     read(nr,5)
-   !     difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2),&
-   !     difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2),& 
-   !     difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2)
-   !     
-   !     read(nr,5)
-   !     difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2),&
-   !     difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2),&
-   !     difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2)
-   !     
-   !     read(nr,5)
-   !     conma(1,1,1), conma(1,2,1), conma(1,3,1),& 
-   !     conma(2,1,1), conma(2,2,1), conma(2,3,1),&
-   !     conma(3,1,1), conma(3,2,1), conma(3,3,1)
-   !     read(nr,5)
-   !     conma(1,1,2)  ,conma(1,2,2)  ,conma(1,3,2),&
-   !     conma(2,1,2)  ,conma(2,2,2)  ,conma(2,3,2),&
-   !     conma(3,1,2)  ,conma(3,2,2)  ,conma(3,3,2)
-   !     read(nr,5)
-   !     reama(1,1), reama(1,2), reama(1,3),&
-   !     reama(2,1), reama(2,2), reama(2,3),&
-   !     reama(3,1), reama(3,2), reama(3,3)
-   !     read(nr,3)
-   !     force(1), force(2), force(3)
-   !     
-   !   end if
-   !   
-   !  ! plate = 0
-   !  ! if(ndofn.eq.-3) then
-   !  !   read(nr,3) young,poiss,thick,force(3)
-   !  !   ndofn=3
-   !  !   plate=1
-   !  ! end if                                                
-   !   
-   !  ! read(nr,4) ksoty,kprec,hnatu,kstab,ktaum,patau,iout
-   !  ! call geodat(coord,ifpre,lnods,posgx,posgy,weigp,unkno)
-   !   
-   !   close (UnitNum)
-   !   
-   !  ! if(plate.eq.1)
-   !  !   call plamat(young,poiss,thick,difma,conma,reama)
-   !  ! endif
-   !   
-   !   nevab = ndofn*nne
-   !   
-   !   !The slash / descriptor begins a new line (record) on output and skips to the next line on input, ignoring any unread information on the current record format(6/) o 6/
-   !   1 format(6/),5(39x,i10,/))
-   !   2 format(39x,2(e15.5),/,39x,2(e15.5))
-   !   3 format(39x,4(e15.5))
-   !   4 format(/,2(39x,i10,/),(39x,e15.5,/),2(39x,i10,/),(39x,e15.5,/),(39x,i10,/)/)
-   !   5 format(39x,3(e15.5),/,39x,3(e15.5),/,39x,3(e15.5))
-   !   
-   !   difma(1,1,2,1)=difma(1,1,1,2)
-   !   difma(1,2,2,1)=difma(2,1,1,2)
-   !   difma(2,1,2,1)=difma(1,2,1,2)
-   !   difma(2,2,2,1)=difma(2,2,1,2)
-   !   
-   !   if(ndofn.eq.3) then
-   !     difma(1,3,2,1)=difma(3,1,1,2)
-   !     difma(2,3,2,1)=difma(3,2,1,2)
-   !     difma(3,1,2,1)=difma(1,3,1,2)
-   !     difma(3,2,2,1)=difma(2,3,1,2)
-   !     difma(3,3,2,1)=difma(3,3,1,2)
-   !   end if
-   !   
-   !   ntotv=ndofn*npoin
-   !   
-   ! end subroutine ReadTensors
+    
+    subroutine ReadTensors(nr, FileName)
+      
+      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
+      character (len=*), intent (in) :: FileName
+      double precision               :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
+      integer :: status, nevab, nr, ntotv
+      
+      
+      open (unit = nr, file =fileplace//FileName, status='old', iostat = status)
+      
+      difma = 0.0
+      conma = 0.0
+      reama = 0.0
+      force = 0.0
+      
+      !read(nr,1) npoin,nelem,nnode,ngaut,ndofn
+      
+      if(ndofn.eq.2) then
+        read(nr,2) difma(1,1,1,1),difma(1,2,1,1), difma(2,1,1,1),difma(2,2,1,1)
+        read(nr,2) difma(1,1,1,2),difma(1,2,1,2), difma(2,1,1,2),difma(2,2,1,2)
+        read(nr,2) difma(1,1,2,2),difma(1,2,2,2), difma(2,1,2,2),difma(2,2,2,2)
+        
+        read(nr,2) conma(1,1,1), conma(1,2,1), conma(2,1,1), conma(2,2,1)
+        read(nr,2) conma(1,1,2), conma(1,2,2), conma(2,1,2), conma(2,2,2)
+        
+        read(nr,2) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
+        
+        read(nr,3) force(1), force(2)
+        
+        print*, force 
+        
+      else if(ndofn.eq.3) then                              
+        print*, 'test if'
+        read(nr,5) difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1)
+        read(nr,5) difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1)
+        read(nr,5) difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1)
+        
+        read(nr,5) difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2)
+        read(nr,5) difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2) 
+        read(nr,5) difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2)
+        
+        read(nr,5) difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2)
+        read(nr,5) difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2)
+        read(nr,5) difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2)
+        
+        read(nr,5) conma(1,1,1), conma(1,2,1), conma(1,3,1)
+        read(nr,5) conma(2,1,1), conma(2,2,1), conma(2,3,1)
+        read(nr,5) conma(3,1,1), conma(3,2,1), conma(3,3,1)
+        
+        read(nr,5) conma(1,1,2), conma(1,2,2), conma(1,3,2)
+        read(nr,5) conma(2,1,2), conma(2,2,2), conma(2,3,2)
+        read(nr,5) conma(3,1,2), conma(3,2,2), conma(3,3,2)
+       
+        read(nr,5) reama(1,1), reama(1,2), reama(1,3)
+        read(nr,5) reama(2,1), reama(2,2), reama(2,3)
+        read(nr,5) reama(3,1), reama(3,2), reama(3,3)
+        
+        read(nr,3) force(1), force(2), force(3)
+        
+        print*, force 
+        
+      end if
+      
+     ! plate = 0
+     ! if(ndofn.eq.-3) then
+     !   read(nr,3) young,poiss,thick,force(3)
+     !   ndofn=3
+     !   plate=1
+     ! end if                                                
+      
+     ! read(nr,4) ksoty,kprec,hnatu,kstab,ktaum,patau,iout
+     ! call geodat(coord,ifpre,lnods,posgx,posgy,weigp,unkno)
+      
+      close (nr)
+      
+     ! if(plate.eq.1)
+     !   call plamat(young,poiss,thick,difma,conma,reama)
+     ! endif
+      
+      nevab = ndofn*nne
+      
+      !The slash / descriptor begins a new line (record) on output and skips to the next line on input, ignoring any unread information on the current record format(6/) o 6/
+      1 format((6/),5(39x,i10,/))
+      2 format(39x,2(e15.5),/,39x,2(e15.5))
+      3 format(39x,3(e15.5))
+      !3 format((12/),39x,3(e15.5))
+      4 format(/,2(39x,i10,/),(39x,e15.5,/),2(39x,i10,/),(39x,e15.5,/),(39x,i10,/)/)
+      5 format(39x,3(E15.5),/,39x,3(E15.5),/,39x,3(E15.5))
+      
+      difma(1,1,2,1)=difma(1,1,1,2)
+      difma(1,2,2,1)=difma(2,1,1,2)
+      difma(2,1,2,1)=difma(1,2,1,2)
+      difma(2,2,2,1)=difma(2,2,1,2)
+      
+      if(ndofn.eq.3) then
+        difma(1,3,2,1)=difma(3,1,1,2)
+        difma(2,3,2,1)=difma(3,2,1,2)
+        difma(3,1,2,1)=difma(1,3,1,2)
+        difma(3,2,2,1)=difma(2,3,1,2)
+        difma(3,3,2,1)=difma(3,3,1,2)
+      end if
+      
+      ntotv=ndofn*nnodes
+      
+    end subroutine ReadTensors
     
     subroutine ReadMixFile(UnitNum, FileName, NumRows, NumCols, Real_Array)
       implicit none
