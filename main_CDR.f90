@@ -22,9 +22,8 @@ program main_CDR3d
   call GeneralInfo( )
   call ReadIntegerFile(10,File_element, nelem, nne + 1, lnods)  
   call ReadRealFile(20,File_coord, nnodes,3, coord) !Para dreducir el numero de subrutinas, usar la sentencia option par
-  !call ReadReal(30,File_material, materials)    !Para dreducir el numero de subrutinas, usar la sentencia option para      
-  !call ReadIntegerFile(40,File_pcoord, nnodes,2, pcoord)
-  !call ReadIntegerFile(50,File_pelement, nelem,nPne + 1, plnods)
+  call ReadTensors(30, File_tensors, difma, conma, reama, force) !Para dreducir el numero de subrutinas, usar la sentencia option par
+
   print*, ' '
   print*, '!=============== INFO DURING EXECUTION ===============!'
   
