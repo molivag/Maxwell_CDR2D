@@ -12,11 +12,13 @@ module library
       print*,'!==================== GENERAL INFO ===============!'
       write(*,"(A29,8X,A13,3X,A2)") ' 1.- Element type:           ', ElemType,' |'
       write(*,"(A29,8X,I6,1X,A11)") ' 2.- Problem dimension:      ', DimPr, '  |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 3.- Total elements:         ', nelem,'   |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 4.- Total nodal points:     ', nnodes, ' |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 3.- Elements:               ', nelem,'   |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 4.- Nodal points:           ', nnodes, ' |'
       write(*,"(A29,8X,I6,1X,A11)") ' 5.- DoF per element:        ', ndofn, '  |'
       write(*,"(A29,8X,I6,1X,A11)") ' 6.- Nodes per element:      ', nne, '    |'
       write(*,"(A29,8X,I6,1X,A11)") ' 7.- Total Gauss points:     ', totGp,'   |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 8.- Element variabless:     ', nevab,'   |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 9.- Total unknowns:         ', ntotv,'   |'
       write(*,*)' '
       print*,'!============== FILE READING STATUS ============!'
      
@@ -66,11 +68,11 @@ module library
       
     end subroutine ReadIntegerFile
     
-    subroutine ReadTensors(nr, FileName)
+    subroutine ReadTensors(nr, FileName, difma, conma, reama, force)
       
       character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
       character (len=*), intent (in) :: FileName
-      double precision               :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
+      double precision, intent(out)  :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
       integer :: status, nevab, nr, ntotv
       
       
@@ -145,8 +147,6 @@ module library
      !   call plamat(young,poiss,thick,difma,conma,reama)
      ! endif
       
-      nevab = ndofn*nne
-      
       !The slash / descriptor begins a new line (record) on output and skips to the next line on input, ignoring any unread information on the current record format(6/) o 6/
       1 format((6/),5(39x,i10,/))
       2 format(39x,2(e15.5),/,39x,2(e15.5))
@@ -168,7 +168,6 @@ module library
         difma(3,3,2,1)=difma(3,3,1,2)
       end if
       
-      ntotv=ndofn*nnodes
       
     end subroutine ReadTensors
     
@@ -463,44 +462,10 @@ module library
     end subroutine AssembleK
     
     
-    !subroutine AssemblyStab(ke, node_id_map, K)
-    !  
-    !  implicit none
-    !  double precision, dimension(,), intent(in out)  :: K !Global Stiffnes matrix debe 
-    !  !                                                           llevar inout por que entra como variable (IN) 
-    !  !                                                            pero en esta funcion se modifica (out)
-    !  double precision, dimension(nPne, nPne), intent(in) :: ke
-    !  integer, dimension(nPne,1), intent(in)              :: node_id_map
-    !  integer :: i, j, row_node, row, col_node, col, pnode_id !nodal Degrees of Freedom
-    !  
-    !  !K 
-    !  
-    !  do i = 1, nPne
-    !    row_node = node_id_map(i,1)
-    !    pnode_id = pnodes(row_node,2)
-    !    row = pnode_id !ndDOF*col_node - (ndDOF-1)
-    !    
-    !    do j = 1, nPne
-    !      col_node = node_id_map(j,1)
-    !      pnode_id =  pnodes(col_node,2)
-    !      col = pnode_id !ndDOF*col_node - (ndDOF-1)
-    !      
-    !      K(row,col) =  K(row , col) + ke(i,j)
-    !    enddo
-    !    
-    !  enddo
-    !  
-    !  
-    !  return
-    !  
-    !end subroutine AssemblyStab
-    
-    
     subroutine GlobalK( A_K, dN_dxi, dN_deta) !Al tener un solo parametro de salida puedo declararla como funcion
       
       implicit none
       
-      double precision, dimension(2*nnodes, 2*nnodes), intent(out) :: A_K  !Global Stiffnes matrix
       double precision, dimension(nne,TotGp), intent(in) :: dN_dxi, dN_deta
       double precision, dimension(2*nne, 2*nne)       :: ke
       double precision, dimension(DimPr, DimPr)       :: Jaco, Jinv!, JinvP, JacoP
@@ -516,7 +481,7 @@ module library
       real, dimension(ndofn,ndofn)                    :: cc, C !Derived from elasticity formulation as Matertial matrix of Hook's Law
       real, dimension(nne,DimPr)   :: element_nodes
       integer, dimension(nne,1)    :: node_id_map
-      double precision             :: dvolu  
+      double precision             :: dvol
       integer                      :: gp, e
       
       
@@ -543,7 +508,7 @@ module library
          HJB_T = transpose(HJB)
          part1 = matmul(HJB_T,C)
          part2 = matmul(part1,HJB)
-         dvolu = detJ *  weigp(gp,1) 
+         dvol  = detJ *  weigp(gp,1) 
          ke    = ke + part2 * dvolu !
         end do
         
@@ -551,6 +516,14 @@ module library
         
       end do
       
+
+
+
+
+
+
+
+
       !Setup for K12 block or KuP
       !allocate (K12(nnodes*2,n_pnodes),K12_T(n_pnodes,nnodes*2))
       !allocate (K22(,))
