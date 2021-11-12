@@ -72,11 +72,10 @@ module library
       
       character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
       character (len=*), intent (in) :: FileName
+      integer :: status, nr
       double precision, intent(out)  :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
-      integer :: status, nevab, nr, ntotv
       
-      
-      open (unit = nr, file =fileplace//FileName, status='old', iostat = status)
+      open (unit = nr, file = fileplace//FileName, status='old', iostat = status)
       
       difma = 0.0
       conma = 0.0
@@ -155,10 +154,10 @@ module library
       4 format(/,2(39x,i10,/),(39x,e15.5,/),2(39x,i10,/),(39x,e15.5,/),(39x,i10,/)/)
       5 format(39x,3(E15.5),/,39x,3(E15.5),/,39x,3(E15.5))
       
-      difma(1,1,2,1)=difma(1,1,1,2)
-      difma(1,2,2,1)=difma(2,1,1,2)
-      difma(2,1,2,1)=difma(1,2,1,2)
-      difma(2,2,2,1)=difma(2,2,1,2)
+      difma(1,1,2,1) = difma(1,1,1,2)
+      difma(1,2,2,1) = difma(2,1,1,2)
+      difma(2,1,2,1) = difma(1,2,1,2)
+      difma(2,2,2,1) = difma(2,2,1,2)
       
       if(ndofn.eq.3) then
         difma(1,3,2,1)=difma(3,1,1,2)
@@ -222,33 +221,10 @@ module library
       
     end subroutine SetElementNodes
     
-    !subroutine PreassureElemNods(elm_num, pelement_nodes, pnode_id_map)
-    !  
-    !  implicit none
-    !  
-    !  integer,intent(in)                       :: elm_num ! number of element for each elemental integral in do of K global
-    !  real, dimension(nPne,DimPr), intent(out) :: pelement_nodes
-    !  integer, dimension(nPne,1), intent(out)  :: pnode_id_map
-    !  integer                                  :: i,j, global_node_id
-    !  
-    !  
-    !  pelement_nodes = 0.0
-    !  pnode_id_map = 0.0
-    !  
-    !  do i = 1, nPne
-    !    global_node_id = plnods(elm_num,i+1)
-    !    do j=1 ,DimPr
-    !      pelement_nodes(i,j) = nodes(global_node_id,j+1)
-    !    end do
-    !    pnode_id_map(i,1) = global_node_id
-    !  end do
-    !  
-    !end subroutine PreassureElemNods
-    
     function J2D( element_nodes, dN_dxi, dN_deta, Gp)
       implicit none
       
-      integer, intent(in)                      :: Gp !esta variable se usara en el lazo principal con el numero de punto de gauss para evaluar las integrales elementales
+      integer, intent(in)                      :: Gp !esta variable se usara en el lazo principal con el punto de Gauss
       real, dimension(nne,DimPr), intent(in)  :: element_nodes
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
       double precision, dimension(DimPr,nne)  :: Basis2D
@@ -271,29 +247,54 @@ module library
       J2D = matmul(Basis2D,element_nodes)
       
       return
-    end function J2D
-
-    !function JP2D( element_nodes, dN_dxi, dN_deta, Gp)
-    !  implicit none
-    !  
-    !  integer, intent(in)                      :: Gp !esta variable se usara en el lazo principal con el numero de Gauss points
-    !  real, dimension(nPne,DimPr), intent(in)  :: element_nodes
-    !  double precision, dimension(nPne,totGp), intent(in) :: dN_dxi, dN_deta
-    !  double precision, dimension(DimPr,nPne)  :: Basis2D
-    !  double precision, dimension(1,nPne)      :: Nxi, Neta
-    !  double precision, dimension(DimPr,DimPr) :: JP2D
-    !  
-    !  Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
-    !  Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
-    !  
-    !  ! Esta forma de 
-    !  Basis2D(1,:) = Nxi(1,:)
-    !  Basis2D(2,:) = Neta(1,:)
-    !  JP2D = matmul(Basis2D,element_nodes) !Aqui se usan directamente las derivadas (eqs 5.114-5.117) de las coordenadas f
-    !  
-    !  
-    !  return
-    !end function JP2D
+      
+    end function J2D               
+    
+    subroutine DerivativesXY(Gp, Jaco, InvJaco, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+      
+      implicit none
+     
+      double precision, dimension(DimPr,DimPr),intent(in):: Jaco, InvJaco     
+      double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
+      double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      integer, intent(in)                                :: Gp !esta variable se usara en el lazo principal
+      double precision, dimension(1,nne) :: Nxi, Neta
+      double precision, dimension(2,nne) :: derst
+      integer                            :: idime, inode, jdime
+      double precision, dimension(2,nne), intent(out)    :: dN_dxy
+      double precision, dimension(3,nne), intent(out)    :: HesXY
+      
+      
+      Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)     
+      Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)   
+      
+      
+      do idime=1,2
+        do inode=1,nne
+          dN_dxy = 0.0
+          derst(1,inode) = Nxi(1,inode)
+          derst(2,inode) = Neta(1,inode)
+          do jdime=1,2
+            dN_dxy(idime,inode)  = dN_dxy(idime,inode) + Jaco(idime,jdime) * derst(jdime,inode)
+          end do
+        end do
+      end do
+      
+      !The Hessian matrix
+      HesXY = 0.0 
+      do inode=1,nnode                                      
+        HesXY(1,inode) = InvJaco(1,1)*InvJaco(1,1)*Hesxieta(1,inode)+&
+          2.0*InvJaco(1,1)*InvJaco(2,1)*Hesxieta(2,inode)+InvJaco(2,1)*InvJaco(2,1)*Hesxieta(3,inode)
+        
+        HesXY(2,inode) = InvJaco(1,1)*InvJaco(1,2)*Hesxieta(1,inode) + (InvJaco(1,1)*InvJaco(2,2)+&
+          InvJaco(2,1)*InvJaco(1,2)) * Hesxieta(2,inode) + InvJaco(2,1)*InvJaco(2,2)*Hesxieta(3,inode)
+        
+        HesXY(3,inode) = InvJaco(2,2)*InvJaco(2,2)*Hesxieta(3,inode)+& 
+          2.0*InvJaco(2,2)*InvJaco(1,2)*Hesxieta(2,inode)+InvJaco(1,2)*InvJaco(1,2)*Hesxieta(1,inode)
+      end do
+      
+      
+    end subroutine DerivativesXY 
     
     
     function inv2x2(A)
@@ -352,6 +353,23 @@ module library
       
     end function m22det
     
+    function elemSize(Jacobian)
+      implicit none
+      
+      double precision, dimension(DimPr,DimPr), intent(in) :: Jacobian
+      double precision :: hx, hy, elemSize
+      
+      
+      hx    = sqrt(Jacobian(1,1)**2+Jacobian(2,1)**2)
+      hy    = sqrt(Jacobian(1,2)**2+Jacobian(2,2)**2)
+      
+      elemSize = hnatu/(min(hx,hy))
+     
+      return
+      
+    end function elemsize
+    
+    
     function CompH()
       implicit None
       
@@ -406,39 +424,50 @@ module library
 
     end function compBmat
 
-    !function BPmat(dNp_dxi, dNp_deta, Gp)                                               
-    !  !Computation of the pressure Strain-Displacement Matrix
-    !
-    !  implicit none                                                                                      
-    !
-    !  integer, intent(in) :: Gp                                              
-    !  double precision, dimension(nPne,totGp), intent(in) :: dNp_dxi, dNp_deta
-    !  double precision, dimension(1*DimPr, 1*nPne) :: Bpmat ! 1 grado de libertad por nodo para los elementos de presion
-    !  double precision, dimension(1, nPne)         :: Npxi, Npeta
-    !  integer :: i                                                                                                   
-    !
-    !  Bpmat = 0.0                                                                                                                        
-    !  Npxi  = spread(dNp_dxi(:,Gp),dim = 1, ncopies= 1)        
-    !  Npeta = spread(dNp_deta(:,Gp),dim = 1, ncopies= 1)     
-    !
-    !  !Npxi  = Nx(:,Gp)                                                                         
-    !  !Npeta = Ny(:,Gp)                                                              
-    !
-    !  do i=1, nPne                                                                                      
-    !    Bpmat(1,i) = Npxi(1,i)                                  
-    !    Bpmat(2,i) = Npeta(1,i)                                 
-    !  end do                                                    
-    !
-    !  return                                                    
-    !
-    !end function BPmat  
+    subroutine  GalCon(nne, dvol, basis, dNdxy, ndofn, nevab, amate, rhslo)
+      
+      implicit none
 
+      double precision, intent(in) :: basis(nnode), derxy(2,nnode)
+      double precision, intent(in) :: dvol
+      integer, intent(in) :: nne
+      integer :: inode, idofn, jevab, jnode, jdofn, i, j
+      double precision ::  prod1, prod2, prod3
+      double precision, intent(out) :: amate(nevab,nevab), rhslo(nevab)
+      ievab=0
+      do inode=1,nnode
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nnode
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              prod1=0.0
+              do i=1,2
+                do j=1,2
+                  prod1=prod1+ derxy(i,inode) * difma(idofn,jdofn,i,j)* derxy(j,jnode)
+                end do
+              end do
+              prod2=0.0
+              do i=1,2
+                prod2=prod2+basis(inode)*conma(idofn,jdofn,i)*derxy(i,jnode)
+              end do
+              prod3=basis(inode)*reama(idofn,jdofn)*basis(jnode)
+              amate(ievab,jevab) = amate(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
+            end do
+          end do
+          rhslo(ievab) = rhslo(ievab) + basis(inode) * force(idofn) * dvol
+        end do
+      end do
+      
+    end subroutine GalCon 
+    
     subroutine AssembleK(K, ke, node_id_map, ndDOF)
-
+      
       implicit none
       real(8), dimension(2*nnodes, 2*nnodes),intent(in out)  :: K !Global Stiffnes matrix debe 
-      !                                                                               llevar inout por que entra como variable (IN) 
-      !                                                                                pero en esta funcion se modifica (out)
+      !                                                         llevar inout por que entra como variable (IN) 
+      !                                                         pero en esta funcion se modifica (out)
       real(8), dimension(2*nne, 2*nne), intent(in)   :: ke
       integer, dimension(nne,1), intent(in)           :: node_id_map
       integer, intent(in)                              :: ndDOF 
@@ -462,13 +491,17 @@ module library
     end subroutine AssembleK
     
     
-    subroutine GlobalK( A_K, dN_dxi, dN_deta) !Al tener un solo parametro de salida puedo declararla como funcion
+    subroutine GlobalK( A_K, N, dN_dxi, dN_deta) !Al tener un solo parametro de salida puedo declararla como funcion
       
       implicit none
       
-      double precision, dimension(nne,TotGp), intent(in) :: dN_dxi, dN_deta
-      double precision, dimension(2*nne, 2*nne)       :: ke
-      double precision, dimension(DimPr, DimPr)       :: Jaco, Jinv!, JinvP, JacoP
+      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
+      declarar aqui el Hesxieta
+      double precision, dimension(nne)                :: basis
+      !double precision, dimension(2*nne, 2*nne)       :: ke
+      double precision, dimension(nevab, nevab)       :: Ke
+      double precision, dimension(nevab)              :: rhslo
+      double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
       double precision                                :: detJ!, detJP
       double precision, dimension(2*DimPr, 2*DimPr)   :: Jb ! aqui tmb es ndofn no DimPr pero 2 para vel y dos para P
       double precision, dimension(2*DimPr, DimPr*nne) :: B  !no es DimPr es ndofn del elemento en cuestion
@@ -477,12 +510,12 @@ module library
       double precision, dimension(2*nne,ndofn)        :: HJB_T !Todos estos dos, hablan de los DoF de la velocidad 
       double precision, dimension(2*nne,ndofn)        :: part1 !Todos estos dos, hablan de los DoF de la velocidad
       double precision, dimension(2*nne,2*nne)        :: part2 !Todos estos dos, hablan de los DoF de la velocidad
-      real, dimension(ndofn,2*DimPr)                  :: H
-      real, dimension(ndofn,ndofn)                    :: cc, C !Derived from elasticity formulation as Matertial matrix of Hook's Law
+      double precision, dimension(nevab,nebav)        :: amate
+      double precision, dimension(3,nne), intent(in)  :: Hesxieta
       real, dimension(nne,DimPr)   :: element_nodes
       integer, dimension(nne,1)    :: node_id_map
-      double precision             :: dvol
-      integer                      :: gp, e
+      double precision             :: dvol, hmaxi
+      integer                      :: igaus, ielem
       
       
       
@@ -492,126 +525,37 @@ module library
       H  = CompH()
       
       !Setup for K11 block or Kuu
-      do e = 1, nelem    !lnods loop for K11 block Global K
+      do ielem = 1, nelem    !lnods loop for K11 block Global K
+        !gather
         ke = 0.0
         Jb = 0.0
-        call SetElementNodes(e, element_nodes, node_id_map)
+        amate = 0.0             !amate(nevab*nevab)
+        !rhslo = 0.0             !rhslo(nevab)
+        call SetElementNodes(ielem, element_nodes, node_id_map)
         !do-loop: compute element (velocity-velocity) stiffness matrix ke
-        do gp = 1, TotGp
-          Jaco = J2D(element_nodes, dN_dxi, dN_deta, gp)
+        do igaus = 1, TotGp
+          Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
           detJ = m22det(Jaco)
           Jinv = inv2x2(Jaco)
-          Jb   = buildJb (Jinv)
-          B    = compBmat( dN_dxi, dN_deta, gp)
-          HJ   = matmul(H,Jb)
-          HJB  = matmul(HJ,B)
-         HJB_T = transpose(HJB)
+          dvol = detJ *  weigp(igaus,1) 
+          call DerivativesXY(igaus, Jaco, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jaco) 
+          basis = spread(N(:,igaus),dim = 1, ncopies= 1)     
+          call galcon(nne, ndofn, nevab, dvol, basis, dN_dxy, Ke, rhslo)
+          call taumat(tauma,hmaxi,ndofn) 
+
+
+          
          part1 = matmul(HJB_T,C)
          part2 = matmul(part1,HJB)
-         dvol  = detJ *  weigp(gp,1) 
          ke    = ke + part2 * dvolu !
         end do
         
         call AssembleK(A_K, ke, node_id_map, 2) ! assemble global K
         
       end do
+     
       
-
-
-
-
-
-
-
-
-      !Setup for K12 block or KuP
-      !allocate (K12(nnodes*2,n_pnodes),K12_T(n_pnodes,nnodes*2))
-      !allocate (K22(,))
-      !K12 = 0.0
-      !K22 = 0.0
-      
-      !Tau = (0.99**2 / 4.0 * 1.0)
-      !print"(A10,f10.5)",'𝜏 =  ', Tau
-      !print*, ' '
-      !call ShapeFunctions(gauss_points, nPne, Np, dNp_dxi, dNp_deta)
-      !!for-loop: compute K12 block of K
-      !do e = 1, nelem
-      !  kep = 0.0
-      !  Stab = 0.0
-      !  call SetElementNodes(e, element_nodes,  node_id_map)
-      !  call PreassureElemNods(e, pelement_nodes, pnode_id_map) !-Arreglar esto para q'sea con p en todos argumen
-      !  ! for-loop: compute element stiffness matrix kup_e
-      !  do gp = 1, TotGp
-      !    Jaco  = J2D(element_nodes, dN_dxi, dN_deta, gp)
-      !    JacoP = JP2D(pelement_nodes, dNp_dxi, dNp_deta, gp)
-      !    detJ  = m22det(Jaco)
-      !    detJP = m22det(JacoP)
-      !    Jinv  = inv2x2(Jaco)
-      !    JinvP = inv2x2(JacoP)
-      !    nabP  = Bpmat(dNp_dxi, dNp_deta, gp)  !∇P 
-      !    JnabP = matmul(JinvP,nabP) !J^-1 * ∇P 
-      !    JP_T  = transpose(JnabP)   !(J^-1 * ∇P)^T
-      !    dn    = 0.0
-      !    do j = 1, nne
-      !      part4(j,:) = [ dN_dxi(j,gp), dN_deta(j,gp) ]  
-      !      part5 = reshape([part4(j,:)],[2,1]) 
-      !      A =  matmul(Jinv,part5)           
-      !      dN(2*j-1:2*j ,1)= A(:,1)         
-      !    end do
-      !    part6(:,1) = Np(:,gp)
-      !    part7 = transpose(part6)
-      !    part8 = matmul(dn,part7)
-      !    nabTPnabP = matmul(JP_T,JnabP) !∇'δP · ∇P 
-      !    kep  = kep + part8 * (detJ*weigp(gp,1)) 
-      !    Stab = Stab + nabTPnabP * detJP * weigp(gp,1) ! ∫ (∇'δP : ∇P) dΩ  
-      !  end do  
-      !    Stab = Stab * Tau 
-      !   
-      !  ! for-loop: assemble ke into global KP (it mean K12)
-      !  do i = 1, nne
-      !    row_node = node_id_map(i,1)
-      !    row = 2*row_node - 1
-      !    do j = 1, nPne
-      !      col_node = pnode_id_map(j,1)
-      !      pnode_id = pnodes(col_node,2)
-      !      col = pnode_id !Aqui puedo sustituir directamente y evito esta misma linea
-      !      K12(row:row+1, col) = K12(row:row+1, col) + kep(2*i-1:i*2, j)
-      !    end do
-      !  end do 
-      !  
-      !  call AssemblyStab(Stab, pnode_id_map, K22) ! assemble global K
-      !  
-      !end do
-      
-      !dimAK = size(A_K,1)
-      !symmetric = dimAK - 
-      !do i = 1, 2*nnodes
-      !  do j = 2*nnodes+1, (2*nnodes)
-      !    A_K(i, j) = -K12(i,j-symmetric)
-      !  end do
-      !end do
-      !!========== Lower
-      !K12_T = transpose(K12)
-      !do i = 2*nnodes+1, (2*nnodes)
-      !  do j = 1, 2*nnodes 
-      !    A_K(i, j) = -K12_T(i-symmetric,j)
-      !  end do
-      !end do
-      !!========== Filling the stabilization global matrix into A_K ==========
-      !do i = 1,  
-      !  do j = 1, 
-      !    k = 2*nnodes + i
-      !    l = 2*nnodes + j
-      !    A_K(k, l) = -K22(i,j)
-      !  end do
-      !end do
-      
-      !DEALLOCATE(K12)
-      !DEALLOCATE(K12_T)
-      !DEALLOCATE(Np)
-      !DEALLOCATE(dNp_dxi)
-      !DEALLOCATE(dNp_deta)
-      !DEALLOCATE(K22)
     end subroutine GlobalK
     
     
