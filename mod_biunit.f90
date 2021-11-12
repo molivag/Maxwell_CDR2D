@@ -126,17 +126,20 @@ module biunit
       
       
     end subroutine GaussQuadrature
-
-    subroutine ShapeFunctions(ngaus, Nne,  N, dN_dxi, dN_deta )  
+    
+   
+    subroutine ShapeFunctions(ngaus, Nne,  N, dN_dxi, dN_deta, Hesxieta) 
+      
       implicit None
-
-      double precision, dimension(:,:), intent(in)               :: ngaus
+      
+      double precision, dimension(:,:), intent(in) :: ngaus
+      double precision, dimension(totGp) :: xi_vector, eta_vector
+      double precision, dimension(3,Nne) :: Hesxieta
+      integer, dimension(Nne,DimPr)      :: master_nodes
+      double precision                   :: xi, eta, mn_xi, mn_eta
+      integer                            :: i, j, jj, k, Nne
       double precision, allocatable, dimension(:,:), intent(out) :: N
       double precision, allocatable, dimension(:,:), intent(out), optional :: dN_dxi, dN_deta
-      double precision, dimension(totGp) :: xi_vector, eta_vector
-      integer, dimension(Nne,DimPr)                     :: master_nodes
-      double precision                                  :: xi, eta, mn_xi, mn_eta
-      integer                                           :: i, j, jj, k, Nne
       
       ! = = = = = = = = = = = = = = = = = = = = = = = = = = =
       100 format (3A, 1x, I1, 1x, A)
@@ -267,6 +270,10 @@ module biunit
                   dN_deta(i,j)= mn_eta*(1.0 + mn_xi*xi )/4.0            ! dNi/deta(xi,eta
                 end do
               end do
+              Hesxieta(2,1)= 0.25
+              Hesxieta(2,2)=-0.25
+              Hesxieta(2,3)= 0.25
+              Hesxieta(2,4)=-0.25
             else
               write(*,*) 'Using only shape functions'
               continue

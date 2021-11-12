@@ -11,6 +11,7 @@ module param
   integer, parameter :: totGp    = 4                        !1,4,9 for Q, 1,3,4,6 for P 
   integer, parameter :: nevab    = ndofn*nne                !Number of element variables
   integer, parameter :: ntotv    = ndofn*nnodes             !Total number of variables
+  real*8,  parameter :: hnatu    = 2.0                      !Reference element length    
 
   character(len=20), parameter :: File_element  = 'lnods.dat'
   character(len=20), parameter :: File_coord    = 'coord.dat'
@@ -28,4 +29,3 @@ module param
 
 
 end module param
-
