@@ -28,14 +28,14 @@ program main_CDR3d
   print*, '!=============== INFO DURING EXECUTION ===============!'
   
   call GaussQuadrature(ngaus, weigp)
-  call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta)  
+  call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta, Hesxieta)  
   
   allocate(A_K(2*nnodes, 2*nnodes), AK_LU(2*nnodes, 2*nnodes) )
   call SetBounCond( nBVs, nBVscol) !Esta funcion crea el archivo bcsVP.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
   call ReadIntegerFile(60,"BVs.dat", nBVs, nBVscol, BVs)!Llamo el archivo de valores en la frontera y lo guardo en BVs
   
-  call GlobalK( A_K, dN_dxi, dN_deta)
+  call GlobalK( A_K, N, dN_dxi, dN_deta, Hesxieta)
 
   allocate(rhsgl(2*nnodes, 1), Solution(2*nnodes, 1))
   rhsgl = 0.0 !initializing source vector (rhsgl) 
