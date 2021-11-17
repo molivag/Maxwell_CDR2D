@@ -129,7 +129,6 @@ module library
         print*, force 
         
       end if
-      
      ! plate = 0
      ! if(ndofn.eq.-3) then
      !   read(nr,3) young,poiss,thick,force(3)
@@ -141,7 +140,6 @@ module library
      ! call geodat(coord,ifpre,lnods,posgx,posgy,weigp,unkno)
       
       close (nr)
-      
      ! if(plate.eq.1)
      !   call plamat(young,poiss,thick,difma,conma,reama)
      ! endif
@@ -166,7 +164,6 @@ module library
         difma(3,2,2,1)=difma(2,3,1,2)
         difma(3,3,2,1)=difma(3,3,1,2)
       end if
-      
       
     end subroutine ReadTensors
     
@@ -282,7 +279,7 @@ module library
       
       !The Hessian matrix
       HesXY = 0.0 
-      do inode=1,nnode                                      
+      do inode=1,nne                                      
         HesXY(1,inode) = InvJaco(1,1)*InvJaco(1,1)*Hesxieta(1,inode)+&
           2.0*InvJaco(1,1)*InvJaco(2,1)*Hesxieta(2,inode)+InvJaco(2,1)*InvJaco(2,1)*Hesxieta(3,inode)
         
@@ -325,19 +322,137 @@ module library
       return
       
     end function inv2x2
-    
-    function buildJb(A)
-      !Funcion que construye una matriz de 4 x 4 en bloques de 2 para el caso 2D
+
+    subroutine invmtx(a,deter,b)
+      
+      ! This routine inverts a square matrix A -> Mat(ndofn,ndofn). The
+      ! inverse is stored in B. Its determinant is DETER
       
       implicit none
       
-      double precision, dimension(DimPr,DimPr), intent (in)   :: A
-      double precision, dimension(2*DimPr, 2*DimPr)           :: buildJb
+      double precision, intent(in) :: a(3,3)
+      double precision :: deter, t1, t2, t3, denom
+      double precision, intent(out) :: b(3,3)
+     
+      !nvers of a 1*1 matrix
+     
+      if(ndofn.eq.1) then
+        deter=a(1,1)
+        if(deter.eq.0.0) return
+        b(1,1) = 1.0/a(1,1)
+        return
+      endif
+     
+      !invers of a 2*2 matrix
+     
+      if(ndofn.eq.2) then
+        deter=a(1,1)*a(2,2)-a(2,1)*a(1,2)
+        if(deter.eq.0.) return
+        denom=1.0/deter
+        b(1,1) = a(2,2)*denom
+        b(2,2) = a(1,1)*denom
+        b(2,1) =-a(2,1)*denom
+        b(1,2) =-a(1,2)*denom
+        return
+      endif
       
-      buildJb(1:2,1:2) = A
-      buildJb(3:4,3:4) = A
+      !inverse of a 3*3 matrix
       
-    end function
+      if(ndofn.eq.3) then
+        t1  = a(2,2)*a(3,3) - a(3,2)*a(2,3)
+        t2  =-a(2,1)*a(3,3) + a(3,1)*a(2,3)
+        t3  = a(2,1)*a(3,2) - a(3,1)*a(2,2)
+        deter = a(1,1)*t1 + a(1,2)*t2 + a(1,3)*t3
+        if(deter.eq.0.0) return
+        denom = 1./deter
+        b(1,1) = t1*denom
+        b(2,1) = t2*denom
+        b(3,1) = t3*denom                                   
+        b(2,2) = ( a(1,1)*a(3,3) - a(3,1)*a(1,3))*denom
+        b(3,2) = (-a(1,1)*a(3,2) + a(1,2)*a(3,1))*denom
+        b(3,3) = ( a(1,1)*a(2,2) - a(2,1)*a(1,2))*denom
+        b(1,2) = (-a(1,2)*a(3,3) + a(3,2)*a(1,3))*denom
+        b(1,3) = ( a(1,2)*a(2,3) - a(2,2)*a(1,3))*denom
+        b(2,3) = (-a(1,1)*a(2,3) + a(2,1)*a(1,3))*denom
+        return
+      endif
+    
+    end subroutine invmtx
+    
+    
+    subroutine sqrtma(mainp,maout)
+      
+      ! Square root of matrix. In the case NDOFN = 3, it is assumed that this
+      ! matrix has the form diag(A,a), where A is a 2 x 2 matrix.
+      
+      implicit none
+      
+      double precision, intent(inout) :: mainp(3,3)
+      integer :: i
+      double precision, intent(out) :: maout(3,3)
+      
+      do i = 1,2
+        mainp(i,i) = abs(mainp(i,i))
+      end do
+      
+      call sqrtm2(mainp,maout)
+      
+      if(ndofn.eq.3)then
+        maout(3,3) = sqrt(abs(mainp(3,3)))
+      endif
+
+    end subroutine sqrtma
+    
+    
+    subroutine sqrtm2(mainp,maout)
+      
+      ! Square root of a 2 x 2 matrix (from a 3 x 3 matrix)
+     
+      implicit none
+      double precision, intent(in) :: mainp(3,3)
+      double precision :: a, b, c, d, aux1, aux2, vap1, vap2, det, sq1, sq2
+      double precision, intent(out) :: maout(3,3)
+      
+      a = mainp(1,1)
+      b = mainp(1,2)
+      c = mainp(2,1)
+      d = mainp(2,2)
+      aux1 =  0.5*(a+d)
+      aux2 = 0.25*(a-d)*(a-d) + b*c
+      if(aux2.lt.0.0) then
+        !call runend('SQRTMA: Non real eigenvalue in A')
+        print*, 'SQRTMA: Non real eigenvalue in A'
+        stop  
+      else if(aux2.lt.1.0e-10) then                         ! b or c = 0, a = d
+        maout(1,1) = sqrt(a) 
+        maout(1,2) = 0.0
+        maout(2,1) = 0.0
+        maout(2,2) = sqrt(d)
+        if(abs(b).gt.1.0e-10) then
+          maout(1,2) = b/(sqrt(a) + sqrt(d))
+        else if(abs(c).gt.1.0e-10) then
+          maout(2,1) = c/(sqrt(a) + sqrt(d))
+        end if
+      else
+        vap1 = aux1 + sqrt(aux2)                            ! vep1 = ( b ,vap1 -a )
+        vap2 = aux1 - sqrt(aux2)                            ! vep2 = ( vap2 -d, c )
+        if(abs(b)+abs(vap1-a).lt.1.0e-15) then
+          sq1  = vap1
+          vap1 = vap2
+          vap2 = sq1
+        end if
+        sq1 = sqrt(vap1)
+        sq2 = sqrt(vap2)
+        vap1 = vap1 - a  
+        vap2 = vap2 - d  
+        det = b*c - vap1*vap2
+        maout(1,1) = (b*c*sq1-vap1*vap2*sq2)/det
+        maout(1,2) =  b*vap2*(-sq1+sq2)/det
+        maout(2,1) =  c*vap1*( sq1-sq2)/det
+        maout(2,2) =(-vap1*vap2*sq1+b*c*sq2)/det
+      end if
+      
+    end subroutine sqrtm2
     
     function m22det(A)
       
@@ -428,9 +543,9 @@ module library
       
       implicit none
 
-      double precision, intent(in) :: basis(nnode), derxy(2,nnode)
+      double precision, intent(in) :: basis(nne), dNdxy(2,nne)
       double precision, intent(in) :: dvol
-      integer :: inode, idofn, jevab, jnode, jdofn, i, j
+      integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  prod1, prod2, prod3
       double precision, intent(out) :: amate(nevab,nevab), rhslo(nevab)
       ievab=0
@@ -444,12 +559,12 @@ module library
               prod1=0.0
               do i=1,2
                 do j=1,2
-                  prod1=prod1+ derxy(i,inode) * difma(idofn,jdofn,i,j)* derxy(j,jnode)
+                  prod1=prod1+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                 end do
               end do
               prod2=0.0
               do i=1,2
-                prod2 = prod2 + basis(inode) * conma(idofn,jdofn,i) * derxy(i,jnode)
+                prod2 = prod2 + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               prod3 = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               amate(ievab,jevab) = amate(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
@@ -462,6 +577,21 @@ module library
     end subroutine GalCon 
     
     
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     subroutine taumat(hmaxi,tauma)
       !
       !     Matrix of intrinsic time scales, computed as
@@ -471,10 +601,10 @@ module library
       implicit none
       
       double precision, intent(in) :: hmaxi
-      integer :: kstab, ktaum, kprec, ksoty, i, j, k
+      integer :: i, j, k
       !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
       double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-      double precision :: a, b, c, tau, det, patau            !hnatu -> declarado en parameters
+      double precision :: a, b, c, tau, det            !hnatu -> declarado en parameters
       double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters 
       
       !common/numert/hnatu,patau,ksoty,kprec,kstab,ktaum
@@ -496,11 +626,11 @@ module library
         do j=1,ndofn
           chaco(i,j)=0.0
           do k=1,ndofn
-            chaco(i,j) = haco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
+            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
           end do
         end do
       end do
-      call sqrtma(chaco,chaco,ndofn)
+      call sqrtma(chaco,chaco)
     
       !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
       do i=1,ndofn
@@ -513,7 +643,7 @@ module library
         end do
       end do
       
-      call sqrtma(chadi,chadi,ndofn)
+      call sqrtma(chadi,chadi)
       
       !  Characteristic reaction matrix: S = | S |
       do i=1,ndofn                                          
@@ -524,7 +654,7 @@ module library
           end do                                            
         end do                                              
       end do                                                
-      call sqrtma(chare,chare,ndofn)                        
+      call sqrtma(chare,chare)                        
       
       ! Invers of the matrix of characteristic times
       do i=1,ndofn
@@ -567,7 +697,7 @@ module library
         tauma(ndofn,ndofn) = c
         
       else if(ktaum.eq.2) then
-        call invmtx(tauin,tauma,det,ndofn)
+        call invmtx(tauin,det,tauma)
         do i = 1,ndofn
           do j = 1,ndofn
             tauma(i,j) = tauma(i,j)*patau
@@ -585,17 +715,8 @@ module library
       end if
       
     end subroutine taumat
-
-
-
-
-
-
-
-
-
-
-
+    
+    
     
     subroutine AssembleK(K, ke, node_id_map, ndDOF)
       
@@ -632,7 +753,7 @@ module library
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)  :: Hesxieta
-
+      double precision, dimension(ntotv,ntotv)        :: A_K
       double precision, dimension(nne)                :: basis
       double precision, dimension(2,nne)              :: dN_dxy
       double precision, dimension(3,nne)              :: HesXY
@@ -647,11 +768,11 @@ module library
       real, dimension(nne,DimPr)   :: element_nodes
       integer, dimension(nne,1)    :: node_id_map
       double precision             :: dvol, hmaxi, detJ
-      integer                      :: igaus, ielem
+      integer                      :: igaus, ielem, ibase
       
       
       
-      A_K  = 0.0
+      !A_K  = 0.0
       
       !Setup for K11 block or Kuu
       do ielem = 1, nelem    !lnods loop for K11 block Global K
@@ -668,7 +789,9 @@ module library
           dvol = detJ *  weigp(igaus,1) 
           call DerivativesXY(igaus, Jaco, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
           hmaxi = elemSize(Jaco) 
-          basis = spread(N(:,igaus),dim = 1, ncopies= 1)     
+          do ibase = 1, nne
+            basis(ibase) = N(ibase,igaus)
+          end do
           call galcon(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
           call taumat(hmaxi,tauma) 
           
@@ -676,7 +799,7 @@ module library
           
           
         end do
-        
+    
         call AssembleK(A_K, ke, node_id_map, 2) ! assemble global K
         
       end do
@@ -806,14 +929,21 @@ module library
       text  = '   *FACTORIZATION DONE WITH STATUS'
       text2 = '   *THE FACTORIZATION HAS BEEN COMPLETED, BUT U('
       if ( value .eq. 0 ) then
+        print*, ' '
         write(*, 101) text, value, ', THE EXECUTION IS SUCCESSFUL.'
       elseif(value .lt. 0 )then
         val = abs(value)
+        print*, ' '
         write(*, 102) '    THE',val,'-TH PARAMETER HAD AN ILLEGAL VALUE.'
       elseif(value .gt. 0 )then
+        print*, ' '
         write(*, 103) text2, value,',',value,') IS EXACTLY SINGULAR.'
         print*,'   DIVISION BY 0 WILL OCCUR IF YOU USE THE FACTOR U FOR SOLVING A SYSTEM'
         print*,'   OF LINEAR EQUATIONS.'
+        print*, ' '
+        print*, ' ~ ~ ~ Stopping the execution'
+        print*, ' '
+        stop
       endif
       print*, ' '
       
