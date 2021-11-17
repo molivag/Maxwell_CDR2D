@@ -35,7 +35,7 @@ program main_CDR3d
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
   call ReadIntegerFile(60,"BVs.dat", nBVs, nBVscol, BVs)!Llamo el archivo de valores en la frontera y lo guardo en BVs
   
-  call GlobalK( A_K, N, dN_dxi, dN_deta, Hesxieta)
+  call GlobalK(N, dN_dxi, dN_deta, Hesxieta, A_K)
 
   allocate(rhsgl(2*nnodes, 1), Solution(2*nnodes, 1))
   rhsgl = 0.0 !initializing source vector (rhsgl) 
