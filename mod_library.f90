@@ -202,10 +202,10 @@ module library
       
       implicit none
       
-      integer,intent(in)                       :: elm_num ! number of element for each elemental integral in do of K global
+      integer,intent(in)                      :: elm_num ! number of element for each elemental integral in do of K global
       real, dimension(nne,DimPr), intent(out) :: element_nodes
       integer, dimension(nne,1), intent(out)  :: node_id_map
-      integer                                  :: i,j, global_node_id
+      integer                                 :: i,j, global_node_id
       
       
       element_nodes = 0.0
@@ -424,22 +424,21 @@ module library
 
     end function compBmat
 
-    subroutine  GalCon(nne, dvol, basis, dNdxy, ndofn, nevab, amate, rhslo)
+    subroutine  GalCon(dvol, basis, dNdxy, amate, rhslo)
       
       implicit none
 
       double precision, intent(in) :: basis(nnode), derxy(2,nnode)
       double precision, intent(in) :: dvol
-      integer, intent(in) :: nne
       integer :: inode, idofn, jevab, jnode, jdofn, i, j
       double precision ::  prod1, prod2, prod3
       double precision, intent(out) :: amate(nevab,nevab), rhslo(nevab)
       ievab=0
-      do inode=1,nnode
+      do inode=1,nne
         do idofn=1,ndofn
           ievab=ievab+1
           jevab=0
-          do jnode=1,nnode
+          do jnode=1,nne
             do jdofn=1,ndofn
               jevab=jevab+1
               prod1=0.0
@@ -450,9 +449,9 @@ module library
               end do
               prod2=0.0
               do i=1,2
-                prod2=prod2+basis(inode)*conma(idofn,jdofn,i)*derxy(i,jnode)
+                prod2 = prod2 + basis(inode) * conma(idofn,jdofn,i) * derxy(i,jnode)
               end do
-              prod3=basis(inode)*reama(idofn,jdofn)*basis(jnode)
+              prod3 = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               amate(ievab,jevab) = amate(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
             end do
           end do
@@ -461,6 +460,142 @@ module library
       end do
       
     end subroutine GalCon 
+    
+    
+    subroutine taumat(hmaxi,tauma)
+      !
+      !     Matrix of intrinsic time scales, computed as
+      !
+      !     TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
+      
+      implicit none
+      
+      double precision, intent(in) :: hmaxi
+      integer :: kstab, ktaum, kprec, ksoty, i, j, k
+      !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
+      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
+      double precision :: a, b, c, tau, det, patau            !hnatu -> declarado en parameters
+      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters 
+      
+      !common/numert/hnatu,patau,ksoty,kprec,kstab,ktaum
+      !common/proper/difma,conma,reama,force
+    
+      !v_ini = 0.0
+      !call initia(tauma,9,v_ini)
+      tauma = 0.0
+      if(kstab.eq.0) return
+      !call initia(tauin,9,v_ini)
+      !call initia(chaco,9,v_ini)
+      !call initia(chadi,9,v_ini)
+      tauin = 0.0
+      chaco = 0.0
+      chadi = 0.0
+      
+      !  Characteristic convection matrix: A = sqrt | A_i A_i |
+      do i=1,ndofn
+        do j=1,ndofn
+          chaco(i,j)=0.0
+          do k=1,ndofn
+            chaco(i,j) = haco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
+          end do
+        end do
+      end do
+      call sqrtma(chaco,chaco,ndofn)
+    
+      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
+      do i=1,ndofn
+        do j=1,ndofn
+          chadi(i,j)=0.0
+          do k=1,ndofn
+            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
+              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,2)*difma(k,j,2,2)
+          end do
+        end do
+      end do
+      
+      call sqrtma(chadi,chadi,ndofn)
+      
+      !  Characteristic reaction matrix: S = | S |
+      do i=1,ndofn                                          
+        do j=1,ndofn                                        
+          chare(i,j)=0.0                                    
+          do k=1,ndofn                                      
+            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)   
+          end do                                            
+        end do                                              
+      end do                                                
+      call sqrtma(chare,chare,ndofn)                        
+      
+      ! Invers of the matrix of characteristic times
+      do i=1,ndofn
+        do j=1,ndofn
+          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
+        end do
+      end do
+    
+      !  Matrix tau, corresponding to:
+      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
+      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}      
+    
+      if(ktaum.eq.0) then       
+        tau = 0.0
+        do i=1,ndofn
+          do j=1,ndofn
+            tau = max(tau,abs(tauin(i,j)))
+          end do
+        end do
+        tau = patau/tau
+        do i=1,ndofn
+          tauma(i,i) = tau
+        end do
+        
+      else if(ktaum.eq.1) then 
+        a = 0.0
+        b = 0.0
+        c = 0.0
+        do j=1,ndofn
+          a = max(a,abs(tauin(    1,j)))
+          b = max(b,abs(tauin(    2,j)))
+          c = max(c,abs(tauin(ndofn,j)))
+        end do
+        a = patau/a
+        b = patau/b
+        c = patau/c
+        tauma(    1,    1) = a
+        tauma(    2,    2) = b
+        tauma(ndofn,ndofn) = c
+        
+      else if(ktaum.eq.2) then
+        call invmtx(tauin,tauma,det,ndofn)
+        do i = 1,ndofn
+          do j = 1,ndofn
+            tauma(i,j) = tauma(i,j)*patau
+          end do
+        end do
+        tauma(ndofn,ndofn) = 0.0
+        
+      else if(ktaum.eq.3) then                              
+        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        tauma(1,1) = a
+        tauma(2,2) = a
+        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
+        tauma(3,3) = a
+      end if
+      
+    end subroutine taumat
+
+
+
+
+
+
+
+
+
+
+
     
     subroutine AssembleK(K, ke, node_id_map, ndDOF)
       
@@ -491,45 +626,38 @@ module library
     end subroutine AssembleK
     
     
-    subroutine GlobalK( A_K, N, dN_dxi, dN_deta) !Al tener un solo parametro de salida puedo declararla como funcion
+    subroutine GlobalK(N, dN_dxi, dN_deta, Hesxieta, A_K) !Al tener un solo parametro de salida puedo declararla como funcion
       
       implicit none
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
-      declarar aqui el Hesxieta
+      double precision, dimension(3,nne), intent(in)  :: Hesxieta
+
       double precision, dimension(nne)                :: basis
+      double precision, dimension(2,nne)              :: dN_dxy
+      double precision, dimension(3,nne)              :: HesXY
+      
       !double precision, dimension(2*nne, 2*nne)       :: ke
       double precision, dimension(nevab, nevab)       :: Ke
       double precision, dimension(nevab)              :: rhslo
+      double precision, dimension(3,3)                :: tauma
       double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
-      double precision                                :: detJ!, detJP
       double precision, dimension(2*DimPr, 2*DimPr)   :: Jb ! aqui tmb es ndofn no DimPr pero 2 para vel y dos para P
-      double precision, dimension(2*DimPr, DimPr*nne) :: B  !no es DimPr es ndofn del elemento en cuestion
-      double precision, dimension(ndofn,DimPr*DimPr)  :: HJ
-      double precision, dimension(ndofn,2*nne)        :: HJB
-      double precision, dimension(2*nne,ndofn)        :: HJB_T !Todos estos dos, hablan de los DoF de la velocidad 
-      double precision, dimension(2*nne,ndofn)        :: part1 !Todos estos dos, hablan de los DoF de la velocidad
-      double precision, dimension(2*nne,2*nne)        :: part2 !Todos estos dos, hablan de los DoF de la velocidad
-      double precision, dimension(nevab,nebav)        :: amate
-      double precision, dimension(3,nne), intent(in)  :: Hesxieta
+      
       real, dimension(nne,DimPr)   :: element_nodes
       integer, dimension(nne,1)    :: node_id_map
-      double precision             :: dvol, hmaxi
+      double precision             :: dvol, hmaxi, detJ
       integer                      :: igaus, ielem
       
       
       
       A_K  = 0.0
-      cc = reshape([2, 0, 0, 0, 2, 0, 0, 0, 1],[ndofn,ndofn])
-      C  = 1.0 * cc
-      H  = CompH()
       
       !Setup for K11 block or Kuu
       do ielem = 1, nelem    !lnods loop for K11 block Global K
         !gather
-        ke = 0.0
+        Ke = 0.0        !Esto es amate
         Jb = 0.0
-        amate = 0.0             !amate(nevab*nevab)
         !rhslo = 0.0             !rhslo(nevab)
         call SetElementNodes(ielem, element_nodes, node_id_map)
         !do-loop: compute element (velocity-velocity) stiffness matrix ke
@@ -541,14 +669,12 @@ module library
           call DerivativesXY(igaus, Jaco, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
           hmaxi = elemSize(Jaco) 
           basis = spread(N(:,igaus),dim = 1, ncopies= 1)     
-          call galcon(nne, ndofn, nevab, dvol, basis, dN_dxy, Ke, rhslo)
-          call taumat(tauma,hmaxi,ndofn) 
-
-
+          call galcon(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
+          call taumat(hmaxi,tauma) 
           
-         part1 = matmul(HJB_T,C)
-         part2 = matmul(part1,HJB)
-         ke    = ke + part2 * dvolu !
+          
+          
+          
         end do
         
         call AssembleK(A_K, ke, node_id_map, 2) ! assemble global K
