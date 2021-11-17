@@ -7,6 +7,7 @@ program main_CDR3d
   
   ! - - - - - - - - - - * * * Variables que se usan aqui en main * * * * * * * - - - - - - - - - -
   double precision, allocatable, dimension(:,:) :: A_K, rhsgl, AK_LU, Solution, N, dN_dxi, dN_deta
+  double precision, dimension(3,nne)   :: Hesxieta
   integer, allocatable, dimension(:,:) :: BVs
   integer                              :: nBVs, nBVscol
   real                                 :: start, finish
@@ -30,7 +31,7 @@ program main_CDR3d
   call GaussQuadrature(ngaus, weigp)
   call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta, Hesxieta)  
   
-  allocate(A_K(2*nnodes, 2*nnodes), AK_LU(2*nnodes, 2*nnodes) )
+  allocate(A_K(ntotv,ntotv), AK_LU(ntotv,ntotv) )
   call SetBounCond( nBVs, nBVscol) !Esta funcion crea el archivo bcsVP.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
   call ReadIntegerFile(60,"BVs.dat", nBVs, nBVscol, BVs)!Llamo el archivo de valores en la frontera y lo guardo en BVs
