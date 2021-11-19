@@ -539,7 +539,7 @@ module library
 
     end function compBmat
 
-    subroutine  GalCon(dvol, basis, dNdxy, amate, rhslo)
+    subroutine Galerkin(dvol, basis, dNdxy, Ke, rhslo)
       
       implicit none
 
@@ -547,7 +547,7 @@ module library
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  prod1, prod2, prod3
-      double precision, intent(out) :: amate(nevab,nevab), rhslo(nevab)
+      double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab)
       ievab=0
       do inode=1,nne
         do idofn=1,ndofn
@@ -567,32 +567,173 @@ module library
                 prod2 = prod2 + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               prod3 = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              amate(ievab,jevab) = amate(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
+              Ke(ievab,jevab) = amate(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
             end do
           end do
           rhslo(ievab) = rhslo(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
       
-    end subroutine GalCon 
+    end subroutine Galerkin
     
     
+    subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
+      
+      ! ***************************************************************************
+      !
+      ! Peturbation of the test function according to the type of method:
+      ! 
+      !   SUPG    :                 A_i   V,i           (kstab=1)
+      !   GLS     : -(K_ij V,j),i + A_i   V,i + S   V   (kstab=2)
+      !   SGS, TG :  (K_ij V,j),i + A^t_i V,i - S^t V   (kstab=3,5)
+      !   CG      :            diag(A_i)  V,i           (kstab=4)
+      !***************************************************************************
+      
+      implicit none
+      
+      
+      double precision, intent(in)     :: workm(2,2),derxy(2),basis
+      integer                          :: idofn, jdofn, k, l
+      double precision                 :: prod1, prod2, prod3
+      double precision, intent(in out) :: pertu
+      
+      !common/proper/difma,conma,reama,force 
+      
+     
+      ! SUPG
+      if(kstab.eq.1) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+        end do
+        pertu=prod1
+        
+        ! Galerkin least squares
+      else if(kstab.eq.2) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(jdofn,idon,k)*derxy(k)
+        end do
+        prod2=0.0
+        do k=1,2
+          do l=1,2
+            prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
+          end do
+        end do
+        prod3=reama(jdofn,idofn)*basis
+        pertu=-prod2+prod1+prod3
+        
+        ! Subgrid scale & Taylor Galerkin
+      else if((kstab.eq.3).or.(kstab.eq.5)) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(idofn,jdofn,k)*derxy(k)
+        end do
+        prod2=0.0
+        do k=1,2
+          do l=1,2
+            prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
+          end do
+        end do
+        prod3=reama(idofn,jdofn)*basis
+        pertu=prod2+prod1-prod3
+       
+        ! Characteristic Galerkin
+      else if(kstab.eq.4) then
+        prod1=0.0
+        if(idofn.eq.jdofn) then
+          do k=1,2
+            prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+          end do
+        end if
+        pertu=prod1
+      end if
+     
+    end subroutine pertur
     
-
-
-
-
-
-
-
-
-
-
-
-
-
     
-    subroutine taumat(hmaxi,tauma)
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo,pertu,workm,resid)
+     
+      ! Contribution to the system matrix and RHS from the stabilization term
+      
+      implicit none
+     
+      double precision, intent(in)  :: basis(nne), derxy(2,nne), hesxy(3,nne), tauma(3,3)
+      double precision, intent(in)  :: dvolu
+      double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
+      double precision              :: prod1, prod2, prod3
+      integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
+      double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab)
+
+      ! integer :: nnode,ndofn,nevab,kstab,n_ini
+      !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
+      !common/proper/difma,conma,reama,force
+      
+      ievab = 0
+      ! n_ini = ndofn*nevab
+      ! v_ini = 0.0
+      ! call initia(pertu,n_ini,v_ini)
+      pertu =  0.0
+      
+      do inode=1,nne
+        workm(1,1)=hesxy(1,inode)
+        workm(2,2)=hesxy(3,inode)
+        workm(1,2)=hesxy(2,inode)
+        workm(2,1)=workm(1,2)
+        do idofn=1,ndofn
+         
+          ievab=ievab+1
+          do jdofn=1,ndofn
+            prod1 = reama(jdofn,idofn)*basis(inode)
+            prod2=0.0
+            do k=1,2                                        
+              prod2 = prod2 + conma(jdofn,idofn,k)*derxy(k,inode)
+            end do
+            prod3=0.0
+            do k=1,2
+              do l=1,2
+                prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
+              end do
+            end do
+            
+            resid(jdofn,ievab) = prod1 + prod2 - prod3
+            call pertur( idofn, jdofn, workm, derxy(1,inode), basis(inode), pertu(ievab,jdofn) )
+          end do
+        end do
+      end do
+      
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              prod1=0.0
+              do k=1,ndofn
+                do l=1,ndofn
+                  prod1 = prod1 + pertu(ievab,k)*tauma(k,l)*resid(l,jevab)
+                end do
+              end do
+              Ke(ievab,jevab) = Ke(ievab,jevab) + prod1 * dvolu
+            end do
+          end do
+          
+          prod1=0.0
+          do k=1,ndofn
+            do l=1,ndofn
+              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l)
+            end do
+          end do
+          rhslo(ievab) = rhslo(ievab) + prod1 * dvolu
+        end do
+      end do
+      
+    end subroutine Stabilization
+    
+    
+    subroutine TauMat(hmaxi,tauma)
       !
       !     Matrix of intrinsic time scales, computed as
       !
@@ -714,7 +855,7 @@ module library
         tauma(3,3) = a
       end if
       
-    end subroutine taumat
+    end subroutine TauMat
     
     
     
@@ -792,15 +933,13 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call galcon(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
-          call taumat(hmaxi,tauma) 
-          
-          
-          
-          
+          call Galerkin(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
+          call TauMat(hmaxi,tauma) 
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
     
-        call AssembleK(A_K, ke, node_id_map, 2) ! assemble global K
+        call AssembleK(A_K, Ke, node_id_map, 2) ! assemble global K
         
       end do
      
