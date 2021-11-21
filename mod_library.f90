@@ -887,6 +887,26 @@ module library
     end subroutine AssembleK
     
     
+    Subroutine AssembleF( fe, nodeIDmap, F_global)       
+      
+      implicit none                                                  
+       
+      double precision, dimension(nevab,1), intent(in)      :: fe      
+      integer, dimension(nne,1), intent(in)                     :: nodeIDmap
+      integer :: i, rowNode, row                           
+      double precision, dimension(ntotv,1),intent(in out)   :: F_global  
+      
+      do i = 1, nne
+        rowNode = nodeIDmap(i,1)                !global id for row nodes
+        row =  ndofn * rowNode - (ndofn-1)      !row number in the global F
+        
+        F_global(row:row+ndofn-1,1) =  F_global(row:row+ndofn-1,1) + fe( (i-1)*ndofn+1 : i*ndofn, 1)
+        
+      end do
+      
+    End Subroutine AssembleF   
+    
+    
     subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F) !Al tener un solo parametro de salida puedo declararla como funcion
       
       implicit none
@@ -907,7 +927,7 @@ module library
       double precision, dimension(ntotv,ntotv), intent(out)  :: A_K
       double precision, dimension(ntotv,1), intent (out)       :: A_F
       
-      
+     !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
       A_K = 0.0
       A_F = 0.0
       !Setup for K11 block or Kuu
@@ -932,8 +952,9 @@ module library
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
-    
+        
         call AssembleK( Ke, node_id_map, A_K) ! assemble global K
+        call AssembleF(rhslo, node_id_map, A_F) ! assemble global K
         
       end do
      
@@ -957,7 +978,7 @@ module library
                                                      !"/home/maoliva/Codes/ConDifRea_Aca/Geo/"
       character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
       integer, intent(out) :: nBVs, nBVscol
-      integer :: ierror, a ,c, i !,b
+      integer :: ierror, a ,b, i 
       real    :: x, y, xmin, xmax, ymin, ymax, xhalf
       
       ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
@@ -967,8 +988,7 @@ module library
       open(unit=100, file=fileplace//'BVs.dat',Status= 'replace', action= 'write',iostat=ierror)
       
       a = 0
-      !b = 0
-      c = 0 
+      b = 0
       
       xmin = minval(coord(:,2)) !the smallest number in y column
       xmax = maxval(coord(:,2)) !the smallest number in y column
@@ -985,26 +1005,21 @@ module library
       !print*, 'xhalf= ', xhalf
       !print*, ' '
       
-      
       nBVscol = size(coord,2)     
      
       do i =1, nnodes
         x=coord(i,2)
         y=coord(i,3)
         if(y.eq.ymax) then !top edge: velocity boundary condition
-          write(100,50) i, 1, real(1)
+          write(100,50) i, 1, real(0)
           write(100,50) i, 2, real(0)
           a=a+2
-          !if(x.eq.xhalf)then !center zero pressure
-          !  write(100,50) i,3, real(0)
-          !  b=b+1
-          !end if
         else if (x.eq.xmin .or. y.eq.ymin .or. x.eq.xmax)then !The other 3 edges
           write(100,50) i, 1, real(0) !x-velocity
           write(100,50) i, 2, real(0) !y-velocity
-          c=c+2
+          b=b+2
         end if
-        nBVs = a+c!+b+c
+        nBVs = a+b
       end do
       
       close(100)
