@@ -50,7 +50,6 @@ program main_CDR3d
   DEALLOCATE(dN_dxi)
   DEALLOCATE(dN_deta)
   DEALLOCATE(BVs)
-  DEALLOCATE(A_F )
   
   print*,' '
   print*,'!=============== SOLVER (LAPACK) ===============!'
@@ -74,17 +73,19 @@ program main_CDR3d
   print*, 'Writing postprocesses files.....'
   DEALLOCATE( S_ipiv)
   
-  call writeMatrix(A_K, 111, 'A_K.dat', Solution, 444, 'A_F.dat')
-  !call PosProcess(Solution, File_PostMsh, 'msh')
-  !call PosProcess(Solution, File_PostRes, 'res')
+  call writeMatrix(A_K, 111, 'A_K.dat', A_F, 444, 'A_F.dat')
+  call writeMatrix(AK_LU, 222, 'AKLU.dat', Solution, 555, 'Sol.dat')
+  call PosProcess(Solution, File_PostMsh, 'msh')
+  call PosProcess(Solution, File_PostRes, 'res')
 
-  !DEALLOCATE( A_K)        
-  !DEALLOCATE( AK_LU)
-  !DEALLOCATE( Solution)
-  !print*,' '  
-  !print"(A6,A19, A38)", ' File ',File_PostMsh,' written succesfully in Pos/ . . . . .'
-  !print"(A6,A19, A38)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
-  !print*, ' ' 
+  DEALLOCATE( A_F)
+  DEALLOCATE( A_K)        
+  DEALLOCATE( AK_LU)
+  DEALLOCATE( Solution)
+  print*,' '  
+  print"(A6,A19, A38)", ' File ',File_PostMsh,' written succesfully in Pos/ . . . . .'
+  print"(A6,A19, A38)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
+  print*, ' ' 
   call cpu_time(finish)
   print '(A11,f9.2,A8)',' CPU-Time =', finish-start, ' Seconds'
   print"(A)", ' ' 
