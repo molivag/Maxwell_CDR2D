@@ -567,7 +567,7 @@ module library
                 prod2 = prod2 + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               prod3 = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              Ke(ievab,jevab) = amate(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
+              Ke(ievab,jevab) = Ke(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
             end do
           end do
           rhslo(ievab) = rhslo(ievab) + basis(inode) * force(idofn) * dvol
@@ -612,7 +612,7 @@ module library
       else if(kstab.eq.2) then
         prod1=0.0
         do k=1,2
-          prod1=prod1+conma(jdofn,idon,k)*derxy(k)
+          prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
         end do
         prod2=0.0
         do k=1,2
@@ -652,7 +652,8 @@ module library
     end subroutine pertur
     
     
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo,pertu,workm,resid)
+    !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo,pertu,workm,resid)
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo)
      
       ! Contribution to the system matrix and RHS from the stabilization term
       
@@ -858,28 +859,26 @@ module library
     end subroutine TauMat
     
     
-    
-    subroutine AssembleK(K, ke, node_id_map, ndDOF)
+    subroutine AssembleK( ke, node_id_map, K_global)
       
       implicit none
-      real(8), dimension(2*nnodes, 2*nnodes),intent(in out)  :: K !Global Stiffnes matrix debe 
-      !                                                         llevar inout por que entra como variable (IN) 
-      !                                                         pero en esta funcion se modifica (out)
-      real(8), dimension(2*nne, 2*nne), intent(in)   :: ke
-      integer, dimension(nne,1), intent(in)           :: node_id_map
-      integer, intent(in)                              :: ndDOF 
-      integer :: i, j, row_node, row, col_node, col !nodal Degrees of Freedom
+      
+      !Global Stiffnes matrix debe llevar inout por que entra como variable (IN) pero en esta funcion se modifica (out)
+      double precision, dimension(nevab,nevab), intent(in)      :: ke
+      integer, dimension(nne,1), intent(in)                     :: node_id_map
+      integer :: i, j, row_node, row, col_node, col 
+      double precision, dimension(ntotv,ntotv),intent(in out)   :: K_global 
       
       do i = 1, nne
         row_node = node_id_map(i,1)
-        row = ndDOF*row_node - (ndDOF-1)
+        row = ndofn*row_node - (ndofn-1)
         
         do j = 1, nne
           col_node = node_id_map(j,1)
-          col = ndDOF*col_node - (ndDOF-1)
-          K(row:row+ndDOF-1, col:col+ndDOF-1) =  K(row:row+ndDOF-1, col:col+ndDOF-1) + &
-          ke((i-1)*ndDOF+1:i*ndDOF,(j-1)*ndDOF+1:j*ndDOF)
-        enddo
+          col = ndofn*col_node - (ndofn-1)
+          K_global(row:row+ndofn-1, col:col+ndofn-1) =  K_global(row:row+ndofn-1, col:col+ndofn-1) + &
+          ke((i-1)*ndofn+1:i*ndofn,(j-1)*ndofn+1:j*ndofn)
+        end do
         
       enddo
       
@@ -888,41 +887,36 @@ module library
     end subroutine AssembleK
     
     
-    subroutine GlobalK(N, dN_dxi, dN_deta, Hesxieta, A_K) !Al tener un solo parametro de salida puedo declararla como funcion
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F) !Al tener un solo parametro de salida puedo declararla como funcion
       
       implicit none
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)  :: Hesxieta
-      double precision, dimension(ntotv,ntotv)        :: A_K
       double precision, dimension(nne)                :: basis
       double precision, dimension(2,nne)              :: dN_dxy
       double precision, dimension(3,nne)              :: HesXY
-      
-      !double precision, dimension(2*nne, 2*nne)       :: ke
+      double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
       double precision, dimension(nevab, nevab)       :: Ke
       double precision, dimension(nevab)              :: rhslo
       double precision, dimension(3,3)                :: tauma
-      double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
-      double precision, dimension(2*DimPr, 2*DimPr)   :: Jb ! aqui tmb es ndofn no DimPr pero 2 para vel y dos para P
-      
-      real, dimension(nne,DimPr)   :: element_nodes
-      integer, dimension(nne,1)    :: node_id_map
-      double precision             :: dvol, hmaxi, detJ
-      integer                      :: igaus, ielem, ibase
-      
+      real, dimension(nne,DimPr)                      :: element_nodes
+      integer, dimension(nne,1)                       :: node_id_map
+      double precision                                :: dvol, hmaxi, detJ
+      integer                                         :: igaus, ielem, ibase
+      double precision, dimension(ntotv,ntotv), intent(out)  :: A_K
+      double precision, dimension(ntotv,1), intent (out)       :: A_F
       
       
-      !A_K  = 0.0
-      
+      A_K = 0.0
+      A_F = 0.0
       !Setup for K11 block or Kuu
       do ielem = 1, nelem    !lnods loop for K11 block Global K
         !gather
-        Ke = 0.0        !Esto es amate
-        Jb = 0.0
-        !rhslo = 0.0             !rhslo(nevab)
+        Ke = 0.0       !Esto es amate
+        rhslo = 0.0    !rhslo(nevab)
         call SetElementNodes(ielem, element_nodes, node_id_map)
-        !do-loop: compute element (velocity-velocity) stiffness matrix ke
+        !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
           Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
           detJ = m22det(Jaco)
@@ -939,12 +933,12 @@ module library
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
     
-        call AssembleK(A_K, Ke, node_id_map, 2) ! assemble global K
+        call AssembleK( Ke, node_id_map, A_K) ! assemble global K
         
       end do
      
       
-    end subroutine GlobalK
+    end subroutine GlobalSystem
     
     
     
@@ -1028,8 +1022,8 @@ module library
       implicit none
                           !ndofn
       integer , dimension(nBVs,3), intent(in) :: BVs
-      double precision, dimension(2*nnodes, 2*nnodes),intent(in out) :: A_K  !Global Stiffnes matrix
-      double precision, dimension(2*nnodes, 1), intent(in out) :: rhsgl
+      double precision, dimension(ntotv, ntotv),intent(in out) :: A_K  !Global Stiffnes matrix
+      double precision, dimension(ntotv, 1), intent(in out) :: rhsgl
       double precision :: param, coeff
       integer          :: nBVs, i, component, node_id !, pressure_row
       
@@ -1041,7 +1035,7 @@ module library
       print*, 'param', param
       print*, 'coeff', coeff
       
-      !pressure_row = 2*nnodes
+      !pressure_row = ntotv
       
       do i =1, nBVs
         node_id   = BVs(i,1) !se pone este int() pq la 1a y 2a col de BVs esta leida como integer pero 
@@ -1120,22 +1114,22 @@ module library
       character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Res/"
       character(*) :: name1, name2
       integer :: i, j, mrow, ncol, unit1, unit2
-      double precision, dimension(2*nnodes ,2*nnodes ), intent(in) :: Matrix
-      double precision, dimension(2*nnodes ,1), intent(in) :: Vector
+      double precision, dimension(ntotv ,ntotv ), intent(in) :: Matrix
+      double precision, dimension(ntotv ,1), intent(in) :: Vector
       
       100 format (900E20.12)
       
-      mrow = 2*nnodes 
-      ncol = 2*nnodes
+      mrow = ntotv 
+      ncol = ntotv
       open(unit=unit1, file= fileplace//name1, ACTION="write", STATUS="replace")
       
-      do i=1,2*nnodes 
-        write(unit1, 100)( Matrix(i,j) ,j=1,2*nnodes)
+      do i=1,ntotv 
+        write(unit1, 100)( Matrix(i,j) ,j=1,ntotv)
       end do
       close(unit1)
       
       open(unit=unit2, file= fileplace//name2, ACTION="write", STATUS="replace")
-      do i=1,2*nnodes 
+      do i=1,ntotv 
         write(unit2, 100) Vector(i,1)
       end do
       close(unit2)
@@ -1147,9 +1141,9 @@ module library
       implicit none
       
       character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Pos/"
-      real*8, dimension(2*nnodes, 1), intent(in) :: solution
+      real*8, dimension(ntotv, 1), intent(in) :: solution
       character(*), intent(in)                             :: nameFile1, activity
-      double precision, dimension(1, 2*nnodes)   :: solution_T
+      double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)               :: xcor, ycor
       integer      :: ipoin   
       
@@ -1188,7 +1182,7 @@ module library
         ! se escribe el res de las componentes de la velocidad
         write(555,910) 
         do ipoin = 1, nnodes
-          write(555,912) ipoin, solution_T(1, 2*ipoin-1), solution_T(1,2*ipoin)
+          write(555,912) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
         end do
         write(555,"(A)") 'End Values'
        ! write(555,"(A)") 'Result "Pressure" "Pressure" 0 Scalar OnNodes'
