@@ -7,7 +7,7 @@ module library
    
     subroutine GeneralInfo( ) 
       print*, ' '
-      print*, '- - - - 2D Cavity Driven Flow Simulation - - - - '
+      print*, '- - - - 2D Convetion-Diffusion-Reaction Simulation - - - - '
       print*, ' '
       print*,'!==================== GENERAL INFO ===============!'
       write(*,"(A29,8X,A13,3X,A2)") ' 1.- Element type:           ', ElemType,' |'
@@ -19,8 +19,9 @@ module library
       write(*,"(A29,8X,I6,1X,A11)") ' 7.- Total Gauss points:     ', totGp,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 8.- Element variabless:     ', nevab,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 9.- Total unknowns:         ', ntotv,'   |'
+      print*,'!================ End GENERAL INFO ===============!'
       write(*,*)' '
-      print*,'!============== FILE READING STATUS ============!'
+      !print*,'!============== FILE READING STATUS ============!'
      
     endsubroutine GeneralInfo
     
@@ -96,10 +97,10 @@ module library
         
         read(nr,3) force(1), force(2)
         
-        print*, force 
+        !print*, force 
         
       else if(ndofn.eq.3) then                              
-        print*, 'test if'
+        !print*, 'test if'
         read(nr,5) difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1)
         read(nr,5) difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1)
         read(nr,5) difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1)
@@ -126,7 +127,7 @@ module library
         
         read(nr,3) force(1), force(2), force(3)
         
-        print*, force 
+        !print*, force 
         
       end if
      ! plate = 0
@@ -891,10 +892,10 @@ module library
       
       implicit none                                                  
        
-      double precision, dimension(nevab,1), intent(in)      :: fe      
-      integer, dimension(nne,1), intent(in)                     :: nodeIDmap
+      double precision, dimension(nevab,1), intent(in)     :: fe      !nevab = number of element variable
+      integer, dimension(nne,1), intent(in)                :: nodeIDmap
       integer :: i, rowNode, row                           
-      double precision, dimension(ntotv,1),intent(in out)   :: F_global  
+      double precision, dimension(ntotv,1),intent(in out)  :: F_global  
       
       do i = 1, nne
         rowNode = nodeIDmap(i,1)                !global id for row nodes
@@ -907,7 +908,7 @@ module library
     End Subroutine AssembleF   
     
     
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F) !Al tener un solo parametro de salida puedo declararla como funcion
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
       
       implicit none
       
@@ -925,7 +926,7 @@ module library
       double precision                                :: dvol, hmaxi, detJ
       integer                                         :: igaus, ielem, ibase
       double precision, dimension(ntotv,ntotv), intent(out)  :: A_K
-      double precision, dimension(ntotv,1), intent (out)       :: A_F
+      double precision, dimension(ntotv,1), intent (out)     :: A_F
       
      !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
       A_K = 0.0
@@ -953,8 +954,8 @@ module library
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
         
-        call AssembleK( Ke, node_id_map, A_K) ! assemble global K
-        call AssembleF(rhslo, node_id_map, A_F) ! assemble global K
+        call AssembleK( Ke, node_id_map, A_K)   ! assemble global K
+        call AssembleF(rhslo, node_id_map, A_F) ! assemble global F
         
       end do
      
@@ -1044,9 +1045,10 @@ module library
       
       !Esencialmente la siguiente instruccion hace: A_K(1*2-1,:) = A_K(1,:) Es decir, obtene el valor maximo de
       !la primera fila de la matriz global K (A_K). No le veo el caso pero lo dejamos asi.
-      param = maxval(A_K(int(BVs(1,1))*2-1,:))
+      param = maxval(A_K(int(BVs(1,1))*2-1,:))  !Checar aqui si se debe poner 2 o 3 es decir ndofn
       coeff = abs(param) * 1.0E7
-      
+     
+      print*,' '
       print*, 'param', param
       print*, 'coeff', coeff
       
@@ -1056,8 +1058,8 @@ module library
         node_id   = BVs(i,1) !se pone este int() pq la 1a y 2a col de BVs esta leida como integer pero 
         component = BVs(i,2)!la matriz completa esta declarada como real en esta subroutina y en el main.
         if ( component .le. 2 ) then
-          A_K(2*node_id-2+component, 2*node_id-2 +component) = coeff
-          rhsgl( 2*node_id-2+component, 1) = BVs(i,3)*coeff 
+          A_K(ndofn*node_id-ndofn+component, ndofn*node_id-ndofn +component) = coeff
+          rhsgl( ndofn*node_id-ndofn+component, 1) = BVs(i,3)*coeff 
         !else                                                     
           !pnode_id = pnodes(node_id,2)
           !A_K(pressure_row+pnode_id, pressure_row + pnode_id) = coeff
@@ -1116,10 +1118,11 @@ module library
         val = abs(value)
         write(*,102) '    THE',val, text2
       endif
-      print*,' '
       
       101 format (A, 1x, I1, A)
       102 format (A, I3, A)
+      print*,'!============= End SOLVER (LAPACK) ==============!'
+      print*,' '
       
     end subroutine MKLsolverResult
     
@@ -1166,7 +1169,6 @@ module library
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
       
-      
       open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
       
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
@@ -1186,6 +1188,8 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
+        print*,' '  
+        print"(A6,A17, A36)", ' File ',File_PostMsh,'written succesfully in Pos/ . . . . .'
         
       elseif(activity == "res")then
         write(555,"(A)") 'GiD Post Results File 1.0'
@@ -1196,6 +1200,8 @@ module library
         write(555,"(A)") 'Values'
         ! se escribe el res de las componentes de la velocidad
         write(555,910) 
+        print"(A6,A17, A36)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
+        print*, ' ' 
         do ipoin = 1, nnodes
           write(555,912) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
         end do

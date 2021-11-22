@@ -1,7 +1,6 @@
 program main_CDR3d
   use library
   use param
-  use param
 
   implicit none
   
@@ -21,12 +20,10 @@ program main_CDR3d
   call cpu_time(start)
 
   call GeneralInfo( )
-
   call ReadIntegerFile(10,File_element, nelem, nne + 1, lnods)  
-  call ReadRealFile(20,File_coord, nnodes,3, coord) !Para dreducir el numero de subrutinas, usar la sentencia option par
-  call ReadTensors(30, File_tensors, difma, conma, reama, force) !Para dreducir el numero de subrutinas, usar la sentencia option par
+  call ReadRealFile(20,File_coord, nnodes,3, coord) 
+  call ReadTensors(30, File_tensors, difma, conma, reama, force)
 
-  print*, ' '
   print*, '!=============== INFO DURING EXECUTION ===============!'
   
   call GaussQuadrature(ngaus, weigp)
@@ -36,14 +33,15 @@ program main_CDR3d
   allocate(A_F(ntotv, 1), Solution(ntotv, 1))
   call SetBounCond( nBVs, nBVscol) !Esta funcion crea el archivo bcsVP.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
-  call ReadIntegerFile(60,"BVs.dat", nBVs, nBVscol, BVs)!Llamo el archivo de valores en la frontera y lo guardo en BVs
+  call ReadIntegerFile(40,"BVs.dat", nBVs, nBVscol, BVs)!Llamo el archivo de valores en la frontera y lo guardo en BVs
   
   call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
-  A_F = 0.0 !initializing source vector (A_F) 
   call ApplyBoundCond(nBVs, BVs, A_K, A_F )
   
-  write(*,*) 'Shape of Global K: ',shape(A_K)
-  
+  print*, ' '
+  print*, 'Shape of Global K: ',shape(A_K)
+  print*, 'Shape of Global F: ',shape(A_F)
+
   Solution = A_F !Solucion sera reescrito por la solucion de lapack asi no reescribo el vector global.
   AK_LU    = A_K
   DEALLOCATE(N)
@@ -65,29 +63,24 @@ program main_CDR3d
   call dgetrf( S_m, S_n, AK_LU, S_lda, S_ipiv, S_infoLU )
   call MKLfactoResult( S_infoLU )
 
-  print*, ' '  
   print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
   call dgetrs( S_trans, S_n, S_nrhs, AK_LU, S_lda, S_ipiv, Solution, S_ldb, S_infoSOL )
   call MKLsolverResult( S_infoSOL )
   
-  print*, 'Writing postprocesses files.....'
-  DEALLOCATE( S_ipiv)
   
-  call writeMatrix(A_K, 111, 'A_K.dat', A_F, 444, 'A_F.dat')
-  call writeMatrix(AK_LU, 222, 'AKLU.dat', Solution, 555, 'Sol.dat')
-  call PosProcess(Solution, File_PostMsh, 'msh')
-  call PosProcess(Solution, File_PostRes, 'res')
+  print*, 'Writing postprocesses files.....'
+  call writeMatrix(A_K, 100, 'A_K.dat', A_F, 200, 'A_F.dat')
+  call writeMatrix(AK_LU, 300, 'AKLU.dat', Solution, 400, 'Sol.dat')
+  !call PosProcess(Solution, File_PostMsh, 'msh')
+  !call PosProcess(Solution, File_PostRes, 'res')
 
+  DEALLOCATE( S_ipiv)
   DEALLOCATE( A_F)
   DEALLOCATE( A_K)        
   DEALLOCATE( AK_LU)
   DEALLOCATE( Solution)
-  print*,' '  
-  print"(A6,A19, A38)", ' File ',File_PostMsh,' written succesfully in Pos/ . . . . .'
-  print"(A6,A19, A38)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
-  print*, ' ' 
   call cpu_time(finish)
   print '(A11,f9.2,A8)',' CPU-Time =', finish-start, ' Seconds'
-  print"(A)", ' ' 
+  print*, ' ' 
 
 end program main_CDR3d

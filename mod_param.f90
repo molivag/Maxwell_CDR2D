@@ -21,8 +21,8 @@ module param
 
   character(len=20), parameter :: File_element  = 'lnods.dat'
   character(len=20), parameter :: File_coord    = 'coord.dat'
-  character(len=29), parameter :: File_PostMsh  = 'CDR3d.post.msh'
-  character(len=29), parameter :: File_PostRes  = 'CDR3d.post.res'
+  character(len=17), parameter :: File_PostMsh  = 'CDR3d.post.msh'
+  character(len=17), parameter :: File_PostRes  = 'CDR3d.post.res'
   character(len=20), parameter :: File_tensors  = 'tensors.dat'
 
   double precision                              :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
