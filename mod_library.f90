@@ -485,29 +485,6 @@ module library
       
     end function elemsize
     
-    
-    function CompH()
-      implicit None
-      
-      ! integer :: CompH
-      ! integer, dimension(3,4) :: H
-      integer, dimension(ndofn ,2*DimPr) :: CompH
-      CompH = 0
-      CompH(1,1)=1;
-      CompH(2,4)=1;
-      CompH(3,2)=1;
-      CompH(3,3)=1;
-      
-      ! CompH = H
-      ! - - - * * * D U D A * * *
-        !no puedo colocar direwctamente el nombre d ela funcion (la funcion misma) como variable global y debo pasarselo a otra variable y esa si ponerla como
-        !vbariable global por eso hago el cambio de CompH = H y H esta como variable global. Es Asi?
-      ! - - - * * * D U D A * * *
-      
-      return
-      
-    end function CompH
-
     function compBmat(dN_dxi, dN_deta, Gp)
 
       implicit none
@@ -979,8 +956,8 @@ module library
                                                      !"/home/maoliva/Codes/ConDifRea_Aca/Geo/"
       character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
       integer, intent(out) :: nBVs, nBVscol
-      integer :: ierror, a ,b, i 
-      real    :: x, y, xmin, xmax, ymin, ymax, xhalf
+      integer :: ierror, a ,b, c, i 
+      real    :: x, y, xmin, xmax, ymin, ymax
       
       ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
       ! que un if se cumpla, se sume el numero equivalente a los renglones escritos en archivo de texto que se esta creando
@@ -990,12 +967,12 @@ module library
       
       a = 0
       b = 0
-      
+      c = 0
+
       xmin = minval(coord(:,2)) !the smallest number in y column
       xmax = maxval(coord(:,2)) !the smallest number in y column
       ymin = minval(coord(:,3)) !the smallest number in y column
       ymax = maxval(coord(:,3)) !the smallest number in y column
-      xhalf = xmax/2.0
       
       
       !print*, ' '
@@ -1007,22 +984,59 @@ module library
       !print*, ' '
       
       nBVscol = size(coord,2)     
-     
-      do i =1, nnodes
-        x=coord(i,2)
-        y=coord(i,3)
-        if(y.eq.ymax) then !top edge: velocity boundary condition
-          write(100,50) i, 1, real(0)
-          write(100,50) i, 2, real(0)
-          a=a+2
-        else if (x.eq.xmin .or. y.eq.ymin .or. x.eq.xmax)then !The other 3 edges
-          write(100,50) i, 1, real(0) !x-velocity
-          write(100,50) i, 2, real(0) !y-velocity
-          b=b+2
-        end if
-        nBVs = a+b
-      end do
       
+      if(ndofn .eq. 3) then
+        do i =1, nnodes
+          x=coord(i,2)
+          y=coord(i,3)
+          if(y.eq.ymax) then !top edge: velocity boundary condition
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            a = a+1
+          else if (y.eq.ymin)then !The other 3 edges
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            b = b+1
+          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            c = c+2
+          end if
+          nBVs = a+b+c
+        end do
+        
+      elseif(ndofn .eq. 2) then
+        do i =1, nnodes
+          x=coord(i,2)
+          y=coord(i,3)
+          if(y.eq.ymax) then !top edge: velocity boundary condition
+            write(100,50) i, 1,1, real(0), real(0)
+            a = a+1
+          else if (y.eq.ymin)then !The other 3 edges
+            write(100,50) i, 1,1, real(0), real(0)
+            b = b+1
+          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+            write(100,50) i, 1,1, real(0), real(0)
+            c = c+2
+          end if
+          nBVs = a+b+c
+        end do
+        
+      elseif(ndofn .eq. 1)then
+        do i =1, nnodes
+          x=coord(i,2)
+          y=coord(i,3)
+          if(y.eq.ymax) then !top edge: velocity boundary condition
+            write(100,50) i, 1, real(0)
+            a = a+1
+          else if (y.eq.ymin)then !The other 3 edges
+            write(100,50) i, 1, real(0)
+            b = b+1
+          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+            write(100,50) i, 1, real(1)
+            c = c+2
+          end if
+          nBVs = a+b+c
+        end do
+      end if
+
       close(100)
       
       50 format(2I6,f10.3)
