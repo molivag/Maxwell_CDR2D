@@ -33,7 +33,7 @@ module library
       character(len=:), allocatable :: fileplace
       real, dimension (1:NumRows, 1:NumCols), intent (out) :: Real_Array
      
-      fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
+      fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
       
       open (unit = UnitNum, file =fileplace//FileName, status='old', action='read' , iostat = status)
       
@@ -52,7 +52,7 @@ module library
      
       integer :: i, j, status
       integer, intent(in)            :: UnitNum, NumRows, NumCols
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
+      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
       character (len=*), intent (in) :: FileName
       integer, dimension (1:NumRows, 1:NumCols), intent (out) :: IntegerArray
       
@@ -71,10 +71,10 @@ module library
     
     subroutine ReadTensors(nr, FileName, difma, conma, reama, force)
       
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
-      character (len=*), intent (in) :: FileName
+      character(len=*), parameter   :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
+      character(len=*), intent (in) :: FileName
       integer :: status, nr
-      double precision, intent(out)  :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
+      double precision, intent(out) :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
       
       open (unit = nr, file = fileplace//FileName, status='old', iostat = status)
       
@@ -86,14 +86,20 @@ module library
       !read(nr,1) npoin,nelem,nnode,ngaut,ndofn
       
       if(ndofn.eq.2) then
-        read(nr,2) difma(1,1,1,1),difma(1,2,1,1), difma(2,1,1,1),difma(2,2,1,1)
-        read(nr,2) difma(1,1,1,2),difma(1,2,1,2), difma(2,1,1,2),difma(2,2,1,2)
-        read(nr,2) difma(1,1,2,2),difma(1,2,2,2), difma(2,1,2,2),difma(2,2,2,2)
+        read(nr,2) difma(1,1,1,1),difma(1,2,1,1),&
+          difma(2,1,1,1),difma(2,2,1,1)
+        read(nr,2) difma(1,1,1,2),difma(1,2,1,2),&
+          difma(2,1,1,2),difma(2,2,1,2)
+        read(nr,2) difma(1,1,2,2),difma(1,2,2,2),&
+          difma(2,1,2,2),difma(2,2,2,2)
         
-        read(nr,2) conma(1,1,1), conma(1,2,1), conma(2,1,1), conma(2,2,1)
-        read(nr,2) conma(1,1,2), conma(1,2,2), conma(2,1,2), conma(2,2,2)
+        read(nr,2) conma(1,1,1), conma(1,2,1),&
+          conma(2,1,1), conma(2,2,1)
+        read(nr,2) conma(1,1,2), conma(1,2,2),& 
+          conma(2,1,2), conma(2,2,2)
         
-        read(nr,2) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
+        read(nr,2) reama(1,1), reama(1,2),& 
+          reama(2,1), reama(2,2)
         
         read(nr,3) force(1), force(2)
         
@@ -177,7 +183,7 @@ module library
       !- - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
       
       integer :: i, j, status, UnitNum, NumRows, NumCols
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
+      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
       character (len=*), intent (in) :: FileName
       real, dimension (1:NumRows, 1:NumCols), intent (out) :: Real_Array
       
@@ -837,54 +843,265 @@ module library
     end subroutine TauMat
     
     
-    subroutine AssembleK( ke, node_id_map, K_global)
+    !subroutine AsembleK( ke, node_id_map, K_global)
+    !  
+    !  implicit none
+    !  
+    !  !Global Stiffnes matrix debe llevar inout por que entra como variable (IN) pero en esta funcion se modifica (out)
+    !  double precision, dimension(nevab,nevab), intent(in)      :: ke
+    !  integer, dimension(nne,1), intent(in)                     :: node_id_map
+    !  integer :: i, j, row_node, row, col_node, col 
+    !  double precision, dimension(ntotv,ntotv),intent(in out)   :: K_global 
+    !  
+    !  do i = 1, nne
+    !    row_node = node_id_map(i,1)
+    !    row = ndofn*row_node - (ndofn-1)
+    !    
+    !    do j = 1, nne
+    !      col_node = node_id_map(j,1)
+    !      col = ndofn*col_node - (ndofn-1)
+    !      K_global(row:row+ndofn-1, col:col+ndofn-1) =  K_global(row:row+ndofn-1, col:col+ndofn-1) + &
+    !      ke((i-1)*ndofn+1:i*ndofn,(j-1)*ndofn+1:j*ndofn)
+    !    end do
+    !    
+    !  enddo
+    !  
+    !  return
+    !  
+    !end subroutine AssembleK
+    
+    
+    
+    
+    subroutine SetBoundVal( nBVs, nBVscol )
+      !========================================================================
+      !Esta subroutina revisa todos los nodos de la malla y define el tipo de
+      !nodo en la frontera. Abre un archivo en donde comenzara a escribir, 
+      ! en la primer columna: el numero de nodo. 
+      ! La segunda columna tendra el tipo de nodo
+      ! 1 = ux (componente x de la velocidad) 
+      ! 2 = uy (componente y de la velocidad) 
+      ! 3 = para la presion 
+      !La tercera columna asigna el valor correspondiente de la condicion de forntera
+      !=========================================================================
+      implicit none
+                                                     !"/home/maoliva/Codes/2.ConDifRea_Aca/Geo/"
+      character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
+      integer, intent(out) :: nBVs, nBVscol
+      integer :: ierror, a ,b, c, i 
+      real    :: x, y, xmin, xmax, ymin, ymax
+      
+      ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
+      ! que un if se cumpla, se sume el numero equivalente a los renglones escritos en archivo de texto que se esta creando
+      ! y asi se tenga el numero total de nodos en las fronterasi
+      
+      open(unit=100, file=fileplace//'BVs.dat',Status= 'replace', action= 'write',iostat=ierror)
+      
+      a = 0
+      b = 0
+      c = 0
+
+      xmin = minval(coord(:,2)) !the smallest number in x column
+      xmax = maxval(coord(:,2)) !the greatest number in x column
+      ymin = minval(coord(:,3)) !the smallest number in y column
+      ymax = maxval(coord(:,3)) !the greatest number in y column
+      
+      
+      print*, ' '
+      print*, 'xmin= ', xmin
+      print*, 'xmax= ', xmax
+      print*, 'ymin= ', ymin
+      print*, 'ymax= ', ymax
+      print*, ' '
+      
+      nBVscol = size(coord,2)     
+      
+      if(ndofn .eq. 3) then
+        do i =1, nnodes
+          x=coord(i,2)
+          y=coord(i,3)
+          if(y.eq.ymax) then !top edge: velocity boundary condition
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            a = a+3
+          else if (y.eq.ymin)then !The other 3 edges
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            b = b+3
+          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            c = c+3
+          end if
+          nBVs = a+b+c
+        end do
+        
+      elseif(ndofn .eq. 2) then
+        do i =1, nnodes
+          x=coord(i,2)
+          y=coord(i,3)
+          if(y.eq.ymax) then !top edge
+            write(100,60) i, 1,1, real(0), real(0)
+            a = a+2
+          else if (y.eq.ymin)then !The bottom edge
+            write(100,60) i, 1,1, real(0), real(0)
+            b = b+2
+          else if (x.eq.xmin .or. x.eq.xmax)then !Left & right edges
+            write(100,60) i, 1,1, real(0), real(0)
+            c = c+2
+          end if
+          nBVs = a+b+c
+        end do
+        
+      elseif(ndofn .eq. 1)then
+        do i =1, nnodes
+          x=coord(i,2)
+          y=coord(i,3)
+          if(y.eq.ymax) then !top edge: velocity boundary condition
+            write(100,70) i, 1, real(0)
+            a = a+1
+          else if (y.eq.ymin)then !The other 3 edges
+            write(100,70) i, 1, real(0)
+            b = b+1
+          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+            write(100,70) i, 1, real(1)
+            c = c+1
+          end if
+          nBVs = a+b+c
+        end do
+      end if
+      
+      close(100)
+      
+      print*,'Bvs from SetBoundCond',nBVs 
+      
+      50 format(4I6,3f10.3)
+      60 format(3I6,2f10.3)
+      70 format(2I6,f10.3)
+      
+      
+    end subroutine SetBoundVal 
+    
+    subroutine VinculBVs(  BVs, nofix, ifpre, presc )
       
       implicit none
       
-      !Global Stiffnes matrix debe llevar inout por que entra como variable (IN) pero en esta funcion se modifica (out)
-      double precision, dimension(nevab,nevab), intent(in)      :: ke
-      integer, dimension(nne,1), intent(in)                     :: node_id_map
-      integer :: i, j, row_node, row, col_node, col 
-      double precision, dimension(ntotv,ntotv),intent(in out)   :: K_global 
+      !integer, intent(in)              :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
+      integer, intent(in) :: BVs( nBvs, nBVscol)
+      integer             :: i, j
+      double precision, intent(out) :: presc(ndofn,nBVs)
+      integer, intent(out)          :: ifpre(ndofn,nBVs)
+      integer, intent(out)          :: nofix(nBVs)
       
-      do i = 1, nne
-        row_node = node_id_map(i,1)
-        row = ndofn*row_node - (ndofn-1)
-        
-        do j = 1, nne
-          col_node = node_id_map(j,1)
-          col = ndofn*col_node - (ndofn-1)
-          K_global(row:row+ndofn-1, col:col+ndofn-1) =  K_global(row:row+ndofn-1, col:col+ndofn-1) + &
-          ke((i-1)*ndofn+1:i*ndofn,(j-1)*ndofn+1:j*ndofn)
+      print*, 'nBVs from VinculBVs: ', nBVs
+      write(*,*) 'Shape de Bvs desde VinculBVs', shape(BVs) 
+      
+      select case(ndofn)
+        case(1)
+          do i =1,ndofn
+            do j=1,nBVs
+              nofix(j)   = BVs(j,1)
+              ifpre(i,j) = BVs(j,2) !El llenado de ifpre sera por grado de libertad 
+              presc(i,j) = Bvs(j,3)
+            end do
+          end do
+          
+        case(2)
+          do i =1,ndofn
+            do j=1,nBVs
+              nofix(j)   = BVs(j,1)
+              ifpre(i,j) = BVs(j,i+1) !El llenado de ifpre sera por grado de libertad 
+              presc(i,j) = Bvs(j,i+3)
+            end do
+          end do
+          
+        case(3)
+          do i =1,ndofn
+            do j=1,nBVs
+              nofix(j)   = BVs(j,1)
+              ifpre(i,j) = BVs(j,i+1) !El llenado de ifpre sera por grado de libertad 
+              presc(i,j) = Bvs(j,i+4)
+            end do
+          end do
+          
+        case DEFAULT
+          write(*,*) 'Exceeded DoF'
+        end select
+    end subroutine VinculBVs
+   
+    subroutine Prevop(rigid)
+      !              (rigid,treac)
+      !*****************************************************************************
+      !
+      !Calcula el semiample de banda, inicialitza vectors i defineix variables
+      !
+      !*****************************************************************************
+      
+      implicit none! double precision(a-h,o-z)
+      
+      
+      double precision,intent (in out) :: rigid(*) !assumed-size array
+      !double precision,intent (in out) :: treac(ndofn,nBVs) 
+      integer :: ielem, iband, icoun, itotv, j!, i, ivfix
+      
+      do ielem =1, nelem
+        do j=1, nne-1
+          iband = abs( lnods(ielem,j) - lnods(ielem,j+1) )
         end do
-        
-      enddo
+        iband = abs( lnods(ielem,nne) - lnods(ielem,1) )
+        if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
+      end do
+      nband=(nband+1)*ndofn-1
+      if(nband.ge.maxband) then
+        write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
+        stop
+      end if
+     
+      print*, 'nband form prevop', nband
+
+     ! !Calcula el semiample de banda
+     ! nband=0
+     ! do ielem=1,nelem
+     !   iband = abs( lnods(1,ielem)-lnods(2,ielem) )
+     !   if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
+     ! end do
+     ! nband=(nband+1)*ndofn-1
+     ! if(nband.ge.maxband) then
+     !   write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
+     !   stop
+     ! end if
       
-      return
-      
-    end subroutine AssembleK
-    
-    
-    Subroutine AssembleF( fe, nodeIDmap, F_global)       
-      
-      implicit none                                                  
-       
-      double precision, dimension(nevab,1), intent(in)     :: fe      !nevab = number of element variable
-      integer, dimension(nne,1), intent(in)                :: nodeIDmap
-      integer :: i, rowNode, row                           
-      double precision, dimension(ntotv,1),intent(in out)  :: F_global  
-      
-      do i = 1, nne
-        rowNode = nodeIDmap(i,1)                !global id for row nodes
-        row =  ndofn * rowNode - (ndofn-1)      !row number in the global F
-        
-        F_global(row:row+ndofn-1,1) =  F_global(row:row+ndofn-1,1) + fe( (i-1)*ndofn+1 : i*ndofn, 1)
-        
+      !Inicialitzacio de les matrius de treball
+      icoun = 0
+      do iband=1,nband+1
+        do itotv=1,ntotv
+          icoun = icoun + 1
+          rigid(icoun)= 0.0d0
+        end do
       end do
       
-    End Subroutine AssembleF   
-    
-    
+      !do i=1,ndofn!3
+      !  do ivfix=1,nBVs!nvfix !nBVs !1, 20
+      !    treac(i,ivfix)=0.0d0 !Reacciones en los soportes para cada barra
+      !  end do
+      !end do
+     
+      !Defineix algunes variables caracter
+      !c_coor(1)='Coordenada-X'
+      !c_coor(2)='Coordenada-Y'
+      !c_prop(1)='Mod. Young (E)'
+      !c_prop(2)='      Area (A)'
+      !c_prop(3)='   Inercia (I)'
+      !c_dofn(1)='Despl. -X'
+      !c_dofn(2)='Despl. -Y'
+      !c_dofn(3)='      Gir'
+      !c_load(1)='Forca Ext. -X'
+      !c_load(2)='Forca Ext. -Y'
+      !c_load(3)='  Moment Ext.'
+      !c_stre(1)='  E. axial'
+      !c_stre(2)='E. tallant'
+      !c_stre(3)='    Moment'
+      
+      return
+    end subroutine Prevop
+   
     subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
       
       implicit none
@@ -931,157 +1148,144 @@ module library
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
         
-        call AssembleK( Ke, node_id_map, A_K)   ! assemble global K
-        call AssembleF(rhslo, node_id_map, A_F) ! assemble global F
+        !call Assemble_K(ielem,lnods(1,ielem),estif,rigid) !AssembleK( Ke, node_id_map, A_K)   ! assemble global K
+
+        !call AssembleF(rhslo, node_id_map, A_F) ! assemble global F
         
       end do
      
       
     end subroutine GlobalSystem
     
-    
-    
-    subroutine SetBounCond( nBVs, nBVscol )
-      !========================================================================
-      !Esta subroutina revisa todos los nodos de la malla y define el tipo de
-      !nodo en la frontera. Abre un archivo en donde comenzara a escribir, 
-      ! en la primer columna: el numero de nodo. 
-      ! La segunda columna tendra el tipo de nodo
-      ! 1 = ux (componente x de la velocidad) 
-      ! 2 = uy (componente y de la velocidad) 
-      ! 3 = para la presion 
-      !La tercera columna asigna el valor correspondiente de la condicion de forntera
-      !=========================================================================
+    subroutine Assemble_K(ielem,lnods,estif,rigid)
+      !*****************************************************************************
+      !
+      !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
+      !
+      !*****************************************************************************
+      
       implicit none
-                                                     !"/home/maoliva/Codes/ConDifRea_Aca/Geo/"
-      character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Geo/"
-      integer, intent(out) :: nBVs, nBVscol
-      integer :: ierror, a ,b, c, i 
-      real    :: x, y, xmin, xmax, ymin, ymax
-      
-      ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
-      ! que un if se cumpla, se sume el numero equivalente a los renglones escritos en archivo de texto que se esta creando
-      ! y asi se tenga el numero total de nodos en las fronterasi
-      
-      open(unit=100, file=fileplace//'BVs.dat',Status= 'replace', action= 'write',iostat=ierror)
-      
-      a = 0
-      b = 0
-      c = 0
-
-      xmin = minval(coord(:,2)) !the smallest number in y column
-      xmax = maxval(coord(:,2)) !the smallest number in y column
-      ymin = minval(coord(:,3)) !the smallest number in y column
-      ymax = maxval(coord(:,3)) !the smallest number in y column
+      !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
+      double precision, intent(in) :: estif(nevab,nevab)
+      integer, intent(in) :: lnods(2), ielem
+      integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
+      double precision, intent(inout) :: rigid(nband+1,ntotv)
       
       
-      !print*, ' '
-      !print*, 'xmin= ', xmin
-      !print*, 'xmax= ', xmax
-      !print*, 'ymin= ', ymin
-      !print*, 'ymax= ', ymax
-      !print*, 'xhalf= ', xhalf
-      !print*, ' '
-      
-      nBVscol = size(coord,2)     
-      
-      if(ndofn .eq. 3) then
-        do i =1, nnodes
-          x=coord(i,2)
-          y=coord(i,3)
-          if(y.eq.ymax) then !top edge: velocity boundary condition
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
-            a = a+1
-          else if (y.eq.ymin)then !The other 3 edges
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
-            b = b+1
-          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
-            c = c+2
-          end if
-          nBVs = a+b+c
+      !  inode=1,2
+      do inode=1,nne    !nne = number of node in the element
+        ipoin=lnods(inode)
+        do idofn=1,ndofn
+          ievab=(inode-1)*ndofn+idofn
+          itotv=(ipoin-1)*ndofn+idofn
+          do jnode=1,nne
+            jpoin=lnods(jnode)
+            do jdofn=1,ndofn
+              jevab=(jnode-1)*ndofn+jdofn
+              jtotv=(jpoin-1)*ndofn+jdofn
+              jband=jtotv-itotv+1  !Algoritmo de recuperacion para la matriz de bandas
+              if ( jband.ge.1 )rigid(jband,itotv) = rigid(jband,itotv) + estif(ievab,jevab)
+            end do 
+          end do
         end do
-        
-      elseif(ndofn .eq. 2) then
-        do i =1, nnodes
-          x=coord(i,2)
-          y=coord(i,3)
-          if(y.eq.ymax) then !top edge: velocity boundary condition
-            write(100,50) i, 1,1, real(0), real(0)
-            a = a+1
-          else if (y.eq.ymin)then !The other 3 edges
-            write(100,50) i, 1,1, real(0), real(0)
-            b = b+1
-          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
-            write(100,50) i, 1,1, real(0), real(0)
-            c = c+2
-          end if
-          nBVs = a+b+c
-        end do
-        
-      elseif(ndofn .eq. 1)then
-        do i =1, nnodes
-          x=coord(i,2)
-          y=coord(i,3)
-          if(y.eq.ymax) then !top edge: velocity boundary condition
-            write(100,50) i, 1, real(0)
-            a = a+1
-          else if (y.eq.ymin)then !The other 3 edges
-            write(100,50) i, 1, real(0)
-            b = b+1
-          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
-            write(100,50) i, 1, real(1)
-            c = c+2
-          end if
-          nBVs = a+b+c
-        end do
-      end if
-
-      close(100)
-      
-      50 format(2I6,f10.3)
-      
-      
-    end subroutine SetBounCond  
-    
-    
-    subroutine ApplyBoundCond( nBVs, BVs, A_K, rhsgl )
-      ! - - - - - - - - - - * * * * * * * * * * - - - - - - - 
-      ! Set velocity (u) and pressure (p) boundary condition by penalty method
-      ! - - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
-      implicit none
-                          !ndofn
-      integer , dimension(nBVs,3), intent(in) :: BVs
-      double precision, dimension(ntotv, ntotv),intent(in out) :: A_K  !Global Stiffnes matrix
-      double precision, dimension(ntotv, 1), intent(in out) :: rhsgl
-      double precision :: param, coeff
-      integer          :: nBVs, i, component, node_id !, pressure_row
-      
-      !Esencialmente la siguiente instruccion hace: A_K(1*2-1,:) = A_K(1,:) Es decir, obtene el valor maximo de
-      !la primera fila de la matriz global K (A_K). No le veo el caso pero lo dejamos asi.
-      param = maxval(A_K(int(BVs(1,1))*2-1,:))  !Checar aqui si se debe poner 2 o 3 es decir ndofn
-      coeff = abs(param) * 1.0E7
-     
-      print*,' '
-      print*, 'param', param
-      print*, 'coeff', coeff
-      
-      !pressure_row = ntotv
-      
-      do i =1, nBVs
-        node_id   = BVs(i,1) !se pone este int() pq la 1a y 2a col de BVs esta leida como integer pero 
-        component = BVs(i,2)!la matriz completa esta declarada como real en esta subroutina y en el main.
-        if ( component .le. 2 ) then
-          A_K(ndofn*node_id-ndofn+component, ndofn*node_id-ndofn +component) = coeff
-          rhsgl( ndofn*node_id-ndofn+component, 1) = BVs(i,3)*coeff 
-        !else                                                     
-          !pnode_id = pnodes(node_id,2)
-          !A_K(pressure_row+pnode_id, pressure_row + pnode_id) = coeff
-          !rhsgl(pressure_row+pnode_id,1) = BVs(i,3)*coeff !3 por que la columna 3 esta el valor de la condicon de forntera
-        end if
       end do
       
-    end subroutine ApplyBoundCond
+      return
+    end subroutine Assemble_K
+    
+    subroutine AssembleF( fe, nodeIDmap, F_global)       
+      
+      implicit none                                                  
+       
+      double precision, dimension(nevab,1), intent(in)     :: fe      !nevab = number of element variable
+      integer, dimension(nne,1), intent(in)                :: nodeIDmap
+      integer :: i, rowNode, row                           
+      double precision, dimension(ntotv,1),intent(in out)  :: F_global  
+      
+      do i = 1, nne
+        rowNode = nodeIDmap(i,1)                !global id for row nodes
+        row =  ndofn * rowNode - (ndofn-1)      !row number in the global F
+        
+        F_global(row:row+ndofn-1,1) =  F_global(row:row+ndofn-1,1) + fe( (i-1)*ndofn+1 : i*ndofn, 1)
+        
+      end do
+      
+    end subroutine AssembleF   
+    
+    
+    !                                     ,A_K ,A_F
+    subroutine ApplyBVs(nofix,ifpre,presc,rigid,gload)
+      !        vincul(rigid,gload,treac,nofix,ifpre,presc)
+      !*****************************************************************************
+      !
+      !   Imposa les condicions de contorn
+      !
+      !*****************************************************************************
+      
+      implicit none !real*8(a-h,o-z)
+      
+      !Agregar un common a BVs para guardar nBVs y nBVscol asi como nband.
+      !Ya se hizo y se uso el modulo mod_param para guardarlos ahi y el valor se comparte
+      double precision,intent(in) :: presc(ndofn,nBVs)
+      integer, intent(in)         :: nofix(nBVs), ifpre(ndofn,nBVs)
+      !                                    nvfix             ,nvfix
+      !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
+      integer :: ivfix, idofn, itotv, jpoin, jdofn, jtotv, itot1, jband, itot2, nvfix
+      double precision,intent(inout)  :: rigid(nband+1,ntotv), gload(ntotv)
+      !double precision,intent(in out) :: treac(ndofn,nvfix)
+      
+      nvfix = nBVs
+      !***  Inicialitzacio de les reaccions per als graus de llibertat prescrits
+      do ivfix=1,nvfix
+        do idofn=1,ndofn!3
+          if (ifpre(idofn,ivfix).eq.1) then
+            itotv              = (nofix(ivfix)-1)*ndofn+idofn   !3+idofn
+            !treac(idofn,ivfix) = -gload(itotv) !Yo no uso treac, solo gload. Preguntar a Ramon como definir gload
+          end if
+        end do
+      end do
+      
+      !***  Llac sobre els nodes coaccionats
+      do ivfix=1,nvfix
+        jpoin=nofix(ivfix)
+        do jdofn=1,ndofn !3
+          if (ifpre(jdofn,ivfix).eq.1) then
+           
+            !***  Ca de grau de llibertat prescrit
+            jtotv=(jpoin-1)*ndofn+jdofn
+            
+            !***  Modificacio de les equacions anteriors a la del g.d.ll. prescrit (arriba de diagonal)
+            if (jtotv.gt.1) then 
+              itot1=jtotv-nband
+              if (itot1.lt.1) itot1=1
+              do itotv=itot1,jtotv-1
+                jband=jtotv-itotv+1
+                gload(itotv) = gload(itotv)-rigid(jband,itotv)*presc(jdofn,ivfix)
+                rigid(jband,itotv)=0.0
+              end do
+            end if
+            
+            !***  Modificacio de les equacions posteriors a la del g.d.ll. prescrit (abajo de la diagonal)
+            if (jtotv.lt.ntotv) then 
+              itot2=jtotv+nband
+              if (itot2.gt.ntotv) itot2=ntotv
+              do itotv=jtotv+1,itot2
+                jband=itotv-jtotv+1
+                gload(itotv) = gload(itotv)-rigid(jband,jtotv)*presc(jdofn,ivfix)
+                rigid(jband,jtotv)=0.0
+              end do
+            end if
+            
+            !***  Equacio trivial per al grau de llibertat prescrit (en la diagonal)
+            rigid(1,jtotv)=1.0
+            gload(jtotv)=presc(jdofn,ivfix)
+          end if
+        end do
+      end do 
+      return
+      
+    end subroutine ApplyBVs 
+   
     
     subroutine MKLfactoResult( value )
       implicit none
@@ -1143,7 +1347,7 @@ module library
     subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
       implicit none
       
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Res/"
+      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Res/"
       character(*) :: name1, name2
       integer :: i, j, mrow, ncol, unit1, unit2
       double precision, dimension(ntotv ,ntotv ), intent(in) :: Matrix
@@ -1168,86 +1372,86 @@ module library
       
     end subroutine writeMatrix
     
-    subroutine PosProcess(solution, nameFile1, activity)
-      
-      implicit none
-      
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/Computing/Fortran/ConDifRea/Pos/"
-      real*8, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                             :: nameFile1, activity
-      double precision, dimension(1, ntotv)   :: solution_T
-      double precision, dimension(1,nnodes)               :: xcor, ycor
-      integer      :: ipoin   
-      
-      solution_T = transpose(solution)
-      xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
-      
-      open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
-      
-      if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-        
-        write(555,902) 'MESH', '"Cavity"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
-        write(555,"(A)") '#2D Cavity Driven Flow Results' 
-        write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
-        write(555,"(A)")'Coordinates'
-        write(555,"(A)") '#   No        X           Y'
-        do ipoin = 1, nnodes
-          write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-        end do
-        write(555,"(A)") 'End Coordinates'
-        write(555,"(A)") 'Elements'
-        do ipoin = 1, nelem
-          write(555,908) lnods(ipoin,:) 
-        end do
-        write(555,"(A)") 'End Elements'
-        close(555)
-        print*,' '  
-        print"(A6,A17, A36)", ' File ',File_PostMsh,'written succesfully in Pos/ . . . . .'
-        
-      elseif(activity == "res")then
-        write(555,"(A)") 'GiD Post Results File 1.0'
-        write(555,"(A)") '#2D Cavity Driven Flow Results' 
-        write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
-        write(555,"(A)") 'Result "Velocity Components" "Velocity" 0 Vector OnNodes'
-        write(555,"(A)") 'ComponentNames "Ux" "Uy" "Uz" "" '
-        write(555,"(A)") 'Values'
-        ! se escribe el res de las componentes de la velocidad
-        write(555,910) 
-        print"(A6,A17, A36)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
-        print*, ' ' 
-        do ipoin = 1, nnodes
-          write(555,912) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-        end do
-        write(555,"(A)") 'End Values'
-       ! write(555,"(A)") 'Result "Pressure" "Pressure" 0 Scalar OnNodes'
-       ! write(555,"(A)") 'ComponentNames "" '
-       ! write(555,"(A)") 'Values'
-       ! ! se escribe el res de la presion 
-       ! write(555,914)
-       ! do ipoin = 1, nnodes
-       !   pnode_id = pnodes(ipoin,2)
-       !   write(555,916) ipoin, solution(prow+pnode_id, 1)  
-       ! end do
-       ! write(555,"(A)") 'End Values'
-        close(555)
-      else
-        write(*,"(A)") ' "Activity" must be "msh" or "res" '
-        close(555)
-        stop
-      end if
-      
-      
-      900 format(A15, A13, A1, A13)
-      902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-      906 format(I7,2(3x,f9.4)) !format for msh           
-      908 format(9(2x,I7) )
-      910 format('#',3x,'No    ' 3x, ' Ux ', 8x, ' Uy')
-      912 format(I7,2x,2f12.5) !format for res velocity
-      914 format('#',3x,'No'     9x, 'P')
-      916 format(I7,2x,f12.5)  !format for res pressure
-      
-    end subroutine PosProcess
+    !subroutine PosProcess(solution, nameFile1, activity)
+    !  
+    !  implicit none
+    !  
+    !  character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Pos/"
+    !  real*8, dimension(ntotv, 1), intent(in) :: solution
+    !  character(*), intent(in)                             :: nameFile1, activity
+    !  double precision, dimension(1, ntotv)   :: solution_T
+    !  double precision, dimension(1,nnodes)               :: xcor, ycor
+    !  integer      :: ipoin   
+    !  
+    !  solution_T = transpose(solution)
+    !  xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
+    !  ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
+    !  
+    !  open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
+    !  
+    !  if(activity == "msh")then !quitar este if y acomodar el numero de unidad
+    !    
+    !    write(555,902) 'MESH', '"Cavity"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+    !    write(555,"(A)") '#2D Cavity Driven Flow Results' 
+    !    write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
+    !    write(555,"(A)")'Coordinates'
+    !    write(555,"(A)") '#   No        X           Y'
+    !    do ipoin = 1, nnodes
+    !      write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+    !    end do
+    !    write(555,"(A)") 'End Coordinates'
+    !    write(555,"(A)") 'Elements'
+    !    do ipoin = 1, nelem
+    !      write(555,908) lnods(ipoin,:) 
+    !    end do
+    !    write(555,"(A)") 'End Elements'
+    !    close(555)
+    !    print*,' '  
+    !    print"(A6,A17, A36)", ' File ',File_PostMsh,'written succesfully in Pos/ . . . . .'
+    !    
+    !  elseif(activity == "res")then
+    !    write(555,"(A)") 'GiD Post Results File 1.0'
+    !    write(555,"(A)") '#2D Cavity Driven Flow Results' 
+    !    write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
+    !    write(555,"(A)") 'Result "Velocity Components" "Velocity" 0 Vector OnNodes'
+    !    write(555,"(A)") 'ComponentNames "Ux" "Uy" "Uz" "" '
+    !    write(555,"(A)") 'Values'
+    !    ! se escribe el res de las componentes de la velocidad
+    !    write(555,910) 
+    !    print"(A6,A17, A36)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
+    !    print*, ' ' 
+    !    do ipoin = 1, nnodes
+    !      write(555,912) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+    !    end do
+    !    write(555,"(A)") 'End Values'
+    !   ! write(555,"(A)") 'Result "Pressure" "Pressure" 0 Scalar OnNodes'
+    !   ! write(555,"(A)") 'ComponentNames "" '
+    !   ! write(555,"(A)") 'Values'
+    !   ! ! se escribe el res de la presion 
+    !   ! write(555,914)
+    !   ! do ipoin = 1, nnodes
+    !   !   pnode_id = pnodes(ipoin,2)
+    !   !   write(555,916) ipoin, solution(prow+pnode_id, 1)  
+    !   ! end do
+    !   ! write(555,"(A)") 'End Values'
+    !    close(555)
+    !  else
+    !    write(*,"(A)") ' "Activity" must be "msh" or "res" '
+    !    close(555)
+    !    stop
+    !  end if
+    !  
+    !  
+    !  900 format(A15, A13, A1, A13)
+    !  902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+    !  906 format(I7,2(3x,f9.4)) !format for msh           
+    !  908 format(9(2x,I7) )
+    !  910 format('#',3x,'No    ' 3x, ' Ux ', 8x, ' Uy')
+    !  912 format(I7,2x,2f12.5) !format for res velocity
+    !  914 format('#',3x,'No'     9x, 'P')
+    !  916 format(I7,2x,f12.5)  !format for res pressure
+    !  
+    !end subroutine PosProcess
     
    
     
