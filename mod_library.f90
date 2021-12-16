@@ -202,25 +202,25 @@ module library
       
     end subroutine
     
-    subroutine SetElementNodes(elm_num, element_nodes, node_id_map)
+    subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap)
       
       implicit none
       
       integer,intent(in)                      :: elm_num ! number of element for each elemental integral in do of K global
-      real, dimension(nne,DimPr), intent(out) :: element_nodes
-      integer, dimension(nne,1), intent(out)  :: node_id_map
-      integer                                 :: i,j, global_node_id
+      real,dimension(nne,DimPr), intent(out)  :: element_nodes
+      integer,dimension(nne), intent(out)     :: nodeIDmap
+      integer                                 :: i,j,global_node_id
       
       
       element_nodes = 0.0
-      node_id_map = 0.0
+      nodeIDmap = 0
       
       do i = 1, nne
         global_node_id = lnods(elm_num,i+1)
         do j=1 ,DimPr
           element_nodes(i,j) = coord(global_node_id,j+1)
         end do
-        node_id_map(i,1) = global_node_id
+        nodeIDmap(i) = global_node_id
       end do
       
     end subroutine SetElementNodes
@@ -843,32 +843,32 @@ module library
     end subroutine TauMat
     
     
-    !subroutine AsembleK( ke, node_id_map, K_global)
-    !  
-    !  implicit none
-    !  
-    !  !Global Stiffnes matrix debe llevar inout por que entra como variable (IN) pero en esta funcion se modifica (out)
-    !  double precision, dimension(nevab,nevab), intent(in)      :: ke
-    !  integer, dimension(nne,1), intent(in)                     :: node_id_map
-    !  integer :: i, j, row_node, row, col_node, col 
-    !  double precision, dimension(ntotv,ntotv),intent(in out)   :: K_global 
-    !  
-    !  do i = 1, nne
-    !    row_node = node_id_map(i,1)
-    !    row = ndofn*row_node - (ndofn-1)
-    !    
-    !    do j = 1, nne
-    !      col_node = node_id_map(j,1)
-    !      col = ndofn*col_node - (ndofn-1)
-    !      K_global(row:row+ndofn-1, col:col+ndofn-1) =  K_global(row:row+ndofn-1, col:col+ndofn-1) + &
-    !      ke((i-1)*ndofn+1:i*ndofn,(j-1)*ndofn+1:j*ndofn)
-    !    end do
-    !    
-    !  enddo
-    !  
-    !  return
-    !  
-    !end subroutine AssembleK
+   ! subroutine AssembleK( ke, nodeIDmap, K_global)
+   !   
+   !   implicit none
+   !   
+   !   !Global Stiffnes matrix debe llevar inout por que entra como variable (IN) pero en esta funcion se modifica (out)
+   !   double precision, dimension(nevab,nevab), intent(in)      :: ke
+   !   integer, dimension(nne), intent(in)                     :: nodeIDmap
+   !   integer :: i, j, row_node, row, col_node, col 
+   !   double precision, dimension(ntotv,ntotv),intent(in out)   :: K_global 
+   !   
+   !   do i = 1, nne
+   !     row_node = nodeIDmap(i)
+   !     row = ndofn*row_node - (ndofn-1)
+   !     
+   !     do j = 1, nne
+   !       col_node = nodeIDmap(j)
+   !       col = ndofn*col_node - (ndofn-1)
+   !       K_global(row:row+ndofn-1, col:col+ndofn-1) =  K_global(row:row+ndofn-1, col:col+ndofn-1) + &
+   !       ke((i-1)*ndofn+1:i*ndofn,(j-1)*ndofn+1:j*ndofn)
+   !     end do
+   !     
+   !   enddo
+   !   
+   !   return
+   !   
+   ! end subroutine AssembleK
     
     
     
@@ -1025,82 +1025,53 @@ module library
           write(*,*) 'Exceeded DoF'
         end select
     end subroutine VinculBVs
-   
-    subroutine Prevop(rigid)
-      !              (rigid,treac)
-      !*****************************************************************************
-      !
-      !Calcula el semiample de banda, inicialitza vectors i defineix variables
-      !
-      !*****************************************************************************
-      
-      implicit none! double precision(a-h,o-z)
-      
-      
-      double precision,intent (in out) :: rigid(*) !assumed-size array
-      !double precision,intent (in out) :: treac(ndofn,nBVs) 
-      integer :: ielem, iband, icoun, itotv, j!, i, ivfix
-      
-      do ielem =1, nelem
-        do j=1, nne-1
-          iband = abs( lnods(ielem,j) - lnods(ielem,j+1) )
-        end do
-        iband = abs( lnods(ielem,nne) - lnods(ielem,1) )
-        if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
-      end do
-      nband=(nband+1)*ndofn-1
-      if(nband.ge.maxband) then
-        write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
-        stop
-      end if
-     
-      print*, 'nband form prevop', nband
-
-     ! !Calcula el semiample de banda
-     ! nband=0
-     ! do ielem=1,nelem
-     !   iband = abs( lnods(1,ielem)-lnods(2,ielem) )
-     !   if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
-     ! end do
-     ! nband=(nband+1)*ndofn-1
-     ! if(nband.ge.maxband) then
-     !   write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
-     !   stop
-     ! end if
-      
-      !Inicialitzacio de les matrius de treball
-      icoun = 0
-      do iband=1,nband+1
-        do itotv=1,ntotv
-          icoun = icoun + 1
-          rigid(icoun)= 0.0d0
-        end do
-      end do
-      
-      !do i=1,ndofn!3
-      !  do ivfix=1,nBVs!nvfix !nBVs !1, 20
-      !    treac(i,ivfix)=0.0d0 !Reacciones en los soportes para cada barra
-      !  end do
-      !end do
-     
-      !Defineix algunes variables caracter
-      !c_coor(1)='Coordenada-X'
-      !c_coor(2)='Coordenada-Y'
-      !c_prop(1)='Mod. Young (E)'
-      !c_prop(2)='      Area (A)'
-      !c_prop(3)='   Inercia (I)'
-      !c_dofn(1)='Despl. -X'
-      !c_dofn(2)='Despl. -Y'
-      !c_dofn(3)='      Gir'
-      !c_load(1)='Forca Ext. -X'
-      !c_load(2)='Forca Ext. -Y'
-      !c_load(3)='  Moment Ext.'
-      !c_stre(1)='  E. axial'
-      !c_stre(2)='E. tallant'
-      !c_stre(3)='    Moment'
-      
-      return
-    end subroutine Prevop
+    
+    !subroutine Prevop( )
+    !  !              (rigid,treac)
+    !  !*****************************************************************************
+    !  !
+    !  !Calcula el semiample de banda, inicialitza vectors i defineix variables
+    !  !
+    !  !*****************************************************************************
+    !  
+    !  implicit none! double precision(a-h,o-z)
+    !  
+    !  
+    !  !double precision,intent (in out) :: treac(ndofn,nBVs) 
+    !  integer :: ielem, iband, icoun, itotv, j!, i, ivfix
+    !  
+    !  do ielem =1, nelem
+    !    do j=1, nne-1
+    !      iband = abs( lnods(ielem,j) - lnods(ielem,j+1) )
+    !    end do
+    !    iband = abs( lnods(ielem,nne) - lnods(ielem,1) )
+    !    if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
+    !  end do
+    !  nband=(nband+1)*ndofn-1
+    !  if(nband.ge.maxband) then
+    !    write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
+    !    stop
+    !  end if
+    ! 
+    !  print*, 'nband form prevop', nband
+    !  
+    ! ! !Calcula el semiample de banda
+    ! ! nband=0
+    ! ! do ielem=1,nelem
+    ! !   iband = abs( lnods(1,ielem)-lnods(2,ielem) )
+    ! !   if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
+    ! ! end do
+    ! ! nband=(nband+1)*ndofn-1
+    ! ! if(nband.ge.maxband) then
+    ! !   write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
+    ! !   stop
+    ! ! end if
+    !  
+    !  !Inicialitzacio de les matrius de treball
+    !  
+    !  
+    !  return
+    !end subroutine Prevop
    
     subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
       
@@ -1109,20 +1080,40 @@ module library
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)  :: Hesxieta
       double precision, dimension(nne)                :: basis
-      double precision, dimension(2,nne)              :: dN_dxy
+      double precision, dimension(DimPr,nne)          :: dN_dxy
       double precision, dimension(3,nne)              :: HesXY
       double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
       double precision, dimension(nevab, nevab)       :: Ke
       double precision, dimension(nevab)              :: rhslo
       double precision, dimension(3,3)                :: tauma
       real, dimension(nne,DimPr)                      :: element_nodes
-      integer, dimension(nne,1)                       :: node_id_map
+      integer, dimension(nne)                       :: nodeIDmap
       double precision                                :: dvol, hmaxi, detJ
-      integer                                         :: igaus, ielem, ibase
-      double precision, dimension(ntotv,ntotv), intent(out)  :: A_K
+      integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K
       double precision, dimension(ntotv,1), intent (out)     :: A_F
       
-     !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
+      iband=0
+      do ielem =1, nelem
+        do inode = 1, nne
+          ipoin = lnods(ielem,inode)
+          do jnode = 1, nne
+            jpoin = lnods(ielem,jnode)
+            iband = max(iband,abs(jpoin-ipoin))
+          end do
+        end do
+        !if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
+        nband = iband
+      end do
+      nband=(nband+1)*ndofn-1
+      if(nband.ge.maxband) then
+        write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
+        stop
+      end if
+      print*, 'nband form GlobalSystem', nband
+      allocate(A_K(nband+1,ntotv))
+      
+      !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
       A_K = 0.0
       A_F = 0.0
       !Setup for K11 block or Kuu
@@ -1130,7 +1121,7 @@ module library
         !gather
         Ke = 0.0       !Esto es amate
         rhslo = 0.0    !rhslo(nevab)
-        call SetElementNodes(ielem, element_nodes, node_id_map)
+        call SetElementNodes(ielem, element_nodes, nodeIDmap)
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
           Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
@@ -1148,16 +1139,16 @@ module library
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
         
-        !call Assemble_K(ielem,lnods(1,ielem),estif,rigid) !AssembleK( Ke, node_id_map, A_K)   ! assemble global K
-
-        !call AssembleF(rhslo, node_id_map, A_F) ! assemble global F
+        call Assemble_K(nodeIDmap, Ke, A_K) 
+             !AssembleK( Ke, nodeIDmap, A_K)   ! assemble global K
+        call AssembleF(nodeIDmap, rhslo, A_F) ! assemble global F
         
       end do
      
       
     end subroutine GlobalSystem
     
-    subroutine Assemble_K(ielem,lnods,estif,rigid)
+    subroutine Assemble_K(lnods,estif,rigid)
       !*****************************************************************************
       !
       !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
@@ -1167,7 +1158,7 @@ module library
       implicit none
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       double precision, intent(in) :: estif(nevab,nevab)
-      integer, intent(in) :: lnods(2), ielem
+      integer, intent(in) :: lnods(nne)
       integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
       double precision, intent(inout) :: rigid(nband+1,ntotv)
       
@@ -1193,20 +1184,19 @@ module library
       return
     end subroutine Assemble_K
     
-    subroutine AssembleF( fe, nodeIDmap, F_global)       
+    subroutine AssembleF( nodeIDmap, fe, F_global)       
       
       implicit none                                                  
-       
-      double precision, dimension(nevab,1), intent(in)     :: fe      !nevab = number of element variable
-      integer, dimension(nne,1), intent(in)                :: nodeIDmap
+      
+      double precision, dimension(nevab,1), intent(in)   :: fe  !nevab = Num of element variable
+      integer, dimension(nne), intent(in)                :: nodeIDmap
       integer :: i, rowNode, row                           
-      double precision, dimension(ntotv,1),intent(in out)  :: F_global  
+      double precision, dimension(ntotv,1),intent(inout):: F_global  
       
       do i = 1, nne
-        rowNode = nodeIDmap(i,1)                !global id for row nodes
-        row =  ndofn * rowNode - (ndofn-1)      !row number in the global F
-        
-        F_global(row:row+ndofn-1,1) =  F_global(row:row+ndofn-1,1) + fe( (i-1)*ndofn+1 : i*ndofn, 1)
+        rowNode = nodeIDmap(i)                !global id for row nodes
+        row =  ndofn * rowNode - (ndofn-1)    !row number in the global F
+        F_global(row:row+ndofn-1,1) =  F_global(row:row+ndofn-1,1) + fe( (i-1)*ndofn+1:i*ndofn, 1)
         
       end do
       
@@ -1232,7 +1222,6 @@ module library
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       integer :: ivfix, idofn, itotv, jpoin, jdofn, jtotv, itot1, jband, itot2, nvfix
       double precision,intent(inout)  :: rigid(nband+1,ntotv), gload(ntotv)
-      !double precision,intent(in out) :: treac(ndofn,nvfix)
       
       nvfix = nBVs
       !***  Inicialitzacio de les reaccions per als graus de llibertat prescrits
@@ -1259,7 +1248,7 @@ module library
               itot1=jtotv-nband
               if (itot1.lt.1) itot1=1
               do itotv=itot1,jtotv-1
-                jband=jtotv-itotv+1
+                jband=jtotv-itotv+1 !Algoritmo de recuperacion
                 gload(itotv) = gload(itotv)-rigid(jband,itotv)*presc(jdofn,ivfix)
                 rigid(jband,itotv)=0.0
               end do
@@ -1270,7 +1259,7 @@ module library
               itot2=jtotv+nband
               if (itot2.gt.ntotv) itot2=ntotv
               do itotv=jtotv+1,itot2
-                jband=itotv-jtotv+1
+                jband=itotv-jtotv+1 !Algoritmo de recuperacion
                 gload(itotv) = gload(itotv)-rigid(jband,jtotv)*presc(jdofn,ivfix)
                 rigid(jband,jtotv)=0.0
               end do
