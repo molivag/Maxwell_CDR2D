@@ -14,11 +14,12 @@ module library
       write(*,"(A29,8X,I6,1X,A11)") ' 2.- Problem dimension:      ', DimPr, '  |'
       write(*,"(A29,8X,I6,1X,A11)") ' 3.- Elements:               ', nelem,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 4.- Nodal points:           ', nnodes, ' |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 5.- DoF per element:        ', ndofn, '  |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 5.- DoF per node:           ', ndofn, '  |'
       write(*,"(A29,8X,I6,1X,A11)") ' 6.- Nodes per element:      ', nne, '    |'
       write(*,"(A29,8X,I6,1X,A11)") ' 7.- Total Gauss points:     ', totGp,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 8.- Element variabless:     ', nevab,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 9.- Total unknowns:         ', ntotv,'   |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 10.- Max bandwidth:         ', maxband,' |'
       print*,'!================ End GENERAL INFO ===============!'
       write(*,*)' '
       !print*,'!============== FILE READING STATUS ============!'
@@ -1092,6 +1093,7 @@ module library
       integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K
       double precision, dimension(ntotv,1), intent (out)     :: A_F
+      integer, dimension( nne + 1, nelem)            :: lnods2
       
       iband=0
       do ielem =1, nelem
@@ -1138,8 +1140,9 @@ module library
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
-        
-        call Assemble_K(nodeIDmap, Ke, A_K) 
+        lnods2=transpose(lnods) 
+        !call Assemble_K(nodeIDmap, Ke, A_K) 
+        call Assemble_K(ielem,lnods2(1,ielem),Ke,A_K)
              !AssembleK( Ke, nodeIDmap, A_K)   ! assemble global K
         call AssembleF(nodeIDmap, rhslo, A_F) ! assemble global F
         
@@ -1148,7 +1151,8 @@ module library
       
     end subroutine GlobalSystem
     
-    subroutine Assemble_K(lnods,estif,rigid)
+    !subroutine Assemble_K(lnods,estif,rigid)
+    subroutine Assemble_K(ielem,lnods,estif,rigid)
       !*****************************************************************************
       !
       !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
@@ -1159,7 +1163,7 @@ module library
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       double precision, intent(in) :: estif(nevab,nevab)
       integer, intent(in) :: lnods(nne)
-      integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
+      integer :: ielem, inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
       double precision, intent(inout) :: rigid(nband+1,ntotv)
       
       
@@ -1339,22 +1343,22 @@ module library
       character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Res/"
       character(*) :: name1, name2
       integer :: i, j, mrow, ncol, unit1, unit2
-      double precision, dimension(ntotv ,ntotv ), intent(in) :: Matrix
+      double precision, dimension(nband+1 ,ntotv ), intent(in) :: Matrix
       double precision, dimension(ntotv ,1), intent(in) :: Vector
       
       100 format (900E20.12)
       
-      mrow = ntotv 
-      ncol = ntotv
+      mrow = size(Matrix,1) 
+      ncol = size(Matrix,2)
       open(unit=unit1, file= fileplace//name1, ACTION="write", STATUS="replace")
       
-      do i=1,ntotv 
-        write(unit1, 100)( Matrix(i,j) ,j=1,ntotv)
+      do i=1,mrow
+        write(unit1, 100)( Matrix(i,j) ,j=1,ncol)
       end do
       close(unit1)
       
       open(unit=unit2, file= fileplace//name2, ACTION="write", STATUS="replace")
-      do i=1,ntotv 
+      do i=1,ncol 
         write(unit2, 100) Vector(i,1)
       end do
       close(unit2)
