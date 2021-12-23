@@ -75,7 +75,7 @@ module library
       character(len=*), parameter   :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
       character(len=*), intent (in) :: FileName
       integer :: status, nr
-      double precision, intent(out) :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !tensor materials
+      double precision, intent(out) :: difma(ndofn,ndofn,dimPr,dimPr), conma(ndofn,ndofn,dimPr), reama(ndofn,ndofn), force(ndofn) !tensor materials
       
       open (unit = nr, file = fileplace//FileName, status='old', iostat = status)
       
@@ -84,94 +84,111 @@ module library
       reama = 0.0
       force = 0.0
       
+      2 format(39x,2(e15.5),/,39x,2(e15.5))
+      !5 format(39x,3(E15.5),/,39x,3(E15.5),/,39x,3(E15.5))
       !read(nr,1) npoin,nelem,nnode,ngaut,ndofn
       
-      if(ndofn.eq.2) then
-        read(nr,2) difma(1,1,1,1),difma(1,2,1,1),&
-          difma(2,1,1,1),difma(2,2,1,1)
-        read(nr,2) difma(1,1,1,2),difma(1,2,1,2),&
-          difma(2,1,1,2),difma(2,2,1,2)
-        read(nr,2) difma(1,1,2,2),difma(1,2,2,2),&
-          difma(2,1,2,2),difma(2,2,2,2)
+      if(ndofn.eq.1) then
+        difma(1,1,1,1)= 1.0e-4
+        difma(1,1,1,2)= 0.0e-0
+        difma(1,1,2,2)= 1.0e-4
+        conma(1,1,1)  = 1.0e+1
+        conma(1,1,2)  = 0.0e+0
+        reama(1,1)    = 0.0
+        force(1)      = 1.0e+0
+      elseif(ndofn.eq.2)then
+        difma(1,1,1,1) = 1.0e-0 
+        difma(1,2,1,1) = 0.0e-0
+        difma(2,1,1,1) = 0.0e-0
+        difma(2,2,1,1) = 1.0e-0
+        difma(1,1,1,2) = 0.0e-0
+        difma(1,2,1,2) = 0.0e-0
+        difma(2,1,1,2) = 0.0e-0
+        difma(2,2,1,2) = 0.0e-0
+        difma(1,1,2,2) = 1.0e-0
+        difma(1,2,2,2) = 0.0e-0
+        difma(2,1,2,2) = 0.0e-0
+        difma(2,2,2,2) = 1.0e-0
+        !read(nr,2) difma(1,1,1,1),difma(1,2,1,1),difma(2,1,1,1),difma(2,2,1,1)
+        !read(nr,2) difma(1,1,1,2),difma(1,2,1,2),difma(2,1,1,2),difma(2,2,1,2)
+        !read(nr,2) difma(1,1,2,2),difma(1,2,2,2),difma(2,1,2,2),difma(2,2,2,2)
         
-        read(nr,2) conma(1,1,1), conma(1,2,1),&
-          conma(2,1,1), conma(2,2,1)
-        read(nr,2) conma(1,1,2), conma(1,2,2),& 
-          conma(2,1,2), conma(2,2,2)
+        conma(1,1,1) = 0.0e+2 
+        conma(1,2,1) = 0.0e-0
+        conma(2,1,1) = 0.0e-0 
+        conma(2,2,1) = 0.0e+2
+        conma(1,1,2) = 0.0e+0
+        conma(1,2,2) = 0.0e-0
+        conma(2,1,2) = 0.0e-0
+        conma(2,2,2) = 0.0e+1
+        !read(nr,2) conma(1,1,1), conma(1,2,1),conma(2,1,1), conma(2,2,1)
+        !read(nr,2) conma(1,1,2), conma(1,2,2),conma(2,1,2), conma(2,2,2)
+       
+        reama(1,1) = 8.0e+4
+        reama(1,2) = 0.0e-0
+        reama(2,1) = 0.0e-0
+        reama(2,2) = 8.0e+4
+        !read(nr,2) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
         
-        read(nr,2) reama(1,1), reama(1,2),& 
-          reama(2,1), reama(2,2)
-        
-        read(nr,3) force(1), force(2)
+        force(1) = 1.0e+0
+        force(2) = 1.0e+0
+        !read(nr,3) force(1), force(2)
         
         !print*, force 
         
       else if(ndofn.eq.3) then                              
         !print*, 'test if'
-        read(nr,5) difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1)
-        read(nr,5) difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1)
-        read(nr,5) difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1)
+       ! read(nr,5) difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1)
+       ! read(nr,5) difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1)
+       ! read(nr,5) difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1)
+       ! 
+       ! read(nr,5) difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2)
+       ! read(nr,5) difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2) 
+       ! read(nr,5) difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2)
+       ! 
+       ! read(nr,5) difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2)
+       ! read(nr,5) difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2)
+       ! read(nr,5) difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2)
+       ! 
+       ! read(nr,5) conma(1,1,1), conma(1,2,1), conma(1,3,1)
+       ! read(nr,5) conma(2,1,1), conma(2,2,1), conma(2,3,1)
+       ! read(nr,5) conma(3,1,1), conma(3,2,1), conma(3,3,1)
+       ! 
+       ! read(nr,5) conma(1,1,2), conma(1,2,2), conma(1,3,2)
+       ! read(nr,5) conma(2,1,2), conma(2,2,2), conma(2,3,2)
+       ! read(nr,5) conma(3,1,2), conma(3,2,2), conma(3,3,2)
+       !
+       ! read(nr,5) reama(1,1), reama(1,2), reama(1,3)
+       ! read(nr,5) reama(2,1), reama(2,2), reama(2,3)
+       ! read(nr,5) reama(3,1), reama(3,2), reama(3,3)
+       ! 
+       ! read(nr,3) force(1), force(2), force(3)
         
-        read(nr,5) difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2)
-        read(nr,5) difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2) 
-        read(nr,5) difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2)
-        
-        read(nr,5) difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2)
-        read(nr,5) difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2)
-        read(nr,5) difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2)
-        
-        read(nr,5) conma(1,1,1), conma(1,2,1), conma(1,3,1)
-        read(nr,5) conma(2,1,1), conma(2,2,1), conma(2,3,1)
-        read(nr,5) conma(3,1,1), conma(3,2,1), conma(3,3,1)
-        
-        read(nr,5) conma(1,1,2), conma(1,2,2), conma(1,3,2)
-        read(nr,5) conma(2,1,2), conma(2,2,2), conma(2,3,2)
-        read(nr,5) conma(3,1,2), conma(3,2,2), conma(3,3,2)
-       
-        read(nr,5) reama(1,1), reama(1,2), reama(1,3)
-        read(nr,5) reama(2,1), reama(2,2), reama(2,3)
-        read(nr,5) reama(3,1), reama(3,2), reama(3,3)
-        
-        read(nr,3) force(1), force(2), force(3)
-        
-        !print*, force 
         
       end if
-     ! plate = 0
-     ! if(ndofn.eq.-3) then
-     !   read(nr,3) young,poiss,thick,force(3)
-     !   ndofn=3
-     !   plate=1
-     ! end if                                                
-      
-     ! read(nr,4) ksoty,kprec,hnatu,kstab,ktaum,patau,iout
-     ! call geodat(coord,ifpre,lnods,posgx,posgy,weigp,unkno)
       
       close (nr)
-     ! if(plate.eq.1)
-     !   call plamat(young,poiss,thick,difma,conma,reama)
-     ! endif
       
       !The slash / descriptor begins a new line (record) on output and skips to the next line on input, ignoring any unread information on the current record format(6/) o 6/
       1 format((6/),5(39x,i10,/))
-      2 format(39x,2(e15.5),/,39x,2(e15.5))
       3 format(39x,3(e15.5))
       !3 format((12/),39x,3(e15.5))
       4 format(/,2(39x,i10,/),(39x,e15.5,/),2(39x,i10,/),(39x,e15.5,/),(39x,i10,/)/)
       5 format(39x,3(E15.5),/,39x,3(E15.5),/,39x,3(E15.5))
       
-      difma(1,1,2,1) = difma(1,1,1,2)
-      difma(1,2,2,1) = difma(2,1,1,2)
-      difma(2,1,2,1) = difma(1,2,1,2)
-      difma(2,2,2,1) = difma(2,2,1,2)
-      
-      if(ndofn.eq.3) then
-        difma(1,3,2,1)=difma(3,1,1,2)
-        difma(2,3,2,1)=difma(3,2,1,2)
-        difma(3,1,2,1)=difma(1,3,1,2)
-        difma(3,2,2,1)=difma(2,3,1,2)
-        difma(3,3,2,1)=difma(3,3,1,2)
-      end if
+      if(ndofn.eq.2)then 
+        difma(1,1,2,1) = difma(1,1,1,2)
+        difma(1,2,2,1) = difma(2,1,1,2)
+        difma(2,1,2,1) = difma(1,2,1,2)
+        difma(2,2,2,1) = difma(2,2,1,2)
+      endif
+     ! if(ndofn.eq.3) then
+     !   difma(1,3,2,1)=difma(3,1,1,2)
+     !   difma(2,3,2,1)=difma(3,2,1,2)
+     !   difma(3,1,2,1)=difma(1,3,1,2)
+     !   difma(3,2,2,1)=difma(2,3,1,2)
+     !   difma(3,3,2,1)=difma(3,3,1,2)
+     ! end if
       
     end subroutine ReadTensors
     
@@ -255,11 +272,11 @@ module library
       
     end function J2D               
     
-    subroutine DerivativesXY(Gp, Jaco, InvJaco, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+    subroutine DerivativesXY(Gp, InvJaco, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
       
       implicit none
      
-      double precision, dimension(DimPr,DimPr),intent(in):: Jaco, InvJaco     
+      double precision, dimension(DimPr,DimPr),intent(in):: InvJaco     
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)     :: Hesxieta
       integer, intent(in)                                :: Gp !esta variable se usara en el lazo principal
@@ -276,11 +293,11 @@ module library
       
       do idime=1,2
         do inode=1,nne
-          dN_dxy = 0.0
+          dN_dxy(idime,inode) = 0.0
           derst(1,inode) = Nxi(1,inode)
           derst(2,inode) = Neta(1,inode)
           do jdime=1,2
-            dN_dxy(idime,inode)  = dN_dxy(idime,inode) + Jaco(idime,jdime) * derst(jdime,inode)
+            dN_dxy(idime,inode)  = dN_dxy(idime,inode) + InvJaco(idime,jdime) * derst(jdime,inode)
           end do
         end do
       end do
@@ -476,17 +493,18 @@ module library
       
     end function m22det
     
-    function elemSize(Jacobian)
+    function elemSize(InvJacobian)
       implicit none
       
-      double precision, dimension(DimPr,DimPr), intent(in) :: Jacobian
+      double precision, dimension(DimPr,DimPr), intent(in) :: InvJacobian
       double precision :: hx, hy, elemSize
+     ! hx    = sqrt(xjaci(1,1)**2+xjaci(2,1)**2)
+     ! hy    = sqrt(xjaci(1,2)**2+xjaci(2,2)**2)
       
+      hx    = sqrt(InvJacobian(1,1)**2+InvJacobian(2,1)**2)
+      hy    = sqrt(InvJacobian(1,2)**2+InvJacobian(2,2)**2)
       
-      hx    = sqrt(Jacobian(1,1)**2+Jacobian(2,1)**2)
-      hy    = sqrt(Jacobian(1,2)**2+Jacobian(2,2)**2)
-      
-      elemSize = hnatu/(min(hx,hy))
+      elemSize = hnatu/(min(hx,hy))     !hnatu = Reference element length en mod_param
      
       return
       
@@ -528,7 +546,7 @@ module library
       
       implicit none
 
-      double precision, intent(in) :: basis(nne), dNdxy(2,nne)
+      double precision, intent(in) :: basis(nne), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  prod1, prod2, prod3
@@ -644,7 +662,7 @@ module library
       
       implicit none
      
-      double precision, intent(in)  :: basis(nne), derxy(2,nne), hesxy(3,nne), tauma(3,3)
+      double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), hesxy(3,nne), tauma(3,3)
       double precision, intent(in)  :: dvolu
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
       double precision              :: prod1, prod2, prod3
@@ -889,7 +907,7 @@ module library
                                                      !"/home/maoliva/Codes/2.ConDifRea_Aca/Geo/"
       character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
       integer, intent(out) :: nBVs, nBVscol
-      integer :: ierror, a ,b, c, i 
+      integer :: ierror, a ,b, c, d, i
       real    :: x, y, xmin, xmax, ymin, ymax
       
       ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
@@ -901,6 +919,7 @@ module library
       a = 0
       b = 0
       c = 0
+      d = 0
 
       xmin = minval(coord(:,2)) !the smallest number in x column
       xmax = maxval(coord(:,2)) !the greatest number in x column
@@ -908,31 +927,35 @@ module library
       ymax = maxval(coord(:,3)) !the greatest number in y column
       
       
-      print*, ' '
-      print*, 'xmin= ', xmin
-      print*, 'xmax= ', xmax
-      print*, 'ymin= ', ymin
-      print*, 'ymax= ', ymax
-      print*, ' '
+      !print*, ' '
+      !print*, 'xmin= ', xmin
+      !print*, 'xmax= ', xmax
+      !print*, 'ymin= ', ymin
+      !print*, 'ymax= ', ymax
+      !print*, ' '
       
-      nBVscol = size(coord,2)     
       
       if(ndofn .eq. 3) then
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then !top edge: velocity boundary condition
+          if(y.eq.ymax) then !top edge 
             write(100,50) i, 1,1,1, real(0), real(0), real(0)
             a = a+3
-          else if (y.eq.ymin)then !The other 3 edges
+          else if (y.eq.ymin)then !botomm edge
             write(100,50) i, 1,1,1, real(0), real(0), real(0)
             b = b+3
-          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+          else if (x.eq.xmin)then !left edge
             write(100,50) i, 1,1,1, real(0), real(0), real(0)
             c = c+3
+          else if(x.eq.xmax)then !right edge
+            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            d = d+3
           end if
-          nBVs = a+b+c
+          nBVs = a+b+c+d
         end do
+          nBVs = nBVs/3
+          nBVscol = 7 
         
       elseif(ndofn .eq. 2) then
         do i =1, nnodes
@@ -941,37 +964,49 @@ module library
           if(y.eq.ymax) then !top edge
             write(100,60) i, 1,1, real(0), real(0)
             a = a+2
-          else if (y.eq.ymin)then !The bottom edge
+          else if (y.eq.ymin)then !bottom edge
             write(100,60) i, 1,1, real(0), real(0)
             b = b+2
-          else if (x.eq.xmin .or. x.eq.xmax)then !Left & right edges
-            write(100,60) i, 1,1, real(0), real(0)
+          else if ((x.eq.xmin) .and. (y.eq.ymin))then !left edge
+            write(100,60) i, 1,1, real(1), real(1)
+          else if ((x.eq.xmin) .and. (y.eq.ymax))then !left edge
+            write(100,60) i, 1,1, real(1), real(1)
+          else if (x.eq.xmin )then !left edge
+            write(100,60) i, 1,1, real(1), real(1)
             c = c+2
+          else if (x.eq.xmax)then !right edges
+            write(100,60) i, 1,1, real(0), real(0)
+            d = d+2
           end if
-          nBVs = a+b+c
+          nBVs = a+b+c+d
         end do
+          nBVs = nBVs/2
+          nBVscol = 5
         
       elseif(ndofn .eq. 1)then
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then !top edge: velocity boundary condition
+          if(y.eq.ymax) then !top edge
             write(100,70) i, 1, real(0)
             a = a+1
-          else if (y.eq.ymin)then !The other 3 edges
+          else if (y.eq.ymin)then !botomm
             write(100,70) i, 1, real(0)
             b = b+1
-          else if (x.eq.xmin .or. x.eq.xmax)then !The other 3 edges
+          else if (x.eq.xmin)then !left edge
             write(100,70) i, 1, real(1)
             c = c+1
+          else if (x.eq.xmax)then !right edge
+            write(100,70) i, 1, real(0)
+            d = d+1
           end if
-          nBVs = a+b+c
+          nBVs = a+b+c+d
         end do
+          nBVscol = 3
       end if
       
       close(100)
       
-      print*,'Bvs from SetBoundCond',nBVs 
       
       50 format(4I6,3f10.3)
       60 format(3I6,2f10.3)
@@ -991,8 +1026,6 @@ module library
       integer, intent(out)          :: ifpre(ndofn,nBVs)
       integer, intent(out)          :: nofix(nBVs)
       
-      print*, 'nBVs from VinculBVs: ', nBVs
-      write(*,*) 'Shape de Bvs desde VinculBVs', shape(BVs) 
       
       select case(ndofn)
         case(1)
@@ -1086,9 +1119,9 @@ module library
       double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
       double precision, dimension(nevab, nevab)       :: Ke
       double precision, dimension(nevab)              :: rhslo
-      double precision, dimension(3,3)                :: tauma
+      double precision, dimension(3,3)        :: tauma
       real, dimension(nne,DimPr)                      :: element_nodes
-      integer, dimension(nne)                       :: nodeIDmap
+      integer, dimension(nne)                         :: nodeIDmap
       double precision                                :: dvol, hmaxi, detJ
       integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K
@@ -1112,7 +1145,6 @@ module library
         write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
         stop
       end if
-      print*, 'nband form GlobalSystem', nband
       allocate(A_K(nband+1,ntotv))
       
       !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
@@ -1130,11 +1162,11 @@ module library
           detJ = m22det(Jaco)
           Jinv = inv2x2(Jaco)
           dvol = detJ *  weigp(igaus,1) 
-          call DerivativesXY(igaus, Jaco, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
-          hmaxi = elemSize(Jaco) 
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jinv) 
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
-          end do
+          end do     
           call Galerkin(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
           call TauMat(hmaxi,tauma) 
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
@@ -1142,9 +1174,8 @@ module library
         end do
         lnods2=transpose(lnods) 
         !call Assemble_K(nodeIDmap, Ke, A_K) 
-        call Assemble_K(ielem,lnods2(1,ielem),Ke,A_K)
-             !AssembleK( Ke, nodeIDmap, A_K)   ! assemble global K
-        call AssembleF(nodeIDmap, rhslo, A_F) ! assemble global F
+        call Assemble_K(ielem,lnods2(1,ielem),Ke,A_K) ! assemble global K
+        call AssembleF(nodeIDmap, rhslo, A_F)         ! assemble global F
         
       end do
      
@@ -1164,7 +1195,7 @@ module library
       double precision, intent(in) :: estif(nevab,nevab)
       integer, intent(in) :: lnods(nne)
       integer :: ielem, inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
-      double precision, intent(inout) :: rigid(nband+1,ntotv)
+      double precision, intent(in out) :: rigid(nband+1,ntotv)
       
       
       !  inode=1,2
@@ -1179,7 +1210,9 @@ module library
               jevab=(jnode-1)*ndofn+jdofn
               jtotv=(jpoin-1)*ndofn+jdofn
               jband=jtotv-itotv+1  !Algoritmo de recuperacion para la matriz de bandas
-              if ( jband.ge.1 )rigid(jband,itotv) = rigid(jband,itotv) + estif(ievab,jevab)
+              if (jband.ge.1)then
+                rigid(jband,itotv)=rigid(jband,itotv)+estif(ievab,jevab)
+              endif
             end do 
           end do
         end do
