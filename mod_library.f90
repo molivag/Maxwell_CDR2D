@@ -1131,9 +1131,9 @@ module library
       iband=0
       do ielem =1, nelem
         do inode = 1, nne
-          ipoin = lnods(ielem,inode)
+          ipoin = lnods(ielem,inode+1) !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
           do jnode = 1, nne
-            jpoin = lnods(ielem,jnode)
+            jpoin = lnods(ielem,jnode+1)
             iband = max(iband,abs(jpoin-ipoin))
           end do
         end do
@@ -1151,6 +1151,7 @@ module library
       A_K = 0.0
       A_F = 0.0
       !Setup for K11 block or Kuu
+      print*,'nband',nband
       do ielem = 1, nelem    !lnods loop for K11 block Global K
         !gather
         Ke = 0.0       !Esto es amate
@@ -1182,8 +1183,8 @@ module library
       
     end subroutine GlobalSystem
     
-    !subroutine Assemble_K(lnods,estif,rigid)
-    subroutine Assemble_K(ielem,lnods,estif,rigid)
+    !subroutine Assemble_K(lnods,Ke,A_K)
+    subroutine Assemble_K(ielem,lnods,Ke,A_K)
       !*****************************************************************************
       !
       !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
@@ -1192,10 +1193,10 @@ module library
       
       implicit none
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
-      double precision, intent(in) :: estif(nevab,nevab)
+      double precision, intent(in) :: Ke(nevab,nevab)
       integer, intent(in) :: lnods(nne)
       integer :: ielem, inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
-      double precision, intent(in out) :: rigid(nband+1,ntotv)
+      double precision, intent(in out) :: A_K(nband+1,ntotv)
       
       
       !  inode=1,2
@@ -1211,7 +1212,7 @@ module library
               jtotv=(jpoin-1)*ndofn+jdofn
               jband=jtotv-itotv+1  !Algoritmo de recuperacion para la matriz de bandas
               if (jband.ge.1)then
-                rigid(jband,itotv)=rigid(jband,itotv)+estif(ievab,jevab)
+                A_K(jband,itotv)=A_K(jband,itotv)+Ke(ievab,jevab)
               endif
             end do 
           end do
