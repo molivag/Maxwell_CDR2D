@@ -19,35 +19,12 @@ module library
       write(*,"(A29,8X,I6,1X,A11)") ' 7.- Total Gauss points:     ', totGp,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 8.- Element variabless:     ', nevab,'   |'
       write(*,"(A29,8X,I6,1X,A11)") ' 9.- Total unknowns:         ', ntotv,'   |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 10.- Max bandwidth:         ', maxband,' |'
+      write(*,"(A29,8X,I6,1X,A11)") ' 10.-Bandwidth:              ', maxband,' |'
       print*,'!================ End GENERAL INFO ===============!'
       write(*,*)' '
       !print*,'!============== FILE READING STATUS ============!'
      
     endsubroutine GeneralInfo
-    
-    subroutine ReadRealFile(UnitNum, FileName, NumRows, NumCols, Real_Array)
-      implicit none
-      
-      integer :: i, j, status, UnitNum, NumRows, NumCols
-      character (len=*), intent (in) :: FileName
-      character(len=:), allocatable :: fileplace
-      real, dimension (1:NumRows, 1:NumCols), intent (out) :: Real_Array
-     
-      fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
-      
-      open (unit = UnitNum, file =fileplace//FileName, status='old', action='read' , iostat = status)
-      
-      read(UnitNum,*) ((Real_Array(i,j), j=1,NumCols), i=1,NumRows)
-      if (status.ne.0) then
-        print *, "Status_Real_File ", status
-      else
-        continue
-      end if
-      
-      close (UnitNum)
-      
-    end subroutine
     
     subroutine ReadIntegerFile(UnitNum, FileName, NumRows, NumCols, IntegerArray)
      
@@ -69,156 +46,6 @@ module library
       close (UnitNum)
       
     end subroutine ReadIntegerFile
-    
-    subroutine ReadTensors(nr, FileName, difma, conma, reama, force)
-      
-      character(len=*), parameter   :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
-      character(len=*), intent (in) :: FileName
-      integer :: status, nr
-      double precision, intent(out) :: difma(ndofn,ndofn,dimPr,dimPr), conma(ndofn,ndofn,dimPr), reama(ndofn,ndofn), force(ndofn) !tensor materials
-      
-      open (unit = nr, file = fileplace//FileName, status='old', iostat = status)
-      
-      difma = 0.0
-      conma = 0.0
-      reama = 0.0
-      force = 0.0
-      
-      2 format(39x,2(e15.5),/,39x,2(e15.5))
-      !5 format(39x,3(E15.5),/,39x,3(E15.5),/,39x,3(E15.5))
-      !read(nr,1) npoin,nelem,nnode,ngaut,ndofn
-      
-      if(ndofn.eq.1) then
-        difma(1,1,1,1)= 1.0e-4
-        difma(1,1,1,2)= 0.0e-0
-        difma(1,1,2,2)= 1.0e-4
-        conma(1,1,1)  = 1.0e+1
-        conma(1,1,2)  = 0.0e+0
-        reama(1,1)    = 0.0
-        force(1)      = 1.0e+0
-      elseif(ndofn.eq.2)then
-        difma(1,1,1,1) = 1.0e-0 
-        difma(1,2,1,1) = 0.0e-0
-        difma(2,1,1,1) = 0.0e-0
-        difma(2,2,1,1) = 1.0e-0
-        difma(1,1,1,2) = 0.0e-0
-        difma(1,2,1,2) = 0.0e-0
-        difma(2,1,1,2) = 0.0e-0
-        difma(2,2,1,2) = 0.0e-0
-        difma(1,1,2,2) = 1.0e-0
-        difma(1,2,2,2) = 0.0e-0
-        difma(2,1,2,2) = 0.0e-0
-        difma(2,2,2,2) = 1.0e-0
-        !read(nr,2) difma(1,1,1,1),difma(1,2,1,1),difma(2,1,1,1),difma(2,2,1,1)
-        !read(nr,2) difma(1,1,1,2),difma(1,2,1,2),difma(2,1,1,2),difma(2,2,1,2)
-        !read(nr,2) difma(1,1,2,2),difma(1,2,2,2),difma(2,1,2,2),difma(2,2,2,2)
-        
-        conma(1,1,1) = 0.0e+2 
-        conma(1,2,1) = 0.0e-0
-        conma(2,1,1) = 0.0e-0 
-        conma(2,2,1) = 0.0e+2
-        conma(1,1,2) = 0.0e+0
-        conma(1,2,2) = 0.0e-0
-        conma(2,1,2) = 0.0e-0
-        conma(2,2,2) = 0.0e+1
-        !read(nr,2) conma(1,1,1), conma(1,2,1),conma(2,1,1), conma(2,2,1)
-        !read(nr,2) conma(1,1,2), conma(1,2,2),conma(2,1,2), conma(2,2,2)
-       
-        reama(1,1) = 8.0e+4
-        reama(1,2) = 0.0e-0
-        reama(2,1) = 0.0e-0
-        reama(2,2) = 8.0e+4
-        !read(nr,2) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
-        
-        force(1) = 1.0e+0
-        force(2) = 1.0e+0
-        !read(nr,3) force(1), force(2)
-        
-        !print*, force 
-        
-      else if(ndofn.eq.3) then                              
-        !print*, 'test if'
-       ! read(nr,5) difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1)
-       ! read(nr,5) difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1)
-       ! read(nr,5) difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1)
-       ! 
-       ! read(nr,5) difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2)
-       ! read(nr,5) difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2) 
-       ! read(nr,5) difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2)
-       ! 
-       ! read(nr,5) difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2)
-       ! read(nr,5) difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2)
-       ! read(nr,5) difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2)
-       ! 
-       ! read(nr,5) conma(1,1,1), conma(1,2,1), conma(1,3,1)
-       ! read(nr,5) conma(2,1,1), conma(2,2,1), conma(2,3,1)
-       ! read(nr,5) conma(3,1,1), conma(3,2,1), conma(3,3,1)
-       ! 
-       ! read(nr,5) conma(1,1,2), conma(1,2,2), conma(1,3,2)
-       ! read(nr,5) conma(2,1,2), conma(2,2,2), conma(2,3,2)
-       ! read(nr,5) conma(3,1,2), conma(3,2,2), conma(3,3,2)
-       !
-       ! read(nr,5) reama(1,1), reama(1,2), reama(1,3)
-       ! read(nr,5) reama(2,1), reama(2,2), reama(2,3)
-       ! read(nr,5) reama(3,1), reama(3,2), reama(3,3)
-       ! 
-       ! read(nr,3) force(1), force(2), force(3)
-        
-        
-      end if
-      
-      close (nr)
-      
-      !The slash / descriptor begins a new line (record) on output and skips to the next line on input, ignoring any unread information on the current record format(6/) o 6/
-      1 format((6/),5(39x,i10,/))
-      3 format(39x,3(e15.5))
-      !3 format((12/),39x,3(e15.5))
-      4 format(/,2(39x,i10,/),(39x,e15.5,/),2(39x,i10,/),(39x,e15.5,/),(39x,i10,/)/)
-      5 format(39x,3(E15.5),/,39x,3(E15.5),/,39x,3(E15.5))
-      
-      if(ndofn.eq.2)then 
-        difma(1,1,2,1) = difma(1,1,1,2)
-        difma(1,2,2,1) = difma(2,1,1,2)
-        difma(2,1,2,1) = difma(1,2,1,2)
-        difma(2,2,2,1) = difma(2,2,1,2)
-      endif
-     ! if(ndofn.eq.3) then
-     !   difma(1,3,2,1)=difma(3,1,1,2)
-     !   difma(2,3,2,1)=difma(3,2,1,2)
-     !   difma(3,1,2,1)=difma(1,3,1,2)
-     !   difma(3,2,2,1)=difma(2,3,1,2)
-     !   difma(3,3,2,1)=difma(3,3,1,2)
-     ! end if
-      
-    end subroutine ReadTensors
-    
-    subroutine ReadMixFile(UnitNum, FileName, NumRows, NumCols, Real_Array)
-      implicit none
-      
-      ! - - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
-      ! Rutina que lee un conjunto de datos en el formato indicado
-      ! en la etiqueta 22
-      !- - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
-      
-      integer :: i, j, status, UnitNum, NumRows, NumCols
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
-      character (len=*), intent (in) :: FileName
-      real, dimension (1:NumRows, 1:NumCols), intent (out) :: Real_Array
-      
-      open (unit = UnitNum, file =fileplace//FileName, status='old', action='read' , iostat = status)
-      
-      ! read in values
-      read(UnitNum,22) ((Real_Array(i,j), j=1,NumCols), i=1,NumRows)
-      if (status.ne.0) then
-        print *, "Status_Mix_File  ", status
-      else
-        continue
-      end if
-      
-      22 format(3F13.10)
-      close (UnitNum)
-      
-    end subroutine
     
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap)
       
@@ -510,42 +337,10 @@ module library
       
     end function elemsize
     
-    function compBmat(dN_dxi, dN_deta, Gp)
-
-      implicit none
-
-      double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
-      integer, intent(in) :: Gp
-
-      double precision, dimension(2*DimPr, DimPr*nne) :: compBmat
-      double precision, dimension(1, nne)             :: Nxi, Neta
-      integer ::  i
-
-      compBmat = 0.0
-      Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
-      Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
-
-
-      do i=1, nne
-        compBmat(1,2*i-1)= Nxi(1,i)
-        compBmat(3,2*i)  = Nxi(1,i)
-        compBmat(2,2*i-1)= Neta(1,i)
-        compBmat(4,2*i)  = Neta(1,i)
-      end do
-
-      ! compBmat = B
-      return
-      ! - - - * * * D U D A * * * - - -
-        !En matlab basta con  Nxi(i) aqui quneuq es posible indicar un vector solo con una dimension, no sirve para multiplicarlo.
-        !Siempre se debe indicar matriz como un vector fila o vector columna?
-      ! - - - * * * D U D A * * * - - -
-
-    end function compBmat
-
     subroutine Galerkin(dvol, basis, dNdxy, Ke, rhslo)
       
       implicit none
-
+      
       double precision, intent(in) :: basis(nne), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
@@ -668,7 +463,7 @@ module library
       double precision              :: prod1, prod2, prod3
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab)
-
+      
       ! integer :: nnode,ndofn,nevab,kstab,n_ini
       !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
       !common/proper/difma,conma,reama,force
@@ -754,7 +549,7 @@ module library
       
       !common/numert/hnatu,patau,ksoty,kprec,kstab,ktaum
       !common/proper/difma,conma,reama,force
-    
+     
       !v_ini = 0.0
       !call initia(tauma,9,v_ini)
       tauma = 0.0
@@ -776,7 +571,7 @@ module library
         end do
       end do
       call sqrtma(chaco,chaco)
-    
+     
       !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
       do i=1,ndofn
         do j=1,ndofn
@@ -808,10 +603,10 @@ module library
         end do
       end do
     
-      !  Matrix tau, corresponding to:
-      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
-      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}      
+    !  Matrix tau, corresponding to:
+    !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+    !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
+    !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}      
     
       if(ktaum.eq.0) then       
         tau = 0.0
@@ -889,9 +684,6 @@ module library
    !   
    ! end subroutine AssembleK
     
-    
-    
-    
     subroutine SetBoundVal( nBVs, nBVscol )
       !========================================================================
       !Esta subroutina revisa todos los nodos de la malla y define el tipo de
@@ -906,9 +698,9 @@ module library
       implicit none
                                                      !"/home/maoliva/Codes/2.ConDifRea_Aca/Geo/"
       character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
-      integer, intent(out) :: nBVs, nBVscol
       integer :: ierror, a ,b, c, d, i
       real    :: x, y, xmin, xmax, ymin, ymax
+      integer, intent(out) :: nBVs, nBVscol
       
       ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
       ! que un if se cumpla, se sume el numero equivalente a los renglones escritos en archivo de texto que se esta creando
@@ -920,7 +712,7 @@ module library
       b = 0
       c = 0
       d = 0
-
+      
       xmin = minval(coord(:,2)) !the smallest number in x column
       xmax = maxval(coord(:,2)) !the greatest number in x column
       ymin = minval(coord(:,3)) !the smallest number in y column
@@ -961,20 +753,20 @@ module library
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then !top edge
+          if(y.eq.ymax) then                          !top edge
             write(100,60) i, 1,1, real(0), real(0)
             a = a+2
-          else if (y.eq.ymin)then !bottom edge
+          else if (y.eq.ymin)then                     !bottom edge
             write(100,60) i, 1,1, real(0), real(0)
             b = b+2
-          else if ((x.eq.xmin) .and. (y.eq.ymin))then !left edge
+          else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
             write(100,60) i, 1,1, real(1), real(1)
-          else if ((x.eq.xmin) .and. (y.eq.ymax))then !left edge
+          else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
             write(100,60) i, 1,1, real(1), real(1)
-          else if (x.eq.xmin )then !left edge
+          else if (x.eq.xmin )then                    !left edge
             write(100,60) i, 1,1, real(1), real(1)
             c = c+2
-          else if (x.eq.xmax)then !right edges
+          else if (x.eq.xmax)then                     !right edges
             write(100,60) i, 1,1, real(0), real(0)
             d = d+2
           end if
@@ -987,16 +779,20 @@ module library
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then !top edge
+          if(y.eq.ymax) then                          !top edge
             write(100,70) i, 1, real(0)
             a = a+1
-          else if (y.eq.ymin)then !botomm
+          else if (y.eq.ymin)then                     !botomm
             write(100,70) i, 1, real(0)
             b = b+1
-          else if (x.eq.xmin)then !left edge
+          else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
+            write(100,70) i, 1, real(0)
+          else if (x.eq.xmin)then                     !left edge
             write(100,70) i, 1, real(1)
             c = c+1
-          else if (x.eq.xmax)then !right edge
+          else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
+            write(100,70) i, 1, real(1)
+          else if (x.eq.xmax)then                     !right edge
             write(100,70) i, 1, real(0)
             d = d+1
           end if
@@ -1060,53 +856,6 @@ module library
         end select
     end subroutine VinculBVs
     
-    !subroutine Prevop( )
-    !  !              (rigid,treac)
-    !  !*****************************************************************************
-    !  !
-    !  !Calcula el semiample de banda, inicialitza vectors i defineix variables
-    !  !
-    !  !*****************************************************************************
-    !  
-    !  implicit none! double precision(a-h,o-z)
-    !  
-    !  
-    !  !double precision,intent (in out) :: treac(ndofn,nBVs) 
-    !  integer :: ielem, iband, icoun, itotv, j!, i, ivfix
-    !  
-    !  do ielem =1, nelem
-    !    do j=1, nne-1
-    !      iband = abs( lnods(ielem,j) - lnods(ielem,j+1) )
-    !    end do
-    !    iband = abs( lnods(ielem,nne) - lnods(ielem,1) )
-    !    if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
-    !  end do
-    !  nband=(nband+1)*ndofn-1
-    !  if(nband.ge.maxband) then
-    !    write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
-    !    stop
-    !  end if
-    ! 
-    !  print*, 'nband form prevop', nband
-    !  
-    ! ! !Calcula el semiample de banda
-    ! ! nband=0
-    ! ! do ielem=1,nelem
-    ! !   iband = abs( lnods(1,ielem)-lnods(2,ielem) )
-    ! !   if (iband.gt.nband) nband=iband !nband pasa como variable global por que se usa en  ApplyBVal y otros
-    ! ! end do
-    ! ! nband=(nband+1)*ndofn-1
-    ! ! if(nband.ge.maxband) then
-    ! !   write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
-    ! !   stop
-    ! ! end if
-    !  
-    !  !Inicialitzacio de les matrius de treball
-    !  
-    !  
-    !  return
-    !end subroutine Prevop
-   
     subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
       
       implicit none
@@ -1123,7 +872,7 @@ module library
       real, dimension(nne,DimPr)                      :: element_nodes
       integer, dimension(nne)                         :: nodeIDmap
       double precision                                :: dvol, hmaxi, detJ
-      integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin
+      integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin!,i
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K
       double precision, dimension(ntotv,1), intent (out)     :: A_F
       integer, dimension( nne + 1, nelem)            :: lnods2
@@ -1173,18 +922,34 @@ module library
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
-        lnods2=transpose(lnods) 
-        !call Assemble_K(nodeIDmap, Ke, A_K) 
-        call Assemble_K(ielem,lnods2(1,ielem),Ke,A_K) ! assemble global K
+        lnods2=transpose(lnods)
+        !print*, ielem
+        !print*,"NodeIDmap: ", (nodeIDmap(i), i=1,nne)
+        !print*,'lnods2', lnods2(2,ielem)
+
+ ! POR HACER:
+ !             *LEER nodeIDmap EN EL CALL DE ASSEMBLE, revisar que sea lo mismo
+ !             *Pooner a tauma como (ndofn,ndofn) con todas sus implicaciones
+ !             *REVISAR QUE CONDICIONES SE APLIQUEN BIEN EN LA MATRIZ GLOBAL
+ !             *ESCUCHAR ULTIMA GRABACION Y REVISAR QUE ELEMENTOS SON CERO EN A_K A MANO ANTES Y DESPUES DE APLICAR CONDICIONES DE
+ !             FRONTERA, usando la maya de 9 nodos 
+ !             *REVISAR LOS PARAMETROS DE ENTRADA DE LAPACK, ESPECIALMENTE S_trans
+ !             
+ !             
+
+        call Assemble_K(nodeIDmap, Ke, A_K) 
+        !call Assemble_K(ielem,lnods2(2,ielem),Ke,A_K) ! assemble global K
         call AssembleF(nodeIDmap, rhslo, A_F)         ! assemble global F
         
       end do
+
+      print*, 'shape of tauma', shape(tauma)
      
       
     end subroutine GlobalSystem
     
-    !subroutine Assemble_K(lnods,Ke,A_K)
-    subroutine Assemble_K(ielem,lnods,Ke,A_K)
+    subroutine Assemble_K(lnods,Ke,A_K)
+      !subroutine Assemble_K(ielem,lnods,Ke,A_K)
       !*****************************************************************************
       !
       !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
@@ -1195,13 +960,14 @@ module library
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       double precision, intent(in) :: Ke(nevab,nevab)
       integer, intent(in) :: lnods(nne)
-      integer :: ielem, inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
+      integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
       double precision, intent(in out) :: A_K(nband+1,ntotv)
       
       
       !  inode=1,2
       do inode=1,nne    !nne = number of node in the element
         ipoin=lnods(inode)
+        !print*,'ipoin',ipoin
         do idofn=1,ndofn
           ievab=(inode-1)*ndofn+idofn
           itotv=(ipoin-1)*ndofn+idofn
