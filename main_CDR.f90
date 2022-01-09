@@ -8,7 +8,7 @@ program main_CDR3d
   double precision, allocatable, dimension(:,:) :: A_K, A_F, presc
   double precision, allocatable, dimension(:,:) :: AK_LU, Solution
   double precision, allocatable, dimension(:,:) :: N, dN_dxi, dN_deta
-  double precision,            dimension(3,4) :: Hesxieta ! Puede quedar como allocatable si se allocate en ShapeFunctions subroutine.
+  double precision,              dimension(3,4) :: Hesxieta
   integer, allocatable, dimension(:,:)          :: BVs, ifpre
   integer, allocatable, dimension(:)            :: nofix
   real                                          :: start, finish
@@ -117,7 +117,7 @@ program main_CDR3d
   print*,'!=============== SOLVER (LAPACK) ===============!'
   S_m   = size(AK_LU,1)
   S_n   = size(AK_LU,2)
-  S_lda = max(1,size(AK_LU,1)) ! lda ≥ max(1, n).
+  S_lda = max(1,size(AK_LU,2)) ! lda ≥ max(1, n).
   S_trans = 'N'
   S_nrhs  = 1
   S_ldb   = max(1,size(Solution,1))
