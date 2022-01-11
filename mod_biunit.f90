@@ -62,6 +62,9 @@ module biunit
             weigp(7,1)= 25.0/81.0
             weigp(8,1)= 40.0/81.0
             weigp(9,1)= 64.0/81.0
+          else
+            write(*,*) 'Invalid number of Gauss poooints for this element'   
+            stop
           end if
         case('Triangle') 
           if(totGp.eq.1) then
@@ -118,9 +121,13 @@ module biunit
             weigp(4,1) = b
             weigp(5,1) = b
             weigp(6,1) = b
+          else
+            write(*,*) 'Invalid number of Gauss poooints for this element'   
+            stop
           end if
         case DEFAULT
           write(*,*) 'Invalid type of element.'   
+          stop
       end select
       
       
@@ -165,7 +172,7 @@ module biunit
             !  | o- - o - -o
             !  |
             !  +--------X-------->
-            write(*,100) ' Element type: ', ElemType, 'whit', Nne, 'nodes per element'
+            !write(*,100) ' Element type: ', ElemType, 'whit', Nne, 'nodes per element'
             !coordinates of the nodes of the master element
             master_nodes = reshape([1, -1, -1, 1, 0, -1, 0, 1, 1, 1, -1, -1, 1, 0, -1, 0], [Nne,DimPr])
             !NOTA ** Para que el reshape funcione correctamente, o que produzca el par de valores deseado, primero se deben
@@ -176,7 +183,7 @@ module biunit
             ! Aqui se calculan as funciones de forma N y parte de las derivadas dN/dxi and dN_deta
             ! mas no las derivadas dN/dx and dN/dy completas
             if (present(dN_dxi) .and. present(dN_deta))then
-              write(*,*) 'Using derivatives of shape functions -', Nne
+              !write(*,*) 'Using derivatives of shape functions -', Nne
               allocate(dN_dxi(Nne,totGp) )
               allocate(dN_deta(Nne,totGp))
               dN_dxi  = 0.0
@@ -209,7 +216,7 @@ module biunit
                 
               end do
             else
-              write(*,*) 'Using only shape functions'
+              !write(*,*) 'Using only shape functions'
               continue
             end if
             !Despues de evaluar si estan las derivadas como variable dummy en la llamada construye las
@@ -246,7 +253,7 @@ module biunit
             !  |
             !  +--------X-------->
             
-            write(*,100) ' Element type: ', ElemType, 'whit', Nne, 'nodes per element'
+            !write(*,100) ' Element type: ', ElemType, 'whit', Nne, 'nodes per element'
             !coordinates of the nodes of the master element
             master_nodes = reshape([1, -1, -1, 1, 1, 1, -1, -1], [Nne,DimPr])
             ! dN(xi,eta)/dx = dN/dxi(dxi\dx) + dN/deta(deta/dx)
@@ -255,7 +262,7 @@ module biunit
             ! mas no las derivadas dN/dx and dN/dy completas
             !do loop: compute N, dN_dxi, dN_deta
             if (present(dN_dxi) .and. present(dN_deta))then
-              write(*,*) 'Using derivatives of shape functions', Nne
+              !write(*,*) 'Using derivatives of shape functions', Nne
               allocate(dN_dxi(Nne,totGp) )
               allocate(dN_deta(Nne,totGp) )
               dN_dxi  = 0.0
@@ -275,7 +282,7 @@ module biunit
               Hesxieta(2,3)= 0.25
               Hesxieta(2,4)=-0.25
             else
-              write(*,*) 'Using only shape functions'
+              !write(*,*) 'Using only shape functions'
               continue
             endif
             
@@ -291,6 +298,7 @@ module biunit
             
           case DEFAULT
             write(*,*) 'Invalid number of nodes in the element.'
+            stop
           end select
           
         CASE ('Triangle')
@@ -306,7 +314,7 @@ module biunit
           
           if(Nne .EQ. 3) then
             if (present(dN_dxi) .and. present(dN_deta))then
-              write(*,*) 'Using derivatives of shape functions', Nne
+              !write(*,*) 'Using derivatives of shape functions', Nne
               allocate(dN_dxi(Nne,totGp) )
               allocate(dN_deta(Nne,totGp) )
               dN_dxi  = 0.0
@@ -325,7 +333,7 @@ module biunit
                 dN_deta(3,j)= 1.0
               end do
             else
-              write(*,*) 'Using only shape functions'
+              !write(*,*) 'Using only shape functions'
               continue
             endif
             do j=1,totGp
@@ -370,7 +378,7 @@ module biunit
                 !dN_deta(3,j)= 2*(eta-0.5) + 2*eta 
               end do
             else
-              write(*,*) 'Using only shape functions'
+              !write(*,*) 'Using only shape functions'
               continue
             endif
             N(1,j)=(2.0*(1-xi-eta)-1.0)*(1-xi-eta)
@@ -381,10 +389,12 @@ module biunit
             N(6,j)= 4.0*(1-xi-eta)*eta
           else
             print*, 'Invalid number of node in element' 
+            stop
           end if
          
         case DEFAULT
           write(*,*) 'Invalid type of element.'   
+          stop
       end select
      
     end subroutine ShapeFunctions
