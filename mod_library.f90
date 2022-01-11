@@ -873,8 +873,7 @@ module library
       integer, dimension(nne)                         :: nodeIDmap
       double precision                                :: dvol, hmaxi, detJ
       integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin!,i
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_K
-      double precision, dimension(ntotv,1), intent (out)     :: A_F
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
       integer, dimension( nne + 1, nelem)            :: lnods2
       
       iband=0
@@ -895,12 +894,12 @@ module library
         stop
       end if
       allocate(A_K(nband+1,ntotv))
+      allocate( A_F(ntotv, 1) )
       
       !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
       A_K = 0.0
       A_F = 0.0
       !Setup for K11 block or Kuu
-      print*,'nband',nband
       do ielem = 1, nelem    !lnods loop for K11 block Global K
         !gather
         Ke = 0.0       !Esto es amate
@@ -943,7 +942,7 @@ module library
         
       end do
 
-      print*, 'shape of tauma', shape(tauma)
+      !print*, 'shape of tauma', shape(tauma)
      
       
     end subroutine GlobalSystem
@@ -1131,42 +1130,26 @@ module library
     !end subroutine ApplyBoundCond
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   
     
-    subroutine MKLfactoResult( value )
+    subroutine MKLfactoResult( num )
       implicit none
       
-      integer :: value, val
+      integer :: num, val
       character(len=34) :: text
       character(len=48) :: text2
       
       text  = '   *FACTORIZATION DONE WITH STATUS'
       text2 = '   *THE FACTORIZATION HAS BEEN COMPLETED, BUT U('
-      if ( value .eq. 0 ) then
+      if ( num .eq. 0 ) then
         print*, ' '
-        write(*, 101) text, value, ', THE EXECUTION IS SUCCESSFUL.'
-      elseif(value .lt. 0 )then
-        val = abs(value)
+        write(*, 101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
+      elseif(num .lt. 0 )then
+        val = abs(num)
         print*, ' '
         write(*, 102) '    THE',val,'-TH PARAMETER HAD AN ILLEGAL VALUE.'
-      elseif(value .gt. 0 )then
+      elseif(num .gt. 0 )then
         print*, ' '
-        write(*, 103) text2, value,',',value,') IS EXACTLY SINGULAR.'
+        write(*, 103) text2,num,',',num,') IS EXACTLY SINGULAR.'
         print*,'   DIVISION BY 0 WILL OCCUR IF YOU USE THE FACTOR U FOR SOLVING A SYSTEM'
         print*,'   OF LINEAR EQUATIONS.'
         print*, ' '
@@ -1178,23 +1161,23 @@ module library
       
       101 format (A, 1x, I1, A)
       102 format (A, I4, A)
-      103 format (A, I3, A, I3, A)
+      103 format (A48, I3,1x, A, I3,1x, A)
       
     end subroutine MKLfactoResult
     
-    subroutine MKLsolverResult( value )
+    subroutine MKLsolverResult( num )
       implicit none
       
-      integer :: value, val
+      integer :: num, val
       character(len=30) :: text
       character(len=35) :: text2
       text =  '   *SYSTEM SOLVED WITH STATUS'
       text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
       
-      if ( value .eq. 0 ) then
-        write(*,101) text, value, ', THE EXECUTION IS SUCCESSFUL.'
-      elseif(value .lt. 0 )then
-        val = abs(value)
+      if ( num .eq. 0 ) then
+        write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
+      elseif(num .lt. 0 )then
+        val = abs(num)
         write(*,102) '    THE',val, text2
       endif
       
