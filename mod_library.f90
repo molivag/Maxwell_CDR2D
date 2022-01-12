@@ -872,7 +872,7 @@ module library
       real, dimension(nne,DimPr)                      :: element_nodes
       integer, dimension(nne)                         :: nodeIDmap
       double precision                                :: dvol, hmaxi, detJ
-      integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin!,i
+      integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin,i,j
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
       integer, dimension( nne + 1, nelem)            :: lnods2
       
@@ -925,25 +925,29 @@ module library
         !print*, ielem
         !print*,"NodeIDmap: ", (nodeIDmap(i), i=1,nne)
         !print*,'lnods2', lnods2(2,ielem)
-
- ! POR HACER:
- !             *LEER nodeIDmap EN EL CALL DE ASSEMBLE, revisar que sea lo mismo
- !             *Pooner a tauma como (ndofn,ndofn) con todas sus implicaciones
- !             *REVISAR QUE CONDICIONES SE APLIQUEN BIEN EN LA MATRIZ GLOBAL
- !             *ESCUCHAR ULTIMA GRABACION Y REVISAR QUE ELEMENTOS SON CERO EN A_K A MANO ANTES Y DESPUES DE APLICAR CONDICIONES DE
- !             FRONTERA, usando la maya de 9 nodos 
- !             *REVISAR LOS PARAMETROS DE ENTRADA DE LAPACK, ESPECIALMENTE S_trans
- !             
- !             
-
         call Assemble_K(nodeIDmap, Ke, A_K) 
         !call Assemble_K(ielem,lnods2(2,ielem),Ke,A_K) ! assemble global K
         call AssembleF(nodeIDmap, rhslo, A_F)         ! assemble global F
         
       end do
 
-      !print*, 'shape of tauma', shape(tauma)
-     
+      print*, 'shape of tauma', shape(tauma)
+      print*, ' '
+      do i = 1,3
+        print'(4F10.3)', (tauma(i,j), j=1,3)
+      end do
+      
+      print*, 'shape of HesXY', shape(HesXY)
+      print*, ' '
+      do i = 1,3
+        print'(4F10.3)', (HesXY(i,j), j=1,nne)
+      end do
+      
+      print*, 'shape of Hesxieta', shape(Hesxieta)
+      print*, ' '
+      do i = 1,3
+        print'(4F10.3)', (Hesxieta(i,j), j=1,nne)
+      end do
       
     end subroutine GlobalSystem
     
@@ -1136,10 +1140,10 @@ module library
       
       integer :: num, val
       character(len=34) :: text
-      character(len=48) :: text2
+      character(len=30) :: text2
       
       text  = '   *FACTORIZATION DONE WITH STATUS'
-      text2 = '   *THE FACTORIZATION HAS BEEN COMPLETED, BUT U('
+      text2 = '   *THE LEADING MINOR OF ORDER'
       if ( num .eq. 0 ) then
         print*, ' '
         write(*, 101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
@@ -1149,9 +1153,9 @@ module library
         write(*, 102) '    THE',val,'-TH PARAMETER HAD AN ILLEGAL VALUE.'
       elseif(num .gt. 0 )then
         print*, ' '
-        write(*, 103) text2,num,',',num,') IS EXACTLY SINGULAR.'
-        print*,'   DIVISION BY 0 WILL OCCUR IF YOU USE THE FACTOR U FOR SOLVING A SYSTEM'
-        print*,'   OF LINEAR EQUATIONS.'
+        write(*, 103) text2,num,' (THEREFORE THE MATRIX AK_Chlsky ITSELF) IS NOT' 
+        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
+        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX AK_Chlsky.'
         print*, ' '
         print*, ' ~ ~ ~ Stopping the execution'
         print*, ' '
@@ -1161,7 +1165,7 @@ module library
       
       101 format (A, 1x, I1, A)
       102 format (A, I4, A)
-      103 format (A48, I3,1x, A, I3,1x, A)
+      103 format (A30, I3, A)
       
     end subroutine MKLfactoResult
     
@@ -1171,18 +1175,31 @@ module library
       integer :: num, val
       character(len=30) :: text
       character(len=35) :: text2
+      character(len=30) :: text3
       text =  '   *SYSTEM SOLVED WITH STATUS'
       text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
-      
+      text3 = '   *THE LEADING MINOR OF ORDER'
+      print*,'', num, ' ' 
       if ( num .eq. 0 ) then
         write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
       elseif(num .lt. 0 )then
         val = abs(num)
         write(*,102) '    THE',val, text2
+      elseif(num .gt. 0 )then
+        print*, ' '
+        write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT' 
+        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
+        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
+        print*, ' '
+        print*, ' ~ ~ ~ Stopping the execution'
+        print*, ' '
+      !  stop
       endif
       
       101 format (A, 1x, I1, A)
       102 format (A, I3, A)
+      103 format (A30, I3, A)
+      
       print*,'!============= End SOLVER (LAPACK) ==============!'
       print*,' '
       
