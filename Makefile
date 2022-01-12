@@ -19,7 +19,7 @@ CFLAGS += -warn all
 #	optimization flags 
 CFLAGS += -O0 -heap-arrays
 #	error finding options
-CFLAGS += -check all -traceback -CB -fp-stack-check -check noarg_temp_created 
+CFLAGS += -check all -traceback -fp-stack-check -CB #-fp-stack-check -check noarg_temp_created 
 # at the end of the tests return to -check all option
 
 #	source files
