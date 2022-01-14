@@ -23,7 +23,7 @@ CFLAGS += -check all -traceback -fp-stack-check -CB #-fp-stack-check -check noar
 # at the end of the tests return to -check all option
 
 #	source files
-SRCS = mod_param mod_biunit mod_library main_CDR
+SRCS = mod_param mod_biunit mod_library mod_solver main_CDR
 
 OBJS = $(SRCS:=.o)
 
