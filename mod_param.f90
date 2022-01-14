@@ -18,8 +18,8 @@ module param
   !character(len=20), parameter :: File_element  = 'lnods.dat'
   !character(len=20), parameter :: File_coord    = 'coord.dat'
   !character(len=20), parameter :: File_tensors  = 'tensors.dat'
-  !character(len=17), parameter :: File_PostMsh  = 'CDR3d.post.msh'
-  !character(len=17), parameter :: File_PostRes  = 'CDR3d.post.res'
+  character(len=15), parameter :: File_PostMsh  = 'CDR3d.post.msh'
+  character(len=15), parameter :: File_PostRes  = 'CDR3d.post.res'
   contains
     
     subroutine inputData( ) 
