@@ -22,7 +22,7 @@ program main_CDR3d
   
     external :: dgbtrf, dgbtrs, dpbtrs, dpbtrf
     integer, allocatable :: ipiv(:)
-    integer :: i, j, k,l, ii,jj, kl, ku, ldab, S_m, S_n, nrhs, info, ldb
+    integer :: i, j, k, kl, ku, ldab, S_m, S_n, nrhs, info, ldb
     double precision, allocatable :: ab(:, :), ablap(:, :), A_Ktot(:,:), AKb_LU(:,:), b(:,:)
     character(len=1) :: trans, uplo
   != = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -73,10 +73,10 @@ program main_CDR3d
   != = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
   write(*,*)
   write(*,*)
-  S_m=9
-  S_n=9
+  S_m=ntotv
+  S_n=ntotv
   kl =0
-  ku =4
+  ku = nband
   ldab = 2*kl + ku + 1
   trans= 'N'
   uplo = 'U'
@@ -91,14 +91,14 @@ program main_CDR3d
   ipiv   = 0 
   
   open(unit=1010, file= 'globalK.dsc', STATUS="old", ACTION="read") 
-  read(1010,*) ((A_Ktot(ii,jj), jj=1,S_n), ii=1,S_m) 
-  
+  read(1010,*) ((A_Ktot(i,j), j=1,S_n), i=1,S_m) 
+  !
   close(1010)
-  print*, ''
-  print("(A,2(I2,2x))"), 'The general banded square matrix A_Ktot of shape:', shape(A_Ktot)
-  write(*,"(9F10.5)") ((A_Ktot(i,j), j=1,S_n), i=1,S_m)  
+  !print*, ''
+  !print("(A,2(I2,2x))"), 'The general banded square matrix A_Ktot of shape:', shape(A_Ktot)
+  !write(*,"(9F10.5)") ((A_Ktot(i,j), j=1,S_n), i=1,S_m)  
 
-  print*, ' '
+  !print*, ' '
 print("(A,2(I2,2x))"),'Transforming the general banded matrix to general-band storage mode of shape: ', shape(ab)
   k   = kl + ku + 1
   do j=1,S_n
@@ -107,30 +107,32 @@ print("(A,2(I2,2x))"),'Transforming the general banded matrix to general-band st
      end do
    end do
   write(*,"(9F10.5)") ((ablap(i,j), j=1,S_n), i=1,ldab)  
-
   print*, ' '
-  print("(A,2(I2,2x))"), 'The banded matrix from retpla.f whit shape:', shape(A_K)
+  print*, 'Asi como arriba debe salir la siguiente matriz: '
+  print("(A,2(I3,2x))"), 'The banded matrix from retpla.f whit shape:', shape(A_K)
   write(*,"(9F10.5)") ((A_K(i,j), j=1,ntotv), i=1,nband+1)  
-  !read(10,*)((ab(k+i-j,j),j=max(i-kl,1),min(i+ku,S_n)), i=1, S_m)
 
-  print*, ' '
-  print*, 'Reordering the band matrix from retpla to LAPACK format'
-  i=0
-  j=0
-  do k = nband+1, 1,-1
-    i = i+1
-    j = 1
-    do l = ntotv,1,-1
-      ab(i,j) = A_K(k,l)
-      j=j+1
-    end do
-  end do
-  write(*,"(9F10.5)") ((ab(i,j), j=1,S_n), i=1,ldab)  
+  !print*, ' '
+  !print*, 'Reordering the band matrix from example file to LAPACK format'
+  !i=0
+  !j=0
+  !do k = nband+1, 1,-1
+  !  i = i+1
+  !  j = 1
+  !  do l = ntotv,1,-1
+  !    ab(i,j) = A_Ktot(k,l)
+  !    j=j+1
+  !  end do
+  !end do
+  !write(*,"(9F10.5)") ((ab(i,j), j=1,S_n), i=1,ldab)  
 
-
+  write(*,*)
+  write(*,*)
+  write(*,*)
+  stop
 
   AKb_LU = ab
-
+  
   write(*,*)
   !call dpbtrf( uplo, S_n, nband, AKb_LU, ldab, info )
   call dgbtrf(S_m, S_n, kl, ku, AKb_LU, ldab, ipiv, info)
@@ -138,12 +140,12 @@ print("(A,2(I2,2x))"),'Transforming the general banded matrix to general-band st
   !print*, 'info Cholesky decomposition' , info
   !print*, 'Cholesky-decomposition of band-storaged Matrix'
   print*, 'info LU decomposition' , info
-  print*, 'LU-decomposition of band-storaged Matrix'
+  !print*, 'LU-decomposition of band-storaged Matrix'
 
-  write(*,"(9F10.5)") ((AKb_LU(i,j), j=1,S_n), i=1,ldab)  
-  Write (*, *)
-  Write (*, *) 'IPIV: Permutation'
-  Write (*, 100) ipiv(1:min(S_m,S_n))
+  !write(*,"(9F10.5)") ((AKb_LU(i,j), j=1,S_n), i=1,ldab)  
+  !Write (*, *)
+  !Write (*, *) 'IPIV: Permutation'
+  !Write (*, 100) ipiv(1:min(S_m,S_n))
   If (info/=0) Then
     Write (*, *) 'The factor U is singular'
   End If
@@ -153,10 +155,10 @@ print("(A,2(I2,2x))"),'Transforming the general banded matrix to general-band st
   !call dpbtrs( uplo, S_n, nband, 1, AKb_LU, ldab, b, ldb, info )
   call dgbtrs( trans, S_n, kl, ku, nrhs, AKb_LU, ldab, ipiv, b, ldb, info )
   print*, 'info solver' , info
-  print*, 'Solution'
-  write(*,"(1F15.5)") (b(i,1), i=1,S_n)  
+  !print*, 'Solution'
+  !write(*,"(1F15.5)") (b(i,1), i=1,S_n)  
 
-  100 Format((3X,9I11))
+  100 Format(I11)
 
 
 
