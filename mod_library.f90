@@ -856,25 +856,34 @@ module library
         end select
     end subroutine VinculBVs
     
+    subroutine BandWidth()
+      
+      
+    end subroutine BandWidth
+    
+    
+    
     subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
       
       implicit none
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)  :: Hesxieta
-      double precision, dimension(nne)                :: basis
-      double precision, dimension(DimPr,nne)          :: dN_dxy
-      double precision, dimension(3,nne)              :: HesXY
-      double precision, dimension(DimPr, dimPr)       :: Jaco, Jinv!, JinvP, JacoP
-      double precision, dimension(nevab, nevab)       :: Ke
-      double precision, dimension(nevab)              :: rhslo
-      double precision, dimension(3,3)        :: tauma
-      real, dimension(nne,DimPr)                      :: element_nodes
-      integer, dimension(nne)                         :: nodeIDmap
-      double precision                                :: dvol, hmaxi, detJ
-      integer                                         :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin,i,j
+      double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(nne)          :: basis
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv!, JinvP, JacoP
+      double precision, dimension(nevab, nevab) :: Ke
+      double precision, dimension(nevab)        :: rhslo
+      double precision, dimension(3,3)          :: tauma
+      real, dimension(nne,DimPr)                :: element_nodes
+      integer, dimension( nne + 1, nelem)       :: lnods2
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ
+      integer                                   :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin,i,j
+      !integer                                   :: upban, lowban, totban, ldAKban
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
-      integer, dimension( nne + 1, nelem)            :: lnods2
+      
       
       iband=0
       do ielem =1, nelem
@@ -893,10 +902,21 @@ module library
         write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
         stop
       end if
-      allocate(A_K(nband+1,ntotv))
+      
+      upban  = nband
+      lowban = nband
+      totban = lowban + upban + 1
+      ldAKban= 2*lowban + upban + 1
+     
+      print*, 'upban' ,upban
+      print*, 'lowban',lowban
+      print*, 'totban',totban
+      print*, 'ldAKban',ldAKban
+      
+      allocate(A_K(ldAKban,ntotv))
       allocate( A_F(ntotv, 1) )
       
-      !duda rhslo esta declarado aqui como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
+      !duda rhslo se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor? 
       A_K = 0.0
       A_F = 0.0
       !Setup for K11 block or Kuu
@@ -931,23 +951,23 @@ module library
         
       end do
 
-      print*, 'shape of tauma', shape(tauma)
-      print*, ' '
-      do i = 1,3
-        print'(4F10.3)', (tauma(i,j), j=1,3)
-      end do
-      
-      print*, 'shape of HesXY', shape(HesXY)
-      print*, ' '
-      do i = 1,3
-        print'(4F10.3)', (HesXY(i,j), j=1,nne)
-      end do
-      
-      print*, 'shape of Hesxieta', shape(Hesxieta)
-      print*, ' '
-      do i = 1,3
-        print'(4F10.3)', (Hesxieta(i,j), j=1,nne)
-      end do
+      !print*, 'shape of tauma', shape(tauma)
+      !print*, ' '
+      !do i = 1,3
+      !  print'(4F10.3)', (tauma(i,j), j=1,3)
+      !end do
+      !
+      !print*, 'shape of HesXY', shape(HesXY)
+      !print*, ' '
+      !do i = 1,3
+      !  print'(4F10.3)', (HesXY(i,j), j=1,nne)
+      !end do
+      !
+      !print*, 'shape of Hesxieta', shape(Hesxieta)
+      !print*, ' '
+      !do i = 1,3
+      !  print'(4F10.3)', (Hesxieta(i,j), j=1,nne)
+      !end do
       
     end subroutine GlobalSystem
     
@@ -964,9 +984,9 @@ module library
       double precision, intent(in) :: Ke(nevab,nevab)
       integer, intent(in) :: lnods(nne)
       integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
-      double precision, intent(in out) :: A_K(nband+1,ntotv)
-      
-      
+      double precision, intent(in out) :: A_K(ldAKban,ntotv)
+     !                                        ldAKban= 2*lowban + upban + 1
+     !                                          totban = lowban + upban + 1
       !  inode=1,2
       do inode=1,nne    !nne = number of node in the element
         ipoin=lnods(inode)
@@ -979,9 +999,14 @@ module library
             do jdofn=1,ndofn
               jevab=(jnode-1)*ndofn+jdofn
               jtotv=(jpoin-1)*ndofn+jdofn
-              jband=jtotv-itotv+1  !Algoritmo de recuperacion para la matriz de bandas
+
+              !jband=jtotv-itotv+1      ------> Original de retpla
+              !A_K(jband,itotv)=A_K(jband,itotv) + ...
+
+              !jband= upban +1 +itotv-jtotv    !Algoritmo de recuperacion para LAPACK 
+              jband = itotv-jtotv + totban           
               if (jband.ge.1)then
-                A_K(jband,itotv)=A_K(jband,itotv)+Ke(ievab,jevab)
+                A_K(jband,jtotv)=A_K(jband,jtotv)+Ke(ievab,jevab)
               endif
             end do 
           end do
@@ -1028,7 +1053,7 @@ module library
       !                                    nvfix             ,nvfix
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       integer :: ivfix, idofn, itotv, jpoin, jdofn, jtotv, itot1, jband, itot2, nvfix
-      double precision,intent(inout)  :: rigid(nband+1,ntotv), gload(ntotv)
+      double precision,intent(inout)  :: rigid(ldAKban,ntotv), gload(ntotv)
       
       nvfix = nBVs
       !***  Inicialitzacio de les reaccions per als graus de llibertat prescrits
@@ -1211,7 +1236,7 @@ module library
       character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Res/"
       character(*) :: name1, name2
       integer :: i, j, mrow, ncol, unit1, unit2
-      double precision, dimension(nband+1 ,ntotv ), intent(in) :: Matrix
+      double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
       double precision, dimension(ntotv ,1), intent(in) :: Vector
       
       100 format (900E20.12)
