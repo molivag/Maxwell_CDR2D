@@ -1,7 +1,9 @@
-#========== Definicion de variables ==========
-# Actualizado el 21/09/2021
 # Actualizado el 15/07/2021
+# Actualizado el 21/09/2021
 # Actualizado el 3/11/2021
+# Actualizado el 26/01/2022
+
+#========== Definicion de variables ==========
 #	compiler
 FC = ifort
 
@@ -21,7 +23,8 @@ CFLAGS += -O0 -heap-arrays
 #	error finding options
 CFLAGS += -check all -traceback -fp-stack-check -CB #-fp-stack-check -check noarg_temp_created 
 # at the end of the tests return to -check all option
-
+#	mkl library
+CFLAGS += -mkl 
 #	source files
 SRCS = mod_param mod_biunit mod_library mod_solver main_CDR
 
@@ -42,18 +45,19 @@ all : $(MAIN)
 	@echo '======================'
 
 $(MAIN) : $(OBJS)
-	@$(FC) $(CFLAGS) -g -mkl -O0 $(OBJS) -o $(MAIN) 
-#next line is for debugging (GDB does not work if the executable was compiled with the -mkl flag)
-#@$(FC) $(CFLAGS) -g $(OBJS) -o $(MAIN) 
-# @$(FC) $(CFLAGS) $(OBJS) -o $(MAIN)
-#These three flags are needed to correct execution of the LAPACK library
+	@$(FC) $(CFLAGS) -o $(MAIN) $(OBJS)
 #If the libray is comented (not used) in the code, must them desactivated the flegs
 
-.SUFFIXES : .f90 .o
+.SUFFIXES : .o .f90
 #.o.f90 :Dos opciones, cual sera la correcta?
-
+#The following line indicate to transform the source files.f90 into a objects
 .f90.o :
 	@$(FC) $(CFLAGS) -c $<
+
+#Stackoverflow solution:
+#$(OBJDIR)/%.o: %.c
+#	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
 
 #	Regla ficticia, es decir que no tiene dependencias (phony rules)
 clean :
