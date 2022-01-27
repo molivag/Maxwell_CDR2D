@@ -4,6 +4,7 @@ module param
 
   character(len=14) :: ElemType
   integer           :: nevab, ntotv
+  integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: DimPr, nelem, nnodes, nne, ndofn, totGp, kstab, ktaum, maxband, nBVs, nBVscol, nband
   real              :: hnatu, patau
   integer,          allocatable, dimension(:,:)     :: lnods
