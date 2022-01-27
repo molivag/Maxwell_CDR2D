@@ -9,20 +9,16 @@ module library
       print*, ' '
       print*, '- - - - 2D Convetion-Diffusion-Reaction Simulation - - - - '
       print*, ' '
-      print*,'!==================== GENERAL INFO ===============!'
-      write(*,"(A29,8X,A13,3X,A2)") ' 1.- Element type:           ', ElemType,' |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 2.- Problem dimension:      ', DimPr, '  |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 3.- Elements:               ', nelem,'   |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 4.- Nodal points:           ', nnodes, ' |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 5.- DoF per node:           ', ndofn, '  |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 6.- Nodes per element:      ', nne, '    |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 7.- Total Gauss points:     ', totGp,'   |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 8.- Element variabless:     ', nevab,'   |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 9.- Total unknowns:         ', ntotv,'   |'
-      write(*,"(A29,8X,I6,1X,A11)") ' 10.-Bandwidth:              ', maxband,' |'
-      print*,'!================ End GENERAL INFO ===============!'
-      write(*,*)' '
-      !print*,'!============== FILE READING STATUS ============!'
+      print*,'!================= GENERAL INFO ===============!'
+      write(*,"(A19,4x,a13,3X,A1)") ' -Element type:           ', ElemType,''
+      write(*,"(A19,4X,I6,1X,A10)") ' -Problem dimension:      ', DimPr, '  '
+      write(*,"(A19,4X,I6,1X,A10)") ' -Elements:               ', nelem,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' -Nodal points:           ', nnodes, ' '
+      write(*,"(A19,4X,I6,1X,A10)") ' -DoF per node:           ', ndofn, '  '
+      write(*,"(A19,4X,I6,1X,A10)") ' -Nodes per element:      ', nne, '    '
+      write(*,"(A19,4X,I6,1X,A10)") ' -Total Gauss points:     ', totGp,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' -Element variabless:     ', nevab,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' -Total unknowns:         ', ntotv,'   '
      
     endsubroutine GeneralInfo
     
@@ -880,7 +876,7 @@ module library
       integer, dimension( nne + 1, nelem)       :: lnods2
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
-      integer                                   :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin,i,j
+      integer                                   :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin
       !integer                                   :: upban, lowban, totban, ldAKban
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
       
@@ -907,11 +903,13 @@ module library
       lowban = nband
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1
-     
-      print*, 'upban' ,upban
-      print*, 'lowban',lowban
-      print*, 'totban',totban
-      print*, 'ldAKban',ldAKban
+      write(*,*) ''
+      print*,'!================ Bandwidth Info ==============!'
+      
+      write(*,"(A15,9X,I6,1X,A9)")'-Upband:      ', upban,'   '
+      write(*,"(A15,9X,I6,1X,A9)")'-Lowband:     ', lowban,'  '
+      write(*,"(A15,9X,I6,1X,A9)")'-Totband:     ', totban,'  '
+      write(*,"(A15,9X,I6,1X,A9)")'-ldAK:        ', ldAKban,' '
       
       allocate(A_K(ldAKban,ntotv))
       allocate( A_F(ntotv, 1) )
@@ -1160,75 +1158,83 @@ module library
 
 
     
-    subroutine MKLfactoResult( num )
-      implicit none
+    subroutine MKLfactoResult( routine_name, num )                            
+      implicit none                                                                                           
       
-      integer :: num, val
+      character(*), intent(in)  :: routine_name
+      integer,      intent(in)  :: num
       character(len=34) :: text
-      character(len=30) :: text2
+      character(len=44) :: text2
+      integer           :: val
+      external          :: xerbla
       
       text  = '   *FACTORIZATION DONE WITH STATUS'
-      text2 = '   *THE LEADING MINOR OF ORDER'
+      text2 = '   *FACTORIZATION HAS BEEN COMPLETED, BUT U('
       if ( num .eq. 0 ) then
-        print*, ' '
+        !print*, ' '
         write(*, 101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
-      elseif(num .lt. 0 )then
-        val = abs(num)
-        print*, ' '
+      elseif(num .lt. 0 )then  
+        val = abs(num)          
+        print*, ' '             
         write(*, 102) '    THE',val,'-TH PARAMETER HAD AN ILLEGAL VALUE.'
-      elseif(num .gt. 0 )then
-        print*, ' '
-        write(*, 103) text2,num,' (THEREFORE THE MATRIX AK_Chlsky ITSELF) IS NOT' 
-        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
-        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX AK_Chlsky.'
-        print*, ' '
+        call xerbla( routine_name, num )
+      elseif(num .gt. 0 )then                      
+        print*, ' '                           
+        write(*, 103) text2,num,',',num,') = 0.0. Then U IS EXACTLY SINGULAR.'
+        print"(A)",'   DIVISION BY 0 WILL OCCUR IF USE THE FACTOR U FOR SOLVING A SYSTEM OF LINEAR EQUATIONS.'
+        print*, ' '                                             
+        call xerbla( routine_name, num )
         print*, ' ~ ~ ~ Stopping the execution'
-        print*, ' '
-      !  stop
-      endif
-      print*, ' '
+        print*, ' '   
+        !stop                            
+      endif                  
+      print*, ' '  
       
-      101 format (A, 1x, I1, A)
-      102 format (A, I4, A)
-      103 format (A30, I3, A)
+      101 format (A, 1x, I1, A)                                                  
+      102 format (A, I4, A)                                            
+      103 format (A, I3, A, I3, A)
+    end subroutine MKLfactoResult              
+  
       
-    end subroutine MKLfactoResult
-    
-    subroutine MKLsolverResult( num )
-      implicit none
-      
-      integer :: num, val
-      character(len=30) :: text
-      character(len=35) :: text2
-      character(len=30) :: text3
-      text =  '   *SYSTEM SOLVED WITH STATUS'
-      text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
-      text3 = '   *THE LEADING MINOR OF ORDER'
-      print*,'', num, ' ' 
-      if ( num .eq. 0 ) then
-        write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
-      elseif(num .lt. 0 )then
-        val = abs(num)
-        write(*,102) '    THE',val, text2
-      elseif(num .gt. 0 )then
-        print*, ' '
-        write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT' 
-        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
-        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
-        print*, ' '
-        print*, ' ~ ~ ~ Stopping the execution'
-        print*, ' '
-      !  stop
-      endif
-      
-      101 format (A, 1x, I1, A)
-      102 format (A, I3, A)
-      103 format (A30, I3, A)
-      
-      print*,'!============= End SOLVER (LAPACK) ==============!'
-      print*,' '
-      
-    end subroutine MKLsolverResult
+      subroutine MKLsolverResult(routine_name, num )     
+        implicit none
+        
+        character(*), intent(in)  :: routine_name
+        integer,      intent(in)  :: num
+        integer :: val
+        character(len=30) :: text
+        character(len=35) :: text2
+        character(len=30) :: text3
+        external :: xerbla 
+        
+        text =  '   *SYSTEM SOLVED WITH STATUS'
+        text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
+        text3 = '   *THE LEADING MINOR OF ORDER'
+        if ( num .eq. 0 ) then
+          write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
+        elseif(num .lt. 0 )then
+          val = abs(num)
+          write(*,102) '    THE',val, text2
+          call xerbla( routine_name, num )
+        elseif(num .gt. 0 )then
+          print*, ' '
+          write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT' 
+          print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
+          print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
+          print*, ' '
+          call xerbla( routine_name, num )
+          print*, ' ~ ~ ~ Stopping the execution'
+          print*, ' '
+          stop
+        endif
+        
+        101 format (A, 1x, I1, A)
+        102 format (A, I3, A)
+        103 format (A30, I3, A)
+        
+        print*,' '
+        
+      end subroutine MKLsolverResult
     
     subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
       implicit none
@@ -1255,6 +1261,7 @@ module library
         write(unit2, 100) Vector(i,1)
       end do
       close(unit2)
+      write(*,*) 'files ', name1,' and ', name2, ' written succesfully'
       
     end subroutine writeMatrix
     
