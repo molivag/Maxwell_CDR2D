@@ -10,9 +10,9 @@ DimPr    = 2             !Dimension del problema
 nelem    = 4           !Number of lnods
 nnodes   = 9           !Total number of nodal points
 nne      = 4             !Number of nodes in the element
-ndofn    = 1             !Degrees of freedom
+ndofn    = 3             !Degrees of freedom
 totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P    
-maxband  = 26             !Maximo ancho de banda   
+maxband  = 15             !Maximo ancho de banda   
 
 # > > > > > > > Stabilization
 kstab    = 3             !Type of stabilization 
@@ -47,7 +47,9 @@ hnatu    = 2.0           !Reference element length
 0.0e-0 , 0.0e-0 , 8.0e+4
 #FORCE                          !Force tensor
 1.0e+0 , 0.0e+0 , 0.0e+0
-1 2 5 4 1 # > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes
+
+# > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes
+1 2 5 4 1 
 2 3 6 5 2
 3 5 8 7 4
 4 6 9 8 5

@@ -81,7 +81,7 @@ module param
     
         read(5,102) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
         
-        read(5,105) force(1), force(2)
+        read(5,106) force(1), force(2)
         
       elseif(ndofn.eq.3)then
     
@@ -112,7 +112,7 @@ module param
         reama(2,1), reama(2,2), reama(2,3), &
         reama(3,1), reama(3,2), reama(3,3)
         
-       read(5,105) force(1), force(2), force(3)
+       read(5,107) force(1), force(2), force(3)
       
       end if
 
@@ -155,8 +155,9 @@ module param
       101 format(1/,e15.5,2/)!,3/,e9.2,3/,e9.2,3/,e9.2)!,/,e9.2,/,e9.2)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
-      105 format(1/,e15.5, e15.5, e15.5)
-
+      105 format(1/,e15.5,2/) !e15.5, e15.5,/)
+      106 format(1/,e15.5,e15.5,2/) !e15.5, e15.5,/)
+      107 format(1/,e15.5,e15.5,e15.5,2/) !e15.5, e15.5,/)
       ! print*, ' '
       ! print*, 'Diffusion matrix'
       ! do i = 1,dimPr
