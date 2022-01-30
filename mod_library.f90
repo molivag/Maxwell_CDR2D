@@ -26,7 +26,7 @@ module library
      
       integer :: i, j, status
       integer, intent(in)            :: UnitNum, NumRows, NumCols
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
+      character(len=*), parameter    :: fileplace = "./"
       character (len=*), intent (in) :: FileName
       integer, dimension (1:NumRows, 1:NumCols), intent (out) :: IntegerArray
       
@@ -682,25 +682,22 @@ module library
     
     subroutine SetBoundVal( nBVs, nBVscol )
       !========================================================================
-      !Esta subroutina revisa todos los nodos de la malla y define el tipo de
-      !nodo en la frontera. Abre un archivo en donde comenzara a escribir, 
-      ! en la primer columna: el numero de nodo. 
+      !Esta subroutina revisa todos los nodos de la malla y define el tipo de Dof de
+      !los nodos en la frontera. Abre un archivo en donde comenzara a escribir, 
+      !en la primer columna: el numero de nodo. 
       ! La segunda columna tendra el tipo de nodo
-      ! 1 = ux (componente x de la velocidad) 
-      ! 2 = uy (componente y de la velocidad) 
-      ! 3 = para la presion 
-      !La tercera columna asigna el valor correspondiente de la condicion de forntera
+      ! 1 = Nodo con valor preescrito (nodo con valor definido)
+      ! 0 = Nodo libre (su valor debera ser calculado)
+      ! La tercera columna tendra el valor del nodo preescrito  
       !=========================================================================
+      
       implicit none
-                                                     !"/home/maoliva/Codes/2.ConDifRea_Aca/Geo/"
-      character(len=*), parameter :: fileplace ="~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Geo/"
+      
+      character(len=*), parameter :: fileplace ="./"
       integer :: ierror, a ,b, c, d, i
       real    :: x, y, xmin, xmax, ymin, ymax
       integer, intent(out) :: nBVs, nBVscol
       
-      ! call ReadRealFile(10,"nodes.dat", 341,3, nodes) inicializamos los contadores. Los contadores son para que cada vez
-      ! que un if se cumpla, se sume el numero equivalente a los renglones escritos en archivo de texto que se esta creando
-      ! y asi se tenga el numero total de nodos en las fronterasi
       
       open(unit=100, file=fileplace//'BVs.dat',Status= 'replace', action= 'write',iostat=ierror)
       
@@ -728,7 +725,7 @@ module library
           x=coord(i,2)
           y=coord(i,3)
           if(y.eq.ymax) then !top edge 
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            write(100,50) i, 1,1,1, real(1), real(0), real(1)
             a = a+3
           else if (y.eq.ymin)then !botomm edge
             write(100,50) i, 1,1,1, real(0), real(0), real(0)
@@ -782,9 +779,9 @@ module library
             write(100,70) i, 1, real(0)
             b = b+1
           else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
-            write(100,70) i, 1, real(0)
-          else if (x.eq.xmin)then                     !left edge
             write(100,70) i, 1, real(1)
+          else if (x.eq.xmin)then                     !left edge
+            write(100,70) i, 1, real(0)
             c = c+1
           else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
             write(100,70) i, 1, real(1)
@@ -906,10 +903,10 @@ module library
       write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
       
-      write(*,"(A15,9X,I6,1X,A9)")'-Upband:      ', upban,'   '
-      write(*,"(A15,9X,I6,1X,A9)")'-Lowband:     ', lowban,'  '
-      write(*,"(A15,9X,I6,1X,A9)")'-Totband:     ', totban,'  '
-      write(*,"(A15,9X,I6,1X,A9)")'-ldAK:        ', ldAKban,' '
+      write(*,"(A15,9X,I6,1X,A9)")'-UpBand:      ', upban,'   '
+      write(*,"(A15,9X,I6,1X,A9)")'-LowBand:     ', lowban,'  '
+      write(*,"(A15,9X,I6,1X,A9)")'-TotBand:     ', totban,'  '
+      write(*,"(A15,9X,I6,1X,A9)")'-ledimAK:     ', ldAKban,' '
       
       allocate(A_K(ldAKban,ntotv))
       allocate( A_F(ntotv, 1) )
@@ -1239,7 +1236,7 @@ module library
     subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
       implicit none
       
-      character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Res/"
+      character(len=*), parameter    :: fileplace = "Res/"
       character(*) :: name1, name2
       integer :: i, j, mrow, ncol, unit1, unit2
       double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
@@ -1261,90 +1258,113 @@ module library
         write(unit2, 100) Vector(i,1)
       end do
       close(unit2)
-      write(*,*) 'files ', name1,' and ', name2, ' written succesfully'
+      write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
       
     end subroutine writeMatrix
     
-    !subroutine PosProcess(solution, nameFile1, activity)
-    !  
-    !  implicit none
-    !  
-    !  character(len=*), parameter    :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/Pos/"
-    !  real*8, dimension(ntotv, 1), intent(in) :: solution
-    !  character(*), intent(in)                             :: nameFile1, activity
-    !  double precision, dimension(1, ntotv)   :: solution_T
-    !  double precision, dimension(1,nnodes)               :: xcor, ycor
-    !  integer      :: ipoin   
-    !  
-    !  solution_T = transpose(solution)
-    !  xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
-    !  ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
-    !  
-    !  open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
-    !  
-    !  if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-    !    
-    !    write(555,902) 'MESH', '"Cavity"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
-    !    write(555,"(A)") '#2D Cavity Driven Flow Results' 
-    !    write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
-    !    write(555,"(A)")'Coordinates'
-    !    write(555,"(A)") '#   No        X           Y'
-    !    do ipoin = 1, nnodes
-    !      write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-    !    end do
-    !    write(555,"(A)") 'End Coordinates'
-    !    write(555,"(A)") 'Elements'
-    !    do ipoin = 1, nelem
-    !      write(555,908) lnods(ipoin,:) 
-    !    end do
-    !    write(555,"(A)") 'End Elements'
-    !    close(555)
-    !    print*,' '  
-    !    print"(A6,A17, A36)", ' File ',File_PostMsh,'written succesfully in Pos/ . . . . .'
-    !    
-    !  elseif(activity == "res")then
-    !    write(555,"(A)") 'GiD Post Results File 1.0'
-    !    write(555,"(A)") '#2D Cavity Driven Flow Results' 
-    !    write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
-    !    write(555,"(A)") 'Result "Velocity Components" "Velocity" 0 Vector OnNodes'
-    !    write(555,"(A)") 'ComponentNames "Ux" "Uy" "Uz" "" '
-    !    write(555,"(A)") 'Values'
-    !    ! se escribe el res de las componentes de la velocidad
-    !    write(555,910) 
-    !    print"(A6,A17, A36)", ' File ',File_PostRes, 'written succesfully in Pos/ . . . . .'
-    !    print*, ' ' 
-    !    do ipoin = 1, nnodes
-    !      write(555,912) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-    !    end do
-    !    write(555,"(A)") 'End Values'
-    !   ! write(555,"(A)") 'Result "Pressure" "Pressure" 0 Scalar OnNodes'
-    !   ! write(555,"(A)") 'ComponentNames "" '
-    !   ! write(555,"(A)") 'Values'
-    !   ! ! se escribe el res de la presion 
-    !   ! write(555,914)
-    !   ! do ipoin = 1, nnodes
-    !   !   pnode_id = pnodes(ipoin,2)
-    !   !   write(555,916) ipoin, solution(prow+pnode_id, 1)  
-    !   ! end do
-    !   ! write(555,"(A)") 'End Values'
-    !    close(555)
-    !  else
-    !    write(*,"(A)") ' "Activity" must be "msh" or "res" '
-    !    close(555)
-    !    stop
-    !  end if
-    !  
-    !  
-    !  900 format(A15, A13, A1, A13)
-    !  902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-    !  906 format(I7,2(3x,f9.4)) !format for msh           
-    !  908 format(9(2x,I7) )
-    !  910 format('#',3x,'No    ' 3x, ' Ux ', 8x, ' Uy')
-    !  912 format(I7,2x,2f12.5) !format for res velocity
-    !  914 format('#',3x,'No'     9x, 'P')
-    !  916 format(I7,2x,f12.5)  !format for res pressure
-    !  
-    !end subroutine PosProcess
+
+    subroutine PosProcess(solution, nameFile1, activity)
+      
+      implicit none
+      
+      character(len=*), parameter    :: fileplace = "Pos/"
+      double precision, dimension(ntotv, 1), intent(in) :: solution
+      character(*), intent(in)                :: nameFile1, activity
+      double precision, dimension(1, ntotv)   :: solution_T
+      double precision, dimension(1,nnodes)   :: xcor, ycor
+      integer                                 :: ipoin   
+      
+      solution_T = transpose(solution)
+      xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
+      ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
+      
+      open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
+      
+      if(activity == "msh")then !quitar este if y acomodar el numero de unidad
+        
+        write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+        write(555,"(A)") '#2D Convection-Diffusion-Reaction' 
+        write(555,900) '#Element tipe: ', ElemType,'/',ElemType 
+        write(555,"(A)")'Coordinates'
+        write(555,"(A)") '#   No        X           Y'
+        do ipoin = 1, nnodes
+          write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+        end do
+        write(555,"(A)") 'End Coordinates'
+        write(555,"(A)") 'Elements'
+        do ipoin = 1, nelem
+          write(555,908) lnods(ipoin,:) 
+        end do
+        write(555,"(A)") 'End Elements'
+        close(555)
+        print"(A6,A17, A36)", ' File ',File_PostMsh,'written succesfully in Pos/ . . . . .'
+        
+      elseif(activity == "res")then
+        write(555,"(A)") 'GiD Post Results File 1.0'
+        write(555,"(A)") '#2D Convection-Diffusion-Reaction' 
+        
+        ! se escribe el res de las componentes de la velocidad
+        select case(ndofn)
+          case(1)
+            write(555,"(A)") 'Result "DoF" "CDR" 0 Scalar OnNodes'
+            write(555,"(A)") 'ComponentNames "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','           DoF1 '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(555,914)
+            do ipoin = 1, nnodes
+              write(555,916) ipoin, solution(ipoin, 1)  
+            end do
+            !An alternative work around is to explicitly designate the elements to be read using an io-implied-do. 
+            !Something like
+            !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
+            
+            write(555,"(A)") 'End Values'
+           
+          case(2)
+            write(555,"(A)") 'Result "DoF" "CDR" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "Dof1" "Dof2" "--" "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','           DoF1 ','             DoF2 '
+            do ipoin = 1, nnodes
+              write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(555,"(A)") 'End Values'
+            
+          case(3)
+            
+            write(555,"(A)") 'Result "DoF" "CDR" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "Dof1" "Dof2" "Dof3" "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','           DoF1 ','              DoF2','              DoF3'
+            do ipoin = 1, nnodes
+              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(555,"(A)") 'End Values'
+            
+        end select 
+        
+        close(555)
+        
+        print"(A6,A17, A36)", ' File ',File_PostRes, 'written succesfully in, Pos/, . . . . .'
+        
+      else
+        write(*,"(A)") ' "Activity" must be "msh" or "res" '
+        close(555)
+        stop
+      end if
+      
+      
+      900 format(A15, A13, A1, A13)
+      902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+      906 format(I7,2(3x,f9.4)) !format for msh           
+      908 format(9(2x,I7) )
+      914 format('#',3x,'No'     9x, 'Dof')
+      916 format(I7,2x,f12.5)  !format for scalar case
+      918 format(I7,3x,f15.5,3x,f15.5) !format for res velocity
+      919 format(I7,3(3x,f15.5)) !format for res velocity
+      
+    end subroutine PosProcess
     
    
     

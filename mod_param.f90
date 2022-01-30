@@ -34,13 +34,11 @@ module param
       
       integer :: i,j, stat! k, l, 
       character(len=80) :: msg
-      character(len=*), parameter  :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/"
+      character(len=*), parameter  :: fileplace = "./"
       ! double precision, allocatable, dimension(:,:,:,:) :: difma
       ! double precision, allocatable, dimension(:,:,:)   :: conma
       ! double precision, allocatable, dimension(:,:)     :: reama 
       ! double precision, allocatable, dimension(:)       :: force 
-
-
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       ! read(5, 100)  ElemType, DimPr, nelem, nnodes, nne, ndofn, totGp, maxband, kstab, ktaum, patau, hnatu
@@ -182,20 +180,11 @@ module param
       ! do i=1,ndofn
       !   write(*, *)( reama(i,j) ,j=1,ndofn)
       ! end do
-
       ! print*,'force'
       ! do i =1, ndofn
       !   print*, force(i)
       ! end do
-    
       ! print*, ' '
-    
-
-
-
-
-
-
     end subroutine inputData
     
     
