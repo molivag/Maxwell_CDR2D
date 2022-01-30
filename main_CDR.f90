@@ -2,7 +2,7 @@ program main_CDR3d
   use library
   use param
   use biunit 
-  !use boundVal
+  use boundVal
 
   implicit none
   

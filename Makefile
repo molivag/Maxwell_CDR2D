@@ -26,7 +26,7 @@ CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
 #	mkl library
 CFLAGS += -mkl 
 #	source files
-SRCS = mod_param mod_biunit mod_library main_CDR
+SRCS = mod_param mod_biunit mod_BVs mod_library main_CDR
 
 OBJS = $(SRCS:=.o)
 
