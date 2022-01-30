@@ -2,7 +2,6 @@ program main_CDR3d
   use library
   use param
   use biunit 
-  !use solver
   !use boundVal
 
   implicit none
@@ -81,24 +80,19 @@ program main_CDR3d
   call MKLsolverResult('dgbtrs',info)
   
 
-  !---------- Solving System of Equations -----------!
-
-  !Sols = 0.0
-  !call solsistem(A_K,A_K,S_nrhs,A_F,Sols)
-  
-
-
   !---------- Print and write results -----------!
   write(*,*)
   print*,'!=============== Output Files ================!'
-  call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
-  call writeMatrix(AKbLU,60,'AKbLU.dat', Sols, 70, 'SolMKL_LU.dat')
+  !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
+  call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
   print*, ' ' 
   print*, 'Shape of Global K: ',shape(A_K)
   print*, 'Shape of Global F: ',shape(A_F)
   print*, 'Shape of Solution: ',shape(Sols)
-  !call PosProcess(Solution, File_PostMsh, 'msh')
-  !call PosProcess(Solution, File_PostRes, 'res')
+  write(*,*)
+  call PosProcess(Sols, File_PostMsh, 'msh')
+  call PosProcess(Sols, File_PostRes, 'res')
+  write(*,*)
 
   !---------- Memory Relase -----------!
   DEALLOCATE( A_F)
