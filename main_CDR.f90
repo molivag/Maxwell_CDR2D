@@ -3,7 +3,8 @@ program main_CDR3d
   use param
   use biunit 
   use boundVal
-
+  !use solver
+!
   implicit none
   
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
@@ -50,7 +51,7 @@ program main_CDR3d
   DEALLOCATE(nofix, ifpre, presc)
 
 
-  !---------- Solving System of Equations by MKL library -----------!
+
   write(*,*) ''
   print*,'!================= MKL <S>OLVER ===============!'
   S_m     = ntotv       !size(AK,1)
@@ -68,6 +69,10 @@ program main_CDR3d
   AKbLU = A_K         !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
   Sols  = A_F         !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
 
+  !---------- Solving System of Equations by retpla solver -----------!
+  !  print*, 'Cholesky-decomposition of band-storaged Matrix'
+  !  call solsistem(A_K,A_K,1,A_F,Sols)
+  
   print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'
   !print*, 'Cholesky-decomposition of band-storaged Matrix'
   !call dpbtrf( uplo, S_n, nband, AKb_LU, ldAKban, info )
@@ -81,7 +86,6 @@ program main_CDR3d
   
 
   !---------- Print and write results -----------!
-  write(*,*)
   print*,'!=============== Output Files ================!'
   !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
   call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
