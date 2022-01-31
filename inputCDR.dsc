@@ -16,27 +16,27 @@ maxband  = 70             !Maximo ancho de banda
 
 # > > > > > > > Stabilization
 kstab    = 3             !Type of stabilization: 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG)
-ktaum    = 1             !Type of tau matrix: 0, 1, 2 
+ktaum    = 0             !Type of tau matrix: 0, 1, 2 
 patau    = 1.0           !Parameter to obtain tau
 hnatu    = 2.0           !Reference element length
 
 # > > > > > > > Physical Properties
 #DIFMA_11                        !Diffusion tensor
-1.0E-4  , 0.0E-0  , 0.0E-0
-0.0E-0  , 1.0E-4  , 0.0E-0
-0.0E-0  , 0.0E-0  , 1.0E-4
+1.0E-0  , 0.0E-0  , 0.0E-0
+0.0E-0  , 1.0E-0  , 0.0E-0
+0.0E-0  , 0.0E-0  , 1.0E-0
 #DIFMA_12    
 0.0e-0 ,  0.0e-0 ,  0.0e-0
 0.0e-0  , 0.0e-0  , 0.0e-0
 0.0e-0  , 0.0e-0  , 0.0e-0
 #DIFMA_22       
-1.0E-4 , 0.0E-0 ,  0.0E-0
-0.0E-0 , 1.0E-4 ,  0.0E-0
-0.0E-0 , 0.0E-0 ,  1.0E-4
+1.0E-0 , 0.0E-0 ,  0.0E-0
+0.0E-0 , 1.0E-0 ,  0.0E-0
+0.0E-0 , 0.0E-0 ,  1.0E-0
 #COMAT_1                        !Convection tensor
-4.0e+2 , 0.0e-0 , 0.0e-0
-0.0e-0 , 4.0e+2 , 0.0e-0
-0.0e-0 , 0.0e-0 , 4.0e+2
+4.0E+2 , 0.0e-0 , 0.0e-0
+0.0E-0 , 4.0E+2 , 0.0E-0
+0.0E-0 , 0.0E-0 , 4.0E+2
 #COMAT_2      
 0.0e+0 , 0.0e-0 , 0.0e-0
 0.0e-0 , 0.0e+1 , 0.0e-0
@@ -46,7 +46,7 @@ hnatu    = 2.0           !Reference element length
 0.0e-0 , 8.0e+4 , 0.0e-0
 0.0e-0 , 0.0e-0 , 8.0e+4
 #FORCE                          !Force tensor
-1.0e+0 , 10.0e+0 , 3.0e+0
+0.0e+0 , 0.0e+0 , 0.0e+0
 
 # > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes
          1        1    2   23   22
