@@ -2,7 +2,6 @@ module library
   use param
   use biunit
   
-  
   contains
    
     subroutine GeneralInfo( ) 
@@ -680,130 +679,6 @@ module library
    !   
    ! end subroutine AssembleK
     
-    !subroutine SetBoundVal( nBVs, nBVscol )
-    !  !========================================================================
-    !  !Esta subroutina revisa todos los nodos de la malla y define el tipo de Dof de
-    !  !los nodos en la frontera. Abre un archivo en donde comenzara a escribir, 
-    !  !en la primer columna: el numero de nodo. 
-    !  ! La segunda columna tendra el tipo de nodo
-    !  ! 1 = Nodo con valor preescrito (nodo con valor definido)
-    !  ! 0 = Nodo libre (su valor debera ser calculado)
-    !  ! La tercera columna tendra el valor del nodo preescrito  
-    !  !=========================================================================
-    !  
-    !  implicit none
-    !  
-    !  character(len=*), parameter :: fileplace ="./"
-    !  integer :: ierror, a ,b, c, d, i
-    !  real    :: x, y, xmin, xmax, ymin, ymax
-    !  integer, intent(out) :: nBVs, nBVscol
-    !  
-    !  
-    !  open(unit=100, file=fileplace//'BVs.dat',Status= 'replace', action= 'write',iostat=ierror)
-    !  
-    !  a = 0
-    !  b = 0
-    !  c = 0
-    !  d = 0
-    !  
-    !  xmin = minval(coord(:,2)) !the smallest number in x column
-    !  xmax = maxval(coord(:,2)) !the greatest number in x column
-    !  ymin = minval(coord(:,3)) !the smallest number in y column
-    !  ymax = maxval(coord(:,3)) !the greatest number in y column
-    !  
-    !  
-    !  !print*, ' '
-    !  !print*, 'xmin= ', xmin
-    !  !print*, 'xmax= ', xmax
-    !  !print*, 'ymin= ', ymin
-    !  !print*, 'ymax= ', ymax
-    !  !print*, ' '
-    !  
-    !  
-    !  if(ndofn .eq. 3) then
-    !    do i =1, nnodes
-    !      x=coord(i,2)
-    !      y=coord(i,3)
-    !      if(y.eq.ymax) then !top edge 
-    !        write(100,50) i, 1,1,1, real(1), real(0), real(1)
-    !        a = a+3
-    !      else if (y.eq.ymin)then !botomm edge
-    !        write(100,50) i, 1,1,1, real(0), real(0), real(0)
-    !        b = b+3
-    !      else if (x.eq.xmin)then !left edge
-    !        write(100,50) i, 1,1,1, real(0), real(0), real(0)
-    !        c = c+3
-    !      else if(x.eq.xmax)then !right edge
-    !        write(100,50) i, 1,1,1, real(0), real(0), real(0)
-    !        d = d+3
-    !      end if
-    !      nBVs = a+b+c+d
-    !    end do
-    !      nBVs = nBVs/3
-    !      nBVscol = 7 
-    !    
-    !  elseif(ndofn .eq. 2) then
-    !    do i =1, nnodes
-    !      x=coord(i,2)
-    !      y=coord(i,3)
-    !      if(y.eq.ymax) then                          !top edge
-    !        write(100,60) i, 1,1, real(0), real(0)
-    !        a = a+2
-    !      else if (y.eq.ymin)then                     !bottom edge
-    !        write(100,60) i, 1,1, real(0), real(0)
-    !        b = b+2
-    !      else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
-    !        write(100,60) i, 1,1, real(1), real(1)
-    !      else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
-    !        write(100,60) i, 1,1, real(1), real(1)
-    !      else if (x.eq.xmin )then                    !left edge
-    !        write(100,60) i, 1,1, real(1), real(1)
-    !        c = c+2
-    !      else if (x.eq.xmax)then                     !right edges
-    !        write(100,60) i, 1,1, real(0), real(0)
-    !        d = d+2
-    !      end if
-    !      nBVs = a+b+c+d
-    !    end do
-    !      nBVs = nBVs/2
-    !      nBVscol = 5
-    !    
-    !  elseif(ndofn .eq. 1)then
-    !    do i =1, nnodes
-    !      x=coord(i,2)
-    !      y=coord(i,3)
-    !      if(y.eq.ymax) then                          !top edge
-    !        write(100,70) i, 1, real(0)
-    !        a = a+1
-    !      else if (y.eq.ymin)then                     !botomm
-    !        write(100,70) i, 1, real(0)
-    !        b = b+1
-    !      else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
-    !        write(100,70) i, 1, real(1)
-    !      else if (x.eq.xmin)then                     !left edge
-    !        write(100,70) i, 1, real(0)
-    !        c = c+1
-    !      else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
-    !        write(100,70) i, 1, real(1)
-    !      else if (x.eq.xmax)then                     !right edge
-    !        write(100,70) i, 1, real(0)
-    !        d = d+1
-    !      end if
-    !      nBVs = a+b+c+d
-    !    end do
-    !      nBVscol = 3
-    !  end if
-    !  
-    !  close(100)
-    !  
-    !  
-    !  50 format(4I6,3f10.3)
-    !  60 format(3I6,2f10.3)
-    !  70 format(2I6,f10.3)
-    !  
-    !  
-    !end subroutine SetBoundVal 
-    
     subroutine VinculBVs(  BVs, nofix, ifpre, presc )
       
       implicit none
@@ -849,34 +724,15 @@ module library
         end select
     end subroutine VinculBVs
     
-    subroutine BandWidth()
-      
-      
-    end subroutine BandWidth
-    
-    
-    
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
+    subroutine BandWidth( )
+      !use stdlib_linalg, only: diag
       
       implicit none
       
-      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)     :: Hesxieta
-      double precision, dimension(nne)          :: basis
-      double precision, dimension(DimPr,nne)    :: dN_dxy
-      double precision, dimension(3,nne)        :: HesXY
-      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv!, JinvP, JacoP
-      double precision, dimension(nevab, nevab) :: Ke
-      double precision, dimension(nevab)        :: rhslo
-      double precision, dimension(3,3)          :: tauma
-      real, dimension(nne,DimPr)                :: element_nodes
-      integer, dimension( nne + 1, nelem)       :: lnods2
-      integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ
-      integer                                   :: igaus, ibase, ielem, iband, inode, jnode, ipoin, jpoin
-      !integer                                   :: upban, lowban, totban, ldAKban
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
-      
+      integer :: iband, ielem, inode, ipoin, jnode, jpoin, nband       ! , C, D
+      !integer :: i,j,k
+      !real, allocatable, dimension(:) :: A, B, BB
+      !real, allocatable :: AA(:,:)
       
       iband=0
       do ielem =1, nelem
@@ -895,11 +751,79 @@ module library
         write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
         stop
       end if
-      
       upban  = nband
       lowban = nband
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1
+      
+      !AA = diag([(0.5*i+1*0.851,i=1,10)]) ! creates a 10 by 10 identity matrix
+      
+      !do k =1,10
+      !  write(*,"(10(1x,f10.2))") (AA(k,j),j=1,10)
+      !end do
+      !allocate(BB(size(AA,1)))
+      !allocate(A(size(conma,1)))
+      !allocate(B(size(reama,1)))
+      
+      !BB = diag(AA)
+      !A = diag(conma(ndofn,ndofn,1))
+      !B = diag(reama)
+      !select case(ndofn)
+      !  
+      !case(1)
+      !  C = abs(sum(conma))
+      !  D = abs(sum(reama))
+      !  if((C.EQ.0) .OR. (D.EQ.0))then
+      !    write(*,*) '-Global Matrix is symmetric'
+      !    upban  = nband
+      !    lowban = nband
+      !    totban = lowban + upban + 1
+      !    ldAKban= 2*lowban + upban + 1
+      !  else
+      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
+      !    upban  = nband
+      !    lowban = nband
+      !    totban = lowban + upban + 1
+      !    ldAKban= 2*lowban + upban + 1
+      !  endif
+      !  
+      !case(2)
+      !  C = abs(sum(conma))
+      !  D = abs(sum(reama))
+      !  if((C.EQ.0) .OR. (D.EQ.0))then
+      !    write(*,*) '-Global Matrix is symmetric'
+      !    upban  = nband
+      !    lowban = 0
+      !    totban = lowban + upban + 1
+      !    ldAKban= 2*lowban + upban + 1
+      !  else
+      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
+      !    upban  = nband
+      !    lowban = nband
+      !    totban = lowban + upban + 1
+      !    ldAKban= 2*lowban + upban + 1
+      !  endif
+      !
+      !case(3)
+      !  C = abs(sum(conma) )
+      !  D = abs(sum(reama) )
+      !  if((C.EQ.0) .OR. (D.EQ.0))then
+      !    write(*,*) '-Global Matrix is symmetric'
+      !    upban  = nband
+      !    lowban = 0
+      !    totban = lowban + upban + 1
+      !    ldAKban= 2*lowban + upban + 1
+      !  else
+      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
+      !    upban  = nband
+      !    lowban = nband
+      !    totban = lowban + upban + 1
+      !    ldAKban= 2*lowban + upban + 1
+      !  endif
+      !  
+      !end select
+      
+      
       write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
       
@@ -908,6 +832,32 @@ module library
       write(*,"(A15,9X,I6,1X,A9)")'-TotBand:     ', totban,'  '
       write(*,"(A15,9X,I6,1X,A9)")'-ledimAK:     ', ldAKban,' '
       
+      
+    end subroutine BandWidth
+    
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
+      
+      implicit none
+      
+      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
+      double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(nne)          :: basis
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv!, JinvP, JacoP
+      double precision, dimension(nevab, nevab) :: Ke
+      double precision, dimension(nevab)        :: rhslo
+      double precision, dimension(3,3)          :: tauma
+      real, dimension(nne,DimPr)                :: element_nodes
+      integer, dimension( nne + 1, nelem)       :: lnods2
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ
+      integer                                   :: igaus, ibase, ielem
+      !integer                                   :: upban, lowban, totban, ldAKban
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
+      
+      
+      call BandWidth( )
       allocate(A_K(ldAKban,ntotv))
       allocate( A_F(ntotv, 1) )
       
@@ -933,7 +883,7 @@ module library
           end do     
           call Galerkin(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
           call TauMat(hmaxi,tauma) 
-          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
+          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
         lnods2=transpose(lnods)
@@ -978,11 +928,70 @@ module library
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       double precision, intent(in) :: Ke(nevab,nevab)
       integer, intent(in) :: lnods(nne)
-      integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband
+      integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband !, i,j,k,l
       double precision, intent(in out) :: A_K(ldAKban,ntotv)
      !                                        ldAKban= 2*lowban + upban + 1
      !                                          totban = lowban + upban + 1
-      !  inode=1,2
+      !if(lowban.EQ.0)then
+      !  write(*,*) 'Symmetric case'
+      !  do inode=1,nne    !nne = number of node in the element
+      !    ipoin=lnods(inode)
+      !    !print*,'ipoin',ipoin
+      !    do idofn=1,ndofn
+      !      ievab=(inode-1)*ndofn+idofn
+      !      itotv=(ipoin-1)*ndofn+idofn
+      !      do jnode=1,nne
+      !        jpoin=lnods(jnode)
+      !        do jdofn=1,ndofn
+      !          jevab=(jnode-1)*ndofn+jdofn
+      !          jtotv=(jpoin-1)*ndofn+jdofn
+
+      !          jband=jtotv-itotv+1   !   ------> Original de retpla
+      !          if (jband.ge.1)then
+      !          A_K(jband,itotv)=A_K(jband,itotv) +Ke(ievab,jevab)
+      !          endif
+      !        end do 
+      !      end do
+      !    end do
+      !  end do
+      !  !Reorder the global band matrix into LAPACK format
+      !  !i=0
+      !  !do k = nband+1, 1,-1
+      !  !  i = i+1
+      !  !  j = 1
+      !  !  do l = ntotv,1,-1
+      !  !    A_K(i,j) = A_K(k,l)
+      !  !    j=j+1
+      !  !  end do
+      !  !end do
+      !else
+      !  !Non or structural symmetric case
+      !  do inode=1,nne    !nne = number of node in the element
+      !    ipoin=lnods(inode)
+      !    !print*,'ipoin',ipoin
+      !    do idofn=1,ndofn
+      !      ievab=(inode-1)*ndofn+idofn
+      !      itotv=(ipoin-1)*ndofn+idofn
+      !      do jnode=1,nne
+      !        jpoin=lnods(jnode)
+      !        do jdofn=1,ndofn
+      !          jevab=(jnode-1)*ndofn+jdofn
+      !          jtotv=(jpoin-1)*ndofn+jdofn
+
+      !          !jband=jtotv-itotv+1      ------> Original de retpla
+      !          !A_K(jband,itotv)=A_K(jband,itotv) + ...
+
+      !          !jband= upban +1 +itotv-jtotv    !Algoritmo de recuperacion para LAPACK 
+      !          jband = itotv-jtotv + totban           
+      !          if (jband.ge.1)then
+      !            A_K(jband,jtotv)=A_K(jband,jtotv)+Ke(ievab,jevab)
+      !          endif
+      !        end do 
+      !      end do
+      !    end do
+      !  end do
+      !endif
+      
       do inode=1,nne    !nne = number of node in the element
         ipoin=lnods(inode)
         !print*,'ipoin',ipoin
@@ -1101,62 +1110,10 @@ module library
       return
       
     end subroutine ApplyBVs 
-
-
-
-
-    !subroutine ApplyBoundCond( NoBV, Fbcsvp, A_K, Sv )
-    !  ! - - - - - - - - - - * * * * * * * * * * - - - - - - - 
-    !  ! Set velocity (u) and preasure (p) boundary condition by penalty method
-    !  ! - - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
-    !  implicit none
-    !                      !Dof
-    !  integer , dimension(NoBV,Dof), intent(in) :: Fbcsvp
-    !  double precision, dimension(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes),intent(in out) :: A_K  !Global Stiffnes matrix
-    !  double precision, dimension(2*n_nodes+n_pnodes, 1), intent(in out) :: Sv
-    !  double precision :: param, coeff
-    !  integer          :: preasure_row, NoBV, i, component, node_id, pnode_id
-    !  
-    !  !Esencialmente la siguiente instruccion hace: A_K(1*2-1,:) = A_K(1,:) Es decir, obtene el valor maximo de
-    !  !la primera fila de la matriz global K (A_K). No le veo el caso pero lo dejamos asi.
-    !  param = maxval(A_K(int(Fbcsvp(1,1))*2-1,:))
-    !  coeff = abs(param) * 1.0E7
-
-    !  print*, 'param', param
-    !  print*, 'coeff', coeff
-    !  
-    !  preasure_row = 2*n_nodes
-
-    !  do i =1, NoBV
-    !    !print*, 'iteration', i
-    !    node_id   = Fbcsvp(i,1) !se pone este int() pq la 1a y 2a col de Fbcsvp esta leida como integer pero 
-    !    !print*, 'node_id', node_id
-    !    component = Fbcsvp(i,2)!la matriz completa esta declarada como real en esta subroutina y en el main.
-    !    !print*, 'component', component
-    !    !print*, shape(Fbcsvp)
-    !    !print*, Fbcsvp(i,:)
-    !    if ( component .le. 2 ) then
-    !      !print*, 'component of Boundary value', component
-    !      !print*,'La pausa', 2*node_id-2+component,' ', 2*node_id-2 +component
-    !      !read(*,*)
-    !      A_K(2*node_id-2+component, 2*node_id-2 +component) = coeff
-    !      Sv( 2*node_id-2+component, 1) = Fbcsvp(i,3)*coeff 
-    !    else                                                     
-    !      pnode_id = pnodes(node_id,2)
-    !      !print*, 'pnode_id', pnode_id 
-    !      !print*, 'preasure_row', preasure_row
-    !      A_K(preasure_row+pnode_id, preasure_row + pnode_id) = coeff
-    !      !print*, preasure_row+pnode_id, preasure_row + pnode_id
-    !      Sv(preasure_row+pnode_id,1) = Fbcsvp(i,3)*coeff !el tres es por que en la columna 3 esta el valor de la condicon de forntera
-    !    end if
-    !  end do
-
-    !end subroutine ApplyBoundCond
-
-
+    
     
     subroutine MKLfactoResult( routine_name, num )                            
-      implicit none                                                                                           
+      implicit none
       
       character(*), intent(in)  :: routine_name
       integer,      intent(in)  :: num
