@@ -35,54 +35,63 @@ module BoundVal
       ymax = maxval(coord(:,3)) !the greatest number in y column
       
       
-      !print*, ' '
-      !print*, 'xmin= ', xmin
-      !print*, 'xmax= ', xmax
-      !print*, 'ymin= ', ymin
-      !print*, 'ymax= ', ymax
-      !print*, ' '
-      
-      
       if(ndofn .eq. 3) then
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then !top edge 
-            write(100,50) i, 1,1,1, real(1), real(0), real(1)
+          if(y.eq.ymax) then 
+            if(x.eq.xmax)then                                    !right top corner CHECK'
+              write(100,51) i, 1,1,1, real(0), real(0), real(0)  
+            elseif(x.eq.xmin)then                                !left top corner CHECK'
+              write(100,51) i, 1,1,1, real(1), real(0), real(0) 
+            else
+              write(100,50) i, 0,0,0, real(0), real(0), real(0)  !top edge 
+            end if
             a = a+3
-          else if (y.eq.ymin)then !botomm edge
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+            30 continue
+          else if (y.eq.ymin)then
+            if(x.eq.xmin)then                                    !left bottom corner
+              write(100,51) i, 1,1,1, real(1), real(0), real(0) 
+            elseif(x.eq.xmax)then                                !right bottom corner
+              write(100,51) i, 1,1,1, real(0), real(0), real(0)  
+            else
+              write(100,50) i, 0,0,0, real(0), real(0), real(0)  !botomm edge
+            end if
             b = b+3
-          else if (x.eq.xmin)then !left edge
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
-            c = c+3
-          else if(x.eq.xmax)then !right edge
-            write(100,50) i, 1,1,1, real(0), real(0), real(0)
+          else if(x.eq.xmax)then                                 !right edge
+              write(100,50) i, 1,1,1, real(0), real(0), real(0)
             d = d+3
+          else if (x.eq.xmin)then                                !left edge
+              write(100,50) i, 1,1,1, real(1), real(0), real(0) 
+            c = c+3
+           
           end if
+          
           nBVs = a+b+c+d
+         
         end do
-          nBVs = nBVs/3
-          nBVscol = 7 
         
+        nBVs = nBVs/3
+        nBVscol = 7 
+          
       elseif(ndofn .eq. 2) then
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then                          !top edge
+          if(y.eq.ymax) then                         
             write(100,60) i, 1,1, real(0), real(0)
             a = a+2
-          else if (y.eq.ymin)then                     !bottom edge
+          else if (y.eq.ymin)then                    
             write(100,60) i, 1,1, real(0), real(0)
             b = b+2
-          else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
+          else if ((x.eq.xmin) .and. (y.eq.ymin))then 
             write(100,60) i, 1,1, real(1), real(1)
-          else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
+          else if ((x.eq.xmin) .and. (y.eq.ymax))then
             write(100,60) i, 1,1, real(1), real(1)
-          else if (x.eq.xmin )then                    !left edge
+          else if (x.eq.xmin )then                    
             write(100,60) i, 1,1, real(1), real(1)
             c = c+2
-          else if (x.eq.xmax)then                     !right edges
+          else if (x.eq.xmax)then                     
             write(100,60) i, 1,1, real(0), real(0)
             d = d+2
           end if
@@ -95,20 +104,16 @@ module BoundVal
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then                          !top edge
+          if(y.eq.ymax) then              !top edge
             write(100,70) i, 1, real(0)
             a = a+1
-          else if (y.eq.ymin)then                     !botomm
+          else if (y.eq.ymin)then         !botomm
             write(100,70) i, 1, real(0)
             b = b+1
-          else if ((x.eq.xmin) .and. (y.eq.ymax))then !left up corner 
-            write(100,70) i, 1, real(1)
-          else if (x.eq.xmin)then                     !left edge
+          else if (x.eq.xmin)then         !left edge
             write(100,70) i, 1, real(0)
             c = c+1
-          else if ((x.eq.xmin) .and. (y.eq.ymin))then !left down corner 
-            write(100,70) i, 1, real(1)
-          else if (x.eq.xmax)then                     !right edge
+          else if (x.eq.xmax)then         !right edge
             write(100,70) i, 1, real(0)
             d = d+1
           end if
@@ -120,10 +125,10 @@ module BoundVal
       close(100)
       
       
-      50 format(4I6,3f10.3)
-      60 format(3I6,2f10.3)
-      70 format(2I6,f10.3)
-      
+      50 format(I5,2x,3I2,2x,3f12.5)
+      51 format(I5,2x,3I2,2x,3f12.5,5x,A20)
+      60 format(I5,2x,2I2,2x,2f12.5)
+      70 format(I5,2x,1I2,2x,f12.5)
       
     end subroutine SetBoundVal 
    
@@ -133,4 +138,3 @@ module BoundVal
 
 end module BoundVal
 
-  
