@@ -40,15 +40,14 @@ module BoundVal
           x=coord(i,2)
           y=coord(i,3)
           if(y.eq.ymax) then 
-            if(x.eq.xmax)then                                    !right top corner CHECK'
+            if(x.eq.xmax)then                                    !right top corner
               write(100,51) i, 1,1,1, real(0), real(0), real(0)  
-            elseif(x.eq.xmin)then                                !left top corner CHECK'
+            elseif(x.eq.xmin)then                                !left top corner
               write(100,51) i, 1,1,1, real(1), real(0), real(0) 
             else
               write(100,50) i, 0,0,0, real(0), real(0), real(0)  !top edge 
             end if
             a = a+3
-            30 continue
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    !left bottom corner
               write(100,51) i, 1,1,1, real(1), real(0), real(0) 
@@ -97,29 +96,45 @@ module BoundVal
           end if
           nBVs = a+b+c+d
         end do
-          nBVs = nBVs/2
-          nBVscol = 5
+        nBVs = nBVs/2
+        nBVscol = 5
         
       elseif(ndofn .eq. 1)then
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then              !top edge
-            write(100,70) i, 1, real(0)
+          if(y.eq.ymax) then 
+            if(x.eq.xmax)then              !right top corner
+              write(100,70) i, 1, real(0)  
+            elseif(x.eq.xmin)then          !left top corner 
+              write(100,70) i, 1, real(0) 
+            else
+              write(100,70) i, 1, real(0)  !top edge 
+            end if
             a = a+1
-          else if (y.eq.ymin)then         !botomm
-            write(100,70) i, 1, real(0)
+          else if (y.eq.ymin)then
+            if(x.eq.xmin)then              !left bottom corner
+              write(100,70) i, 1, real(0)
+            elseif(x.eq.xmax)then          !right bottom corner
+              write(100,70) i, 1, real(0)  
+            else
+              write(100,70) i, 1, real(0)  !botomm edge
+            end if
             b = b+1
-          else if (x.eq.xmin)then         !left edge
-            write(100,70) i, 1, real(0)
-            c = c+1
-          else if (x.eq.xmax)then         !right edge
-            write(100,70) i, 1, real(0)
+          else if(x.eq.xmax)then           !right edge
+              write(100,70) i, 1, real(0)
             d = d+1
+          else if (x.eq.xmin)then          !left edge
+              write(100,70) i, 1, real(0) 
+            c = c+1
+           
           end if
+          
           nBVs = a+b+c+d
+         
         end do
-          nBVscol = 3
+        nBVscol = 3
+        
       end if
       
       close(100)
