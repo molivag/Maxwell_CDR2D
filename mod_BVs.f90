@@ -65,7 +65,6 @@ module BoundVal
             c = c+3
            
           end if
-          
           nBVs = a+b+c+d
          
         end do
@@ -77,24 +76,34 @@ module BoundVal
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then                         
-            write(100,60) i, 1,1, real(0), real(0)
+          if(y.eq.ymax) then 
+            if(x.eq.xmax)then                          !right top corner
+              write(100,51) i, 1,1, real(0), real(0) 
+            elseif(x.eq.xmin)then                      !left top corner
+              write(100,51) i, 1,1, real(1), real(0)
+            else
+              write(100,50) i, 0,0, real(0), real(0)   !top edge 
+            end if
             a = a+2
-          else if (y.eq.ymin)then                    
-            write(100,60) i, 1,1, real(0), real(0)
+          else if (y.eq.ymin)then
+            if(x.eq.xmin)then                          !left bottom corner
+              write(100,51) i, 1,1, real(1), real(0) 
+            elseif(x.eq.xmax)then                      !right bottom corner
+              write(100,51) i, 1,1, real(0), real(0)  
+            else
+              write(100,50) i, 0,0, real(0), real(0)   !botomm edge
+            end if
             b = b+2
-          else if ((x.eq.xmin) .and. (y.eq.ymin))then 
-            write(100,60) i, 1,1, real(1), real(1)
-          else if ((x.eq.xmin) .and. (y.eq.ymax))then
-            write(100,60) i, 1,1, real(1), real(1)
-          else if (x.eq.xmin )then                    
-            write(100,60) i, 1,1, real(1), real(1)
-            c = c+2
-          else if (x.eq.xmax)then                     
-            write(100,60) i, 1,1, real(0), real(0)
+          else if(x.eq.xmax)then                       !right edge
+              write(100,50) i, 1,1, real(0), real(0)
             d = d+2
+          else if (x.eq.xmin)then                      !left edge
+              write(100,50) i, 1,1, real(1), real(0) 
+            c = c+2
+           
           end if
           nBVs = a+b+c+d
+         
         end do
         nBVs = nBVs/2
         nBVscol = 5
@@ -107,29 +116,28 @@ module BoundVal
             if(x.eq.xmax)then              !right top corner
               write(100,70) i, 1, real(0)  
             elseif(x.eq.xmin)then          !left top corner 
-              write(100,70) i, 1, real(0) 
+              write(100,70) i, 1, real(1) 
             else
-              write(100,70) i, 1, real(0)  !top edge 
+              write(100,70) i, 0, real(0)  !top edge 
             end if
             a = a+1
           else if (y.eq.ymin)then
             if(x.eq.xmin)then              !left bottom corner
-              write(100,70) i, 1, real(0)
+              write(100,70) i, 1, real(1)
             elseif(x.eq.xmax)then          !right bottom corner
               write(100,70) i, 1, real(0)  
             else
-              write(100,70) i, 1, real(0)  !botomm edge
+              write(100,70) i, 0, real(0)  !botomm edge
             end if
             b = b+1
           else if(x.eq.xmax)then           !right edge
               write(100,70) i, 1, real(0)
             d = d+1
           else if (x.eq.xmin)then          !left edge
-              write(100,70) i, 1, real(0) 
+              write(100,70) i, 1, real(1) 
             c = c+1
            
           end if
-          
           nBVs = a+b+c+d
          
         end do
