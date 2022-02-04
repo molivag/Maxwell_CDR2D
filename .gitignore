@@ -3,6 +3,7 @@ Geo/
 Pos/
 Res/
 Msh/
+*.exe
 *.x
 *.dat
 *.o
