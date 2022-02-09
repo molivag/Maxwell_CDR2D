@@ -41,27 +41,27 @@ module BoundVal
           y=coord(i,3)
           if(y.eq.ymax) then 
             if(x.eq.xmax)then                                    !right top corner
-              write(100,51) i, 1,1,1, real(0), real(0), real(0)  
+              write(100,51) i, 1,1,1, real(0), real(1), real(0)  
             elseif(x.eq.xmin)then                                !left top corner
-              write(100,51) i, 1,1,1, real(1), real(0), real(0) 
+              write(100,51) i, 1,1,1, real(1), real(0), real(1) 
             else
               write(100,50) i, 0,0,0, real(0), real(0), real(0)  !top edge 
             end if
             a = a+3
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    !left bottom corner
-              write(100,51) i, 1,1,1, real(1), real(0), real(0) 
+              write(100,51) i, 1,1,1, real(1), real(0), real(1) 
             elseif(x.eq.xmax)then                                !right bottom corner
-              write(100,51) i, 1,1,1, real(0), real(0), real(0)  
+              write(100,51) i, 1,1,1, real(0), real(1), real(0)  
             else
               write(100,50) i, 0,0,0, real(0), real(0), real(0)  !botomm edge
             end if
             b = b+3
           else if(x.eq.xmax)then                                 !right edge
-              write(100,50) i, 1,1,1, real(0), real(0), real(0)
+              write(100,50) i, 1,1,1, real(0), real(1), real(0)
             d = d+3
           else if (x.eq.xmin)then                                !left edge
-              write(100,50) i, 1,1,1, real(1), real(0), real(0) 
+              write(100,50) i, 1,1,1, real(1), real(0), real(1) 
             c = c+3
            
           end if
