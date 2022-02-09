@@ -149,7 +149,7 @@ module biunit
       double precision, allocatable, dimension(:,:), intent(out), optional :: dN_dxi, dN_deta
       
       ! = = = = = = = = = = = = = = = = = = = = = = = = = = =
-      100 format (3A, 1x, I1, 1x, A)
+      
       
       allocate( N(Nne,totGp) )
       N = 0.0

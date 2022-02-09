@@ -144,7 +144,6 @@ module library
 
     end subroutine DerivativesXY
 
-
     function inv2x2(A)
 
       implicit none
@@ -230,7 +229,6 @@ module library
 
     end subroutine invmtx
 
-
     subroutine sqrtma(mainp,maout)
 
       ! Square root of matrix. In the case NDOFN = 3, it is assumed that this
@@ -253,7 +251,6 @@ module library
       endif
 
     end subroutine sqrtma
-
 
     subroutine sqrtm2(mainp,maout)
 
@@ -373,7 +370,6 @@ module library
 
     end subroutine Galerkin
 
-
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
       ! ***************************************************************************
@@ -447,11 +443,10 @@ module library
       end if
       
     end subroutine pertur
-    
-    
-    !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo,pertu,workm,resid)
+        
     subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo)
-      
+      !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo,pertu,workm,resid)
+
       ! Contribution to the system matrix and RHS from the stabilization term
       
       implicit none
@@ -530,7 +525,6 @@ module library
 
     end subroutine Stabilization
 
-
     subroutine TauMat(hmaxi,tauma)
       !
       !     Matrix of intrinsic time scales, computed as
@@ -602,10 +596,10 @@ module library
         end do
       end do
 
-    !  Matrix tau, corresponding to:
-    !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-    !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
-    !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
+      !  Matrix tau, corresponding to:
+      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
+      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
 
       if(ktaum.eq.0) then
         tau = 0.0
@@ -654,34 +648,6 @@ module library
       end if
 
     end subroutine TauMat
-
-
-   ! subroutine AssembleK( ke, nodeIDmap, K_global)
-   !
-   !   implicit none
-   !
-   !   !Global Stiffnes matrix debe llevar inout por que entra como variable (IN) pero en esta funcion se modifica (out)
-   !   double precision, dimension(nevab,nevab), intent(in)      :: ke
-   !   integer, dimension(nne), intent(in)                     :: nodeIDmap
-   !   integer :: i, j, row_node, row, col_node, col
-   !   double precision, dimension(ntotv,ntotv),intent(in out)   :: K_global
-   !
-   !   do i = 1, nne
-   !     row_node = nodeIDmap(i)
-   !     row = ndofn*row_node - (ndofn-1)
-   !
-   !     do j = 1, nne
-   !       col_node = nodeIDmap(j)
-   !       col = ndofn*col_node - (ndofn-1)
-   !       K_global(row:row+ndofn-1, col:col+ndofn-1) =  K_global(row:row+ndofn-1, col:col+ndofn-1) + &
-   !       ke((i-1)*ndofn+1:i*ndofn,(j-1)*ndofn+1:j*ndofn)
-   !     end do
-   !
-   !   enddo
-   !
-   !   return
-   !
-   ! end subroutine AssembleK
 
     subroutine VinculBVs(  BVs, nofix, ifpre, presc )
 
@@ -1042,9 +1008,8 @@ module library
 
     end subroutine AssembleF
 
-
-    !                                     ,A_K ,A_F
     subroutine ApplyBVs(nofix,ifpre,presc,rigid,gload)
+      !                                   ,A_K ,A_F
       !        vincul(rigid,gload,treac,nofix,ifpre,presc)
       !*****************************************************************************
       !
@@ -1116,7 +1081,6 @@ module library
       
     end subroutine ApplyBVs
     
-    
     subroutine MKLfactoResult( routine_name, num )
       implicit none
       
@@ -1154,46 +1118,40 @@ module library
       103 format (A, I3, A, I3, A)
     end subroutine MKLfactoResult
 
-
-      subroutine MKLsolverResult(routine_name, num )
-        implicit none
-
-        character(*), intent(in)  :: routine_name
-        integer,      intent(in)  :: num
-        integer :: val
-        character(len=30) :: text
-        character(len=35) :: text2
-        character(len=30) :: text3
-        external :: xerbla
-
-        text =  '   *SYSTEM SOLVED WITH STATUS'
-        text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
-        text3 = '   *THE LEADING MINOR OF ORDER'
-        if ( num .eq. 0 ) then
-          write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
-        elseif(num .lt. 0 )then
-          val = abs(num)
-          write(*,102) '    THE',val, text2
-          call xerbla( routine_name, num )
-        elseif(num .gt. 0 )then
-          print*, ' '
-          write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT'
-          print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
-          print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
-          print*, ' '
-          call xerbla( routine_name, num )
-          print*, ' ~ ~ ~ Stopping the execution'
-          print*, ' '
-          stop
-        endif
-
-        101 format (A, 1x, I1, A)
-        102 format (A, I3, A)
-        103 format (A30, I3, A)
-
-        print*,' '
-
-      end subroutine MKLsolverResult
+    subroutine MKLsolverResult(routine_name, num )
+      implicit none
+      character(*), intent(in)  :: routine_name
+      integer,      intent(in)  :: num
+      integer :: val
+      character(len=30) :: text
+      character(len=35) :: text2
+      character(len=30) :: text3
+      external :: xerbla
+      text =  '   *SYSTEM SOLVED WITH STATUS'
+      text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
+      text3 = '   *THE LEADING MINOR OF ORDER'
+      if ( num .eq. 0 ) then
+        write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
+      elseif(num .lt. 0 )then
+        val = abs(num)
+        write(*,102) '    THE',val, text2
+        call xerbla( routine_name, num )
+      elseif(num .gt. 0 )then
+        print*, ' '
+        write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT'
+        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
+        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
+        print*, ' '
+        call xerbla( routine_name, num )
+        print*, ' ~ ~ ~ Stopping the execution'
+        print*, ' '
+        stop
+      endif
+      101 format (A, 1x, I1, A)
+      102 format (A, I3, A)
+      103 format (A30, I3, A)
+      print*,' '
+    end subroutine MKLsolverResult
 
     subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
       implicit none
@@ -1223,7 +1181,6 @@ module library
       write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
 
     end subroutine writeMatrix
-
 
     subroutine PosProcess(solution, nameFile1, activity)
 

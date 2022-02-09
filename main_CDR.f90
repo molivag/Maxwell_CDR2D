@@ -2,7 +2,7 @@ program main_CDR3d
   use library; use param ; use biunit ; use boundVal
   !use solver
 
-  implicit none
+implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   double precision, allocatable, dimension(:,:) :: A_K, A_F,  presc
@@ -31,8 +31,8 @@ program main_CDR3d
   !---------- Global Matrix and Vector -----------!
   !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
   call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
-  print*, 'Antes de BV'
-  write(*,"(9F10.5)") ((A_K(i,j), j=1,ntotv), i=1,ldAKban)
+  !print*, 'Antes de BV'
+  !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
 
   !---------- Boundary Conditions -----------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
@@ -42,15 +42,15 @@ program main_CDR3d
   call VinculBVs(  BVs, nofix, ifpre, presc )
   call ApplyBVs(nofix,ifpre,presc,A_K,A_F )
 
-  print*, 'Despues de BV'
-  write(*,"(9F10.5)") ((A_K(i,j), j=1,ntotv), i=1,ldAKban)
+  !print*, 'Despues de BV'
+  !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
 
   !---------- Memory Relase -----------!
   DEALLOCATE(N, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
 
   write(*,*) ''
   print*,'!================= MKL <S>OLVER ===============!'
-  S_m     = size(A_K,1)  !antes ntotv
+  S_m     = size(A_K,2)  !antes ntotv
   S_n     = size(A_K,2)   !antes ntotv
   S_ldSol = max(1,S_n)
   S_trans = 'N'
@@ -79,7 +79,7 @@ program main_CDR3d
   !---------- Print and write results -----------!
   print*,'!=============== Output Files ================!'
   !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
-  call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
+  !call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
   print*, ' '
   print*, 'Shape of Global K: ',shape(A_K)
   print*, 'Shape of Global F: ',shape(A_F)
