@@ -15,7 +15,7 @@ implicit none
   external :: dgbtrf, dgbtrs, dpbtrs, dpbtrf
   double precision, allocatable, dimension(:,:) :: AKbLU, Sols
   integer, allocatable, dimension(:) :: S_ipiv
-  integer :: S_m, S_n, S_nrhs, info, S_ldSol, i,j
+  integer :: S_m, S_n, S_nrhs, info, S_ldSol
   character(len=1) :: S_trans, S_uplo
 
   !---------- Input Data -----------!
