@@ -21,6 +21,7 @@ module param
   !character(len=20), parameter :: File_tensors  = 'tensors.dat'
   character(len=15), parameter :: File_PostMsh  = 'CDR3d.post.msh'
   character(len=15), parameter :: File_PostRes  = 'CDR3d.post.res'
+  
   contains
     
     subroutine inputData( ) 
@@ -34,13 +35,11 @@ module param
       
       integer :: i,j, stat! k, l, 
       character(len=80) :: msg
-      character(len=*), parameter  :: fileplace = "~/Dropbox/1.Doctorado/1.Research/1.Computing/Fortran/2.ConDifRea/"
+      character(len=*), parameter  :: fileplace = "./"
       ! double precision, allocatable, dimension(:,:,:,:) :: difma
       ! double precision, allocatable, dimension(:,:,:)   :: conma
       ! double precision, allocatable, dimension(:,:)     :: reama 
       ! double precision, allocatable, dimension(:)       :: force 
-
-
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       ! read(5, 100)  ElemType, DimPr, nelem, nnodes, nne, ndofn, totGp, maxband, kstab, ktaum, patau, hnatu
@@ -81,7 +80,7 @@ module param
     
         read(5,102) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
         
-        read(5,105) force(1), force(2)
+        read(5,106) force(1), force(2)
         
       elseif(ndofn.eq.3)then
     
@@ -112,7 +111,7 @@ module param
         reama(2,1), reama(2,2), reama(2,3), &
         reama(3,1), reama(3,2), reama(3,3)
         
-       read(5,105) force(1), force(2), force(3)
+       read(5,107) force(1), force(2), force(3)
       
       end if
 
@@ -155,8 +154,9 @@ module param
       101 format(1/,e15.5,2/)!,3/,e9.2,3/,e9.2,3/,e9.2)!,/,e9.2,/,e9.2)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
-      105 format(1/,e15.5, e15.5, e15.5)
-
+      105 format(1/,e15.5,2/) !e15.5, e15.5,/)
+      106 format(1/,e15.5,e15.5,2/) !e15.5, e15.5,/)
+      107 format(1/,e15.5,e15.5,e15.5,2/) !e15.5, e15.5,/)
       ! print*, ' '
       ! print*, 'Diffusion matrix'
       ! do i = 1,dimPr
@@ -181,21 +181,12 @@ module param
       ! do i=1,ndofn
       !   write(*, *)( reama(i,j) ,j=1,ndofn)
       ! end do
-
       ! print*,'force'
       ! do i =1, ndofn
       !   print*, force(i)
       ! end do
-    
       ! print*, ' '
-    
-
-
-
-
-
-
     end subroutine inputData
-    
+  !end contains
     
 end module param

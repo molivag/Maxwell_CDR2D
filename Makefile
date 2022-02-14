@@ -13,32 +13,32 @@ FC = ifort
 
 #	compiler flags
 #	standard
-#CFLAGS = -std=f2008ts
+CFLAGS = -stand f03 #f90 #f08
 #	debugger option
 CFLAGS += -g
 #	warning flags
-CFLAGS += -warn all 
-#	optimization flags 
+CFLAGS += -warn all
+#	optimization flags
 CFLAGS += -O0 -heap-arrays
 #	error finding options
-CFLAGS += -check all -traceback -fp-stack-check -CB #-fp-stack-check -check noarg_temp_created 
+CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
 # at the end of the tests return to -check all option
 #	mkl library
-CFLAGS += -mkl 
+CFLAGS += -mkl
 #	source files
-SRCS = mod_param mod_biunit mod_library mod_solver main_CDR
+SRCS = mod_param mod_biunit mod_BVs mod_library main_CDR
 
 OBJS = $(SRCS:=.o)
 
-#	executable 
-MAIN = CDR3d.x
+#	executable
+MAIN = CDR3d.exe
 #========== Fin variables ===========
 
 #	compile project
 all : $(MAIN)
 #	@echo Compiling files . . . . .
-#	@echo Making objects  . . . . . 
-#	@echo Building an executable . . . . . 
+#	@echo Making objects  . . . . .
+#	@echo Building an executable . . . . .
 	@echo ' '
 	@echo '======================'
 	@echo Compilation completed . . . . .
