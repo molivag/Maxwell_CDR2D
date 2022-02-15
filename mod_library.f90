@@ -1162,7 +1162,7 @@ module library
       double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
       double precision, dimension(ntotv ,1), intent(in) :: Vector
 
-      100 format (900E20.12)
+      100 format (900E15.5)
 
       mrow = size(Matrix,1)
       ncol = size(Matrix,2)
@@ -1191,7 +1191,7 @@ module library
       character(*), intent(in)                :: nameFile1, activity
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin
+      integer                                 :: ipoin, ii
 
       solution_T = transpose(solution)
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
@@ -1216,7 +1216,7 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
-        print"(A6,A17, A36)", ' File ',File_PostMsh,'written succesfully in Pos/ . . . . .'
+        print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
 
       elseif(activity == "res")then
         write(555,"(A)") 'GiD Post Results File 1.0'
@@ -1225,10 +1225,10 @@ module library
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
-            write(555,"(A)") 'Result "DoF" "CDR" 0 Scalar OnNodes'
+            write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
             write(555,"(A)") 'ComponentNames "" '
             write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','           DoF1 '
+            write(555,*) '#',   'No    ','             ux '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(555,914)
             do ipoin = 1, nnodes
@@ -1237,38 +1237,46 @@ module library
             !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
             !Something like
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
-
             write(555,"(A)") 'End Values'
-
           case(2)
-            write(555,"(A)") 'Result "DoF" "CDR" 0 Vector OnNodes'
-            write(555,"(A)") 'ComponentNames "Dof1" "Dof2" "--" "" '
+            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','           DoF1 ','             DoF2 '
+            write(555,*) '#',   'No    ','             ux ','               uy '
             do ipoin = 1, nnodes
               write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
             write(555,"(A)") 'End Values'
-
           case(3)
-
-            write(555,"(A)") 'Result "DoF" "CDR" 0 Vector OnNodes'
-            write(555,"(A)") 'ComponentNames "Dof1" "Dof2" "Dof3" "" '
+            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
             write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','           DoF1 ','              DoF2','              DoF3'
+            write(555,*) '#',   'No    ','             ux ','               uy'
+           ! do ipoin = 1, nnodes
+           !   write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+           ! end do
             do ipoin = 1, nnodes
-              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
             end do
             write(555,"(A)") 'End Values'
-
         end select
-
+        write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
+        write(555,"(A)") 'ComponentNames "" '
+        write(555,"(A)") 'Values'
+        write(555,*) '#',   'No    ','             P '
+        !  se escribe el res para el caso escalar de un grado de libertad
+        write(555,914)
+        ii=1
+        do ipoin = 3, nnodes*3,3
+          write(555,916) ii, solution_T(1,ipoin)
+          ii=ii+1
+        end do
+        write(555,"(A)") 'End Values'
+        print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
+        
         close(555)
-
-        print"(A6,A17, A36)", ' File ',File_PostRes, 'written succesfully in, Pos/, . . . . .'
-
       else
-        write(*,"(A)") ' "Activity" must be "msh" or "res" '
+        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
         close(555)
         stop
       end if
@@ -1279,9 +1287,9 @@ module library
       906 format(I7,2(3x,f9.4)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
-      916 format(I7,2x,f12.5)  !format for scalar case
+      916 format(I7,2x,E12.5)  !format for scalar case
       918 format(I7,3x,f15.5,3x,f15.5) !format for res velocity
-      919 format(I7,3(3x,f15.5)) !format for res velocity
+      919 format(I7,3(3x,E15.5)) !format for res velocity
 
     end subroutine PosProcess
 
