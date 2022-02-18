@@ -6,13 +6,13 @@
 
 # > > > > > > > Geometry
 ElemType = Quadrilateral !Triangle, Quadrilateral
-DimPr    = 2             !Dimension del problema 
+DimPr    = 2             !Dimension del problema
 nelem    = 100           !Number of lnods
 nnodes   = 121           !Total number of nodal points
 nne      = 4             !Number of nodes in the element
 ndofn    = 3             !Degrees of freedom
-totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P    
-maxband  = 78             !Maximo ancho de banda   
+totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P
+maxband  = 78             !Maximo ancho de banda
 
 # > > > > > > > Stabilization
 kstab    = 3             !Type of stabilization: 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG)
@@ -25,21 +25,21 @@ hnatu    = 2.0           !Reference element length
    100    , 0.0E-0  , 0.0E-0
 0.0E-0  ,   100     , 0.0E-0
 0.0E-0  , 0.0E-0  , 0
-#DIFMA_12    
+#DIFMA_12
 0 ,  0.0e-0 ,  0.0e-0
 0.0e-0  , 0  , 0.0e-0
 0.0e-0  , 0.0e-0  , 0
-#DIFMA_22       
+#DIFMA_22
    100   , 0.0E-0 ,  0.0E-0
 0.0E-0 ,    100   ,  0.0E-0
-0.0E-0 , 0.0E-0 ,  0.0E-0  
+0.0E-0 , 0.0E-0 ,  0.0E-0
 #COMAT_1                        !Convection tensor
-0.0E-0 , 0.0e-0 ,    1   
+0.0E-0 , 0.0e-0 ,    1
 0.0e-0 , 0.0E-0 , 0.0e-0
    1   , 0.0e-0 , 0.0E-0
-#COMAT_2      
+#COMAT_2
 0.0e+0 , 0.0e-0 , 0.0e-0
-0.0e-0 , 0.0e+0 ,    1  
+0.0e-0 , 0.0e+0 ,    1
 0.0e-0 ,    1   , 0.0e+0
 #REAMA                          !Reaction tensor
 0 , 0.0e-0 , 0.0e-0
