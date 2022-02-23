@@ -175,9 +175,12 @@ module biunit
             !write(*,100) ' Element type: ', ElemType, 'whit', Nne, 'nodes per element'
             !coordinates of the nodes of the master element
             master_nodes = reshape([1, -1, -1, 1, 0, -1, 0, 1, 1, 1, -1, -1, 1, 0, -1, 0], [Nne,DimPr])
-            !NOTA ** Para que el reshape funcione correctamente, o que produzca el par de valores deseado, primero se deben
-            !colocar todos los valores en x, luego todos los de y y luego, si hubiera todos los de z para que al acomodarse salga el par
-            !suponiendo un reshape de 3,2 debe acomodarse x1, x2, x3, y1, y2, y3 DUDA *Siempre es asi*
+            !NOTA ** Para que el reshape funcione correctamente, o que produzca el par de valores deseado, 
+            !primero se deben colocar todos los valores en x, luego todos los de y y luego, si hubiera todos 
+            !los de z para que al acomodarse salga el par suponiendo un reshape de 3,2 debe acomodarse:
+            !x1, x2, x3, y1, y2, y3 DUDA *Siempre es asi*
+            
+            
             ! dN(xi,eta)/dx = dN/dxi(dxi/dx) + dN/deta(deta/dx)
             ! dN(xi,eta)/dy = dN/dxi(dxi/dy) + dN/deta(deta/dy)
             ! Aqui se calculan as funciones de forma N y parte de las derivadas dN/dxi and dN_deta

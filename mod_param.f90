@@ -19,8 +19,8 @@ module param
   !character(len=20), parameter :: File_element  = 'lnods.dat'
   !character(len=20), parameter :: File_coord    = 'coord.dat'
   !character(len=20), parameter :: File_tensors  = 'tensors.dat'
-  character(len=15), parameter :: File_PostMsh  = 'CDR3d.post.msh'
-  character(len=15), parameter :: File_PostRes  = 'CDR3d.post.res'
+  character(len=19), parameter :: File_PostMsh  = 'CDR_Stokes.post.msh'
+  character(len=19), parameter :: File_PostRes  = 'CDR_Stokes.post.res'
   
   contains
     
@@ -150,7 +150,7 @@ module param
         difma(3,3,2,1) = difma(3,3,1,2)
       end if
       
-      100 format( 7/, 11x, A14, /, 7(11x,I5,/), 2/, 2(11x,I5,/),11x,f3.4,/,11x,F3.42,2/)    
+      100 format( 7/, 11x, A14, /, 7(11x,I5,/), 2/, 2(11x,I5,/),11x,f7.2,/,11x,F7.2,2/)    
       101 format(1/,e15.5,2/)!,3/,e9.2,3/,e9.2,3/,e9.2)!,/,e9.2,/,e9.2)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
