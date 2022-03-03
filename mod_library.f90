@@ -316,6 +316,44 @@ module library
 
     end function m22det
 
+
+    subroutine gather(lnods, vecgl, veclo)
+      !        gather(vecgl,veclo,lnods,ndofn,nnode)
+      !   call gather(coord,elcod,lnods(1,ielem),2,nnode)
+      !*****************************************************************************
+      !
+      !     Gather operations: Recupera los nodos elementales (veclo) del vector global vecgl
+      !
+      !*****************************************************************************
+      !
+      !veclo - vector global
+      !vecgl - vector global
+      
+      implicit none
+      
+      double precision, dimension(*), intent(in) :: vecgl(*)
+      integer, intent(in) ::   lnods(nne)
+      integer   inode,idofn,ipoin,ievab,itotv
+      double precision, dimension(ndofn*nne), intent(out) :: veclo(ndofn*nne)
+      
+      do inode=1,nne
+        ipoin=lnods(inode)
+        do idofn=1,ndofn
+          ievab=(inode-1)*ndofn+idofn
+          itotv=(ipoin-1)*ndofn+idofn
+          veclo(ievab)=vecgl(itotv)
+        end do
+      end do
+      
+    end subroutine gather
+
+
+
+
+
+
+
+
     function elemSize(InvJacobian)
       implicit none
 
@@ -333,15 +371,15 @@ module library
 
     end function elemsize
 
-    subroutine Galerkin(dvol, basis, dNdxy, Ke, rhslo)
+    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, rhslo)
 
       implicit none
 
       double precision, intent(in) :: basis(nne), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
-      double precision ::  prod1, prod2, prod3
-      double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab)
+      double precision ::  diff, convec, reac, cpcty
+      double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab), Ce(nevab,nevab)
       ievab=0
       do inode=1,nne
         do idofn=1,ndofn
@@ -350,18 +388,20 @@ module library
           do jnode=1,nne
             do jdofn=1,ndofn
               jevab=jevab+1
-              prod1=0.0
+              diff=0.0
               do i=1,2
-                do j=1,2
-                  prod1=prod1+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                do j=1,2                      !conductivity tensor
+                  diff=diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                 end do
               end do
-              prod2=0.0
+              convec=0.0
               do i=1,2
-                prod2 = prod2 + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
+                convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
-              prod3 = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              Ke(ievab,jevab) = Ke(ievab,jevab) + (prod1 + prod2 + prod3) * dvol
+              reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
+              cpcty = basis(inode) * basis(jnode)
+              Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
+              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
             end do
           end do
           rhslo(ievab) = rhslo(ievab) + basis(inode) * force(idofn) * dvol
@@ -372,7 +412,7 @@ module library
 
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
-      ! ***************************************************************************
+      !***************************************************************************
       !
       ! Perturbation of the test function according to the type of method:
       !
@@ -717,7 +757,9 @@ module library
         nband = iband
       end do
       nband=(nband+1)*ndofn-1
-      if(nband.ge.maxband) then
+      if(nband.ge.maxband) then      !Puedo poner a maxband como variable local (solo se usa aqui) si lo hago debe ir como dummy var
+        !                            en subroutine globaK y en bandwidth. Tambien ldakban puede pasar a ldA y ponerla como out pues
+        !                            se usa en global assemb y aout no vale la pena ponerla como global.
         write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
         stop
       end if
@@ -805,7 +847,7 @@ module library
 
     end subroutine BandWidth
 
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
 
       implicit none
 
@@ -814,8 +856,8 @@ module library
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
-      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv!, JinvP, JacoP
-      double precision, dimension(nevab, nevab) :: Ke
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+      double precision, dimension(nevab, nevab) :: Ke, Ce
       double precision, dimension(nevab)        :: rhslo
       double precision, dimension(3,3)          :: tauma
       real, dimension(nne,DimPr)                :: element_nodes
@@ -823,19 +865,15 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
       integer                                   :: igaus, ibase, ielem
-      !integer                                   :: upban, lowban, totban, ldAKban
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
-
-
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
+      
       call BandWidth( )
-      allocate(A_K(ldAKban,ntotv))
-      allocate( A_F(ntotv, 1) )
-
+      allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
+      
       !duda rhslo se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
       A_F = 0.0
-      !Setup for K11 block or Kuu
-      do ielem = 1, nelem    !lnods loop for K11 block Global K
+      do ielem = 1, nelem 
         !gather
         Ke = 0.0       !Esto es amate
         rhslo = 0.0    !rhslo(nevab)
@@ -851,19 +889,15 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, rhslo) !amate lo llame Ke
+          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, rhslo) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
         end do
         lnods2=transpose(lnods)
-        !print*, ielem
-        !print*,"NodeIDmap: ", (nodeIDmap(i), i=1,nne)
-        !print*,'lnods2', lnods2(2,ielem)
-        call Assemble_K(nodeIDmap, Ke, A_K)
-        !call Assemble_K(ielem,lnods2(2,ielem),Ke,A_K) ! assemble global K
-        call AssembleF(nodeIDmap, rhslo, A_F)         ! assemble global F
-
+        call Assemble_K(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
+        call Assemble_K(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C          cambiar nombre por AssemGlobalMat
+        call AssembleF(nodeIDmap, rhslo, A_F)   !Assemble Global Source vector F
       end do
 
       !print*, 'shape of tauma', shape(tauma)
