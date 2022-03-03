@@ -3,6 +3,7 @@
 # Actualizado el 3/11/2021
 # Actualizado el 26/01/2022
 
+
 #========== Definicion de variables ==========
 #	compiler
 FC = ifort

@@ -107,7 +107,6 @@ implicit none
     
   endif
 
-
   !---------- Memory Relase -----------!
   call cpu_time(finish)
   write(*,'(A11,f9.2,A8)')' CPU-Time =', finish-start, ' Seconds', ' '

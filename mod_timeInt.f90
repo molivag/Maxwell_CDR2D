@@ -18,7 +18,7 @@ module timeInt
       ! U^0 = (Ui^0) ; Ui^0 = ∫(u0*Nj)dΩ ; initial condition vector
       ! d(0)= di(0)                      ; dof at time = 0
       !     
-      !     from: Johnson, C. (2009). Numerical Sol of PDE by the FEM. Dover, 149-150.
+      !     from: Johnson, C. (2009). Numerical Sol of PDE by the FEM. Dover, 149-150
       !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
       
       implicit none
