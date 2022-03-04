@@ -24,23 +24,11 @@ implicit none
   call inputData( )
   call GeneralInfo( )
   problem_type = 'tran'
-  !              'stat'              
+
   !---------- Shape Functions ---------------!
   !print*, '!=============== INFO DURING EXECUTION ===============!'
   call GaussQuadrature(ngaus, weigp)
   call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta, Hesxieta)
-
-  !---------- Global Matrix and Vector ------!
-  !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
-  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
-  !print*, 'Antes de BV'
-  !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
-  !print*,'!=============== Output Files ================!'
-  !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
-  !call writeMatrixAKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
-  
-  !---------- Memory Relase -----------!
-  DEALLOCATE( N, dN_dxi, dN_deta)
 
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
@@ -66,18 +54,29 @@ implicit none
     time_fin = 0.5       !Deben ser leidos en
     max_time = 10.0           !el archivo de entrada
     u0_cond  = 0.0  
-    call BackwardEuler(time_ini, time_fin, max_time, u0_cond,&
-    &                  nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol , A_K, A_C, A_F)
-    DEALLOCATE( BVs,  nofix, ifpre, presc)
+    
+    call BackwardEuler(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, u0_cond,&
+    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol )
+   
+    !---------- Memory Relase -----------!
+    DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
+    
   else
+    !---------- Global Matrix and Vector ------!
+    !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
+    call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
+    !print*, 'Antes de BV'
+    !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+    !print*,'!=============== Output Files ================!'
+    !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
+    !call writeMatrixAKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     !print*, 'Despues de BV'
     !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
     !---------- Memory Relase -----------!
-    DEALLOCATE(BVs, nofix, ifpre, presc)
+    DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
     
-    allocate( AK_LU(ldAKban,ntotv))
-    allocate( u_sol(S_ldSol,1))
+    allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
     AK_LU = A_K                 !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
@@ -103,11 +102,11 @@ implicit none
     print*, 'Shape of Global F: ',shape(A_F)
     print*, 'Shape of Solution: ',shape(u_sol)
     write(*,*)
+  !---------- Memory Relase -----------!
     DEALLOCATE( A_F, A_K, AK_LU, u_sol)
     
   endif
 
-  !---------- Memory Relase -----------!
   call cpu_time(finish)
   write(*,'(A11,f9.2,A8)')' CPU-Time =', finish-start, ' Seconds', ' '
 
