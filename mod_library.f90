@@ -334,7 +334,7 @@ module library
       double precision, dimension(*), intent(in) :: vecgl(*)
       integer, intent(in) ::   lnods(nne)
       integer   inode,idofn,ipoin,ievab,itotv
-      double precision, dimension(ndofn*nne), intent(out) :: veclo(ndofn*nne)
+      double precision, dimension(nevab), intent(out) :: veclo
       
       do inode=1,nne
         ipoin=lnods(inode)
@@ -371,7 +371,7 @@ module library
 
     end function elemsize
 
-    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, rhslo)
+    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, Fe)
 
       implicit none
 
@@ -379,7 +379,7 @@ module library
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty
-      double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab), Ce(nevab,nevab)
+      double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       ievab=0
       do inode=1,nne
         do idofn=1,ndofn
@@ -404,7 +404,7 @@ module library
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
             end do
           end do
-          rhslo(ievab) = rhslo(ievab) + basis(inode) * force(idofn) * dvol
+          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
 
@@ -484,8 +484,8 @@ module library
       
     end subroutine pertur
         
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo)
-      !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,rhslo,pertu,workm,resid)
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe)
+      !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
 
       ! Contribution to the system matrix and RHS from the stabilization term
       
@@ -496,7 +496,7 @@ module library
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
       double precision              :: prod1, prod2, prod3
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
-      double precision, intent(out) :: Ke(nevab,nevab), rhslo(nevab)
+      double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
 
       ! integer :: nnode,ndofn,nevab,kstab,n_ini
       !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
@@ -559,7 +559,7 @@ module library
               prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l)
             end do
           end do
-          rhslo(ievab) = rhslo(ievab) + prod1 * dvolu
+          Fe(ievab) = Fe(ievab) + prod1 * dvolu
         end do
       end do
 
@@ -846,37 +846,39 @@ module library
 
 
     end subroutine BandWidth
-
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
-
+    
+    subroutine GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldSol, delta_t, ugl_pre ,A_K, A_C, A_F)
+      
       implicit none
-
-      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      
+      double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
+      double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
+      double precision, dimension(3,nne), intent(in)    :: Hesxieta
+      integer, intent(in)                               :: S_ldSol
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce
-      double precision, dimension(nevab)        :: rhslo
+      double precision, dimension(nevab,1)      :: Fe, Fe_time, ue_pre
       double precision, dimension(3,3)          :: tauma
       real, dimension(nne,DimPr)                :: element_nodes
-      integer, dimension( nne + 1, nelem)       :: lnods2
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ
+      double precision                          :: dvol, hmaxi, detJ, delta_t
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
       call BandWidth( )
       allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
+      allocate(ugl_pre(S_ldSol,1) )
       
-      !duda rhslo se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
+      !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
       A_F = 0.0
       do ielem = 1, nelem 
         !gather
         Ke = 0.0       !Esto es amate
-        rhslo = 0.0    !rhslo(nevab)
+        Fe = 0.0    !Fe(nevab)
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
@@ -889,40 +891,86 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, rhslo) !amate lo llame Ke
+          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo, pertu,workm,resid)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, rhslo)
+          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
         end do
-        lnods2=transpose(lnods)
-        call Assemble_K(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
-        call Assemble_K(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C          cambiar nombre por AssemGlobalMat
-        call AssembleF(nodeIDmap, rhslo, A_F)   !Assemble Global Source vector F
+        
+        call gather(nodeIDmap, ugl_pre, ue_pre)
+        Fe_time = Fe + (matmul(Ce,ue_pre))
+        
+        call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
+        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C          cambiar nombre por AssemGlobalMat
+        call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
+        !call gather(node_IDmap, A_F, u_pre)
+        
+        ugl_pre = A_F
+        
       end do
-
       
-      !print*, 'shape of tauma', shape(tauma)
-      !print*, ' '
-      !do i = 1,3
-      !  print'(4F10.3)', (tauma(i,j), j=1,3)
-      !end do
-      !
-      !print*, 'shape of HesXY', shape(HesXY)
-      !print*, ' '
-      !do i = 1,3
-      !  print'(4F10.3)', (HesXY(i,j), j=1,nne)
-      !end do
-      !
-      !print*, 'shape of Hesxieta', shape(Hesxieta)
-      !print*, ' '
-      !do i = 1,3
-      !  print'(4F10.3)', (Hesxieta(i,j), j=1,nne)
-      !end do
-
+      
+    end subroutine GlobalSystem_Time
+    
+    
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
+      
+      implicit none
+      
+      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
+      double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(nne)          :: basis
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+      double precision, dimension(nevab, nevab) :: Ke, Ce
+      double precision, dimension(nevab)        :: Fe
+      double precision, dimension(3,3)          :: tauma
+      real, dimension(nne,DimPr)                :: element_nodes
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ
+      integer                                   :: igaus, ibase, ielem
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
+      
+      call BandWidth( )
+      allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
+      
+      !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
+      A_K = 0.0
+      A_F = 0.0
+      do ielem = 1, nelem 
+        !gather
+        Ke = 0.0       !Esto es amate
+        Fe = 0.0    !Fe(nevab)
+        call SetElementNodes(ielem, element_nodes, nodeIDmap)
+        !do-loop: compute element stiffness matrix Ke
+        do igaus = 1, TotGp
+          Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
+          detJ = m22det(Jaco)
+          Jinv = inv2x2(Jaco)
+          dvol = detJ *  weigp(igaus,1)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jinv)
+          do ibase = 1, nne
+            basis(ibase) = N(ibase,igaus)
+          end do
+          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
+          call TauMat(hmaxi,tauma)
+          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+        end do
+        
+        call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
+        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C   
+        call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
+        
+      end do
+      
+      
     end subroutine GlobalSystem
-
-    subroutine Assemble_K(lnods,Ke,A_K)
-      !subroutine Assemble_K(ielem,lnods,Ke,A_K)
+    
+    subroutine Assemb_Glob_Mat(lnods,Ke,A_K)
+      !subroutine Assemb_Glob_Mat(ielem,lnods,Ke,A_K)
       !*****************************************************************************
       !
       !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
@@ -1023,9 +1071,9 @@ module library
       end do
 
       return
-    end subroutine Assemble_K
+    end subroutine Assemb_Glob_Mat
 
-    subroutine AssembleF( nodeIDmap, fe, F_global)
+    subroutine Assemb_Glob_Vec( nodeIDmap, fe, F_global)
 
       implicit none
 
@@ -1041,7 +1089,7 @@ module library
 
       end do
 
-    end subroutine AssembleF
+    end subroutine Assemb_Glob_Vec
 
     subroutine ApplyBVs(nofix,ifpre,presc,rigid,gload)
       !                                   ,A_K ,A_F
