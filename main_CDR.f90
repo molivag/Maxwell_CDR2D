@@ -30,6 +30,9 @@ implicit none
   call GaussQuadrature(ngaus, weigp)
   call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta, Hesxieta)
 
+  !------- Computing half bandwidth  --------!
+  call BandWidth( )
+  
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
@@ -38,8 +41,6 @@ implicit none
   call VinculBVs(  BVs, nofix, ifpre, presc )
 
   !----- Setting MKL-Solver Parammeters -----!
-  write(*,*) ''
-  print*,'!================= MKL <S>OLVER ===============!'
   S_m     = size(A_K,2)  !antes ntotv
   S_n     = size(A_K,2)  !antes ntotv
   S_ldSol = max(1,S_n)
@@ -49,7 +50,6 @@ implicit none
 
   !-------- Problem Type Definition --------!
   if(problem_type .eq. 'tran')then
-    
     time_ini = 0.0   !Estos valores
     time_fin = 0.5       !Deben ser leidos en
     max_time = 10.0           !el archivo de entrada
@@ -79,6 +79,7 @@ implicit none
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
+    print*,'!================= MKL <S>OLVER ===============!'
     AK_LU = A_K                 !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F                 !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
     !---------- Solving System of Equations by retpla solver -----------!
