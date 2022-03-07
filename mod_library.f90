@@ -13,15 +13,15 @@ module library
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
-      write(*,"(A19,4x,a13,3X,A1)") ' -Element type:           ', ElemType,''
-      write(*,"(A19,4X,I6,1X,A10)") ' -Problem dimension:      ', DimPr, '  '
-      write(*,"(A19,4X,I6,1X,A10)") ' -Elements:               ', nelem,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' -Nodal points:           ', nnodes, ' '
-      write(*,"(A19,4X,I6,1X,A10)") ' -DoF per node:           ', ndofn, '  '
-      write(*,"(A19,4X,I6,1X,A10)") ' -Nodes per element:      ', nne, '    '
-      write(*,"(A19,4X,I6,1X,A10)") ' -Total Gauss points:     ', totGp,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' -Element variabless:     ', nevab,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' -Total unknowns:         ', ntotv,'   '
+      write(*,"(A19,4x,a13,3X,A1)") ' - Element type:           ', ElemType,''
+      write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Elements:               ', nelem,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', nnodes, ' '
+      write(*,"(A19,4X,I6,1X,A10)") ' - DoF per node:           ', ndofn, '  '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', nevab,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', ntotv,'   '
 
     endsubroutine GeneralInfo
 
@@ -839,10 +839,10 @@ module library
       write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
 
-      write(*,"(A15,9X,I6,1X,A9)")'-UpBand:      ', upban,'   '
-      write(*,"(A15,9X,I6,1X,A9)")'-LowBand:     ', lowban,'  '
-      write(*,"(A15,9X,I6,1X,A9)")'-TotBand:     ', totban,'  '
-      write(*,"(A15,9X,I6,1X,A9)")'-ledimAK:     ', ldAKban,' '
+      write(*,"(A15,9X,I6,1X,A9)")' - UpBand:      ', upban,'   '
+      write(*,"(A15,9X,I6,1X,A9)")' - LowBand:     ', lowban,'  '
+      write(*,"(A15,9X,I6,1X,A9)")' - TotBand:     ', totban,'  '
+      write(*,"(A15,9X,I6,1X,A9)")' - ledimAK:     ', ldAKban,' '
 
 
     end subroutine BandWidth
@@ -868,9 +868,8 @@ module library
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
-      call BandWidth( )
       allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
-      allocate(ugl_pre(S_ldSol,1) )
+      !allocate(ugl_pre(S_ldSol,1) )
       
       !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
@@ -898,7 +897,7 @@ module library
         end do
         
         call gather(nodeIDmap, ugl_pre, ue_pre)
-        Fe_time = Fe + (matmul(Ce,ue_pre))
+        Fe_time = Fe + (matmul(Ce,ue_pre*delta_t))
         
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C          cambiar nombre por AssemGlobalMat
