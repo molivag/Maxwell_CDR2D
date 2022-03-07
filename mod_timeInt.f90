@@ -70,12 +70,13 @@ module timeInt
       u_pre  = u_init                                   !u in present time 
       time   = 0                                        !initializing the time
       
-      write ( *, '(a)' ) ' '
-      write ( *, '(a,g14.6)' ) '  Initial time = ', time_ini
-      write ( *, '(a,g14.6)' ) '  Final time =   ', time_fin
-      write ( *, '(a,g14.6)' ) '  Step size =    ', delta_t
-      write ( *, '(a,g14.6)' ) '  Number of steps = ', max_time
-      write ( *, '(a)' ) ' '
+      write(*,*) ' '
+      print*,'!============ TIME DISCRETIZATION ============!'
+      write(*,"(A19,4X,F10.3,1X,A10)") ' - Initial time:          ', time_ini,' '
+      write(*,"(A19,4X,F10.3,1X,A10)") ' - Final time:            ', time_fin,' '
+      write(*,"(A19,4X,F10.3,1X,A10)") ' - Step size:             ', delta_t,' '
+      write(*,"(A19,4X,F10.3,1X,A10)") ' - Number of steps:       ', max_time,' '
+      write(*,*) ' '
       
       print'(A6,F10.3,A)','time: ',time_ini,'is equal to the initial condiction'
       write ( *, '(a)' ) ' '
@@ -97,10 +98,16 @@ module timeInt
         
         !------- Factorizing Matrix -------!
         call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
-        call MKLfactoResult('dgbtrf',info)   !Aqui agregar el paso del tiempo para en cada tiempo indicar el info de ejecucion
+        if(info.ne.0)then
+          call MKLfactoResult('dgbtrf',info)   !Aqui agregar el tiempo para en cada tiempo indicar el info de ejecucion
+          print'(A32,I3)', '<<<Factorization error in time: ', time
+        endif
         !----- Solving System of Eqns -----!
         call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_time, ldAKban, S_ipiv, u_fut, S_ldSol, info )
-        call MKLsolverResult('dgbtrs',info)  !Aqui agregar el paso del tiempo para en cada tiempo indicar el info de ejecucion
+        if(info.ne.0)then
+          call MKLsolverResult('dgbtrs',info)  !Aqui agregar el tiempo para en cada tiempo indicar el info de ejecucion
+          print'(A32,I3)', '<<<Solving System error in time: ', time
+        endif
         
         u_pre = u_fut 
         !---------- Print and write results -----------!
@@ -109,7 +116,6 @@ module timeInt
         write(*,*)
         
       end do
-      
       
       DEALLOCATE( AK_time, rhs_time, u_pre, u_fut)
     end subroutine BackwardEuler
