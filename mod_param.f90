@@ -2,6 +2,7 @@ module param
   
   implicit none
 
+  character(len=5)  :: ProbType
   character(len=14) :: ElemType
   integer           :: nevab, ntotv
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
@@ -33,7 +34,7 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      integer :: i,j, stat! k, l, 
+      integer :: i,j, stat, k, l
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
       ! double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -43,7 +44,7 @@ module param
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       ! read(5, 100)  ElemType, DimPr, nelem, nnodes, nne, ndofn, totGp, maxband, kstab, ktaum, patau, hnatu
-      read(5, 100)  ElemType, DimPr, nelem, nnodes, nne, & 
+      read(5, 100) ElemType, ProbType, DimPr, nelem, nnodes, nne, & 
       ndofn, totGp, maxband, kstab, ktaum, patau, hnatu
 
       allocate(lnods(nelem,nne+1))
@@ -150,42 +151,42 @@ module param
         difma(3,3,2,1) = difma(3,3,1,2)
       end if
       
-      100 format( 7/, 11x, A14, /, 7(11x,I5,/), 2/, 2(11x,I5,/),11x,f7.2,/,11x,F7.2,2/)    
+      100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 2(11x,I5,/),11x,f7.2,/,11x,F7.2,2/)    
       101 format(1/,e15.5,2/)!,3/,e9.2,3/,e9.2,3/,e9.2)!,/,e9.2,/,e9.2)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
       105 format(1/,e15.5,2/) !e15.5, e15.5,/)
       106 format(1/,e15.5,e15.5,2/) !e15.5, e15.5,/)
       107 format(1/,e15.5,e15.5,e15.5,2/) !e15.5, e15.5,/)
-      ! print*, ' '
-      ! print*, 'Diffusion matrix'
-      ! do i = 1,dimPr
-      !   do j = 1,DimPr
-      !     print"(A,2I1)", 'k_',i,j
-      !     do k = 1,ndofn
-      !       print"(e10.3,1x,e10.3, 1x, e10.3)",( difma(k,l,i,j), l=1,ndofn)
-      !     end do
-      !     print*,' '
-      !   end do
-      ! end do
-      ! print*, ' '  
-      ! print*, 'Convection matrix'
-      ! do k = 1, DimPr
-      !   print"(A,2I1)",'A_',k
-      !   do i = 1, ndofn
-      !     write(*, *)( conma(i,j,k) ,j=1, ndofn)
-      !   end do
-      !   print*,''
-      ! end do
-      ! print*,'Reaction'
-      ! do i=1,ndofn
-      !   write(*, *)( reama(i,j) ,j=1,ndofn)
-      ! end do
-      ! print*,'force'
-      ! do i =1, ndofn
-      !   print*, force(i)
-      ! end do
-      ! print*, ' '
+       print*, ' '
+       print*, 'Diffusion matrix'
+       do i = 1,dimPr
+         do j = 1,DimPr
+           print"(A,2I1)", 'k_',i,j
+           do k = 1,ndofn
+             print"(e10.3,1x,e10.3, 1x, e10.3)",( difma(k,l,i,j), l=1,ndofn)
+           end do
+           print*,' '
+         end do
+       end do
+       print*, ' '  
+       print*, 'Convection matrix'
+       do k = 1, DimPr
+         print"(A,2I1)",'A_',k
+         do i = 1, ndofn
+           write(*, "(e10.3,1x,e10.3, 1x, e10.3)")( conma(i,j,k) ,j=1, ndofn)
+         end do
+         print*,''
+       end do
+       print*,'Reaction'
+       do i=1,ndofn
+         write(*,"(e10.3,1x,e10.3, 1x, e10.3)" )( reama(i,j) ,j=1,ndofn)
+       end do
+       print*,'force'
+       do i =1, ndofn
+         print"(e10.3)", force(i)
+       end do
+       print*, ' '
     end subroutine inputData
   !end contains
     
