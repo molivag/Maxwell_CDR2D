@@ -6,6 +6,7 @@
 
 # > > > > > > > Geometry
 ElemType = Quadrilateral !Triangle, Quadrilateral
+ProbType = Stat          !Problem type transient or static
 DimPr    = 2             !Dimension del problema
 nelem    = 100           !Number of lnods
 nnodes   = 121           !Total number of nodal points
@@ -22,25 +23,25 @@ hnatu    = 2.0           !Reference element length
 
 # > > > > > > > Physical Properties
 #DIFMA_11                        !Diffusion tensor
-   100    , 0.0E-0  , 0.0E-0
-0.0E-0  ,   100     , 0.0E-0
+   1    , 0.0E-0  , 0.0E-0
+0.0E-0  ,   1     , 0.0E-0
 0.0E-0  , 0.0E-0  , 0
 #DIFMA_12
 0 ,  0.0e-0 ,  0.0e-0
 0.0e-0  , 0  , 0.0e-0
 0.0e-0  , 0.0e-0  , 0
 #DIFMA_22
-   100   , 0.0E-0 ,  0.0E-0
-0.0E-0 ,    100   ,  0.0E-0
-0.0E-0 , 0.0E-0 ,  0.0E-0
+   1   , 0.0E-0 ,  0.0E-0
+0.0E-0 ,    1   ,  0.0E-0
+0.0E-0 , 0.0E-0 , 0
 #COMAT_1                        !Convection tensor
-0.0E-0 , 0.0e-0 ,    1
+0.0E-0 , 0.0e-0 ,    10
 0.0e-0 , 0.0E-0 , 0.0e-0
-   1   , 0.0e-0 , 0.0E-0
+   10   , 0.0e-0 , 0.0E-0
 #COMAT_2
 0.0e+0 , 0.0e-0 , 0.0e-0
-0.0e-0 , 0.0e+0 ,    1
-0.0e-0 ,    1   , 0.0e+0
+0.0e-0 , 0.0e+0 ,    10
+0.0e-0 ,    10   , 0.0e+0
 #REAMA                          !Reaction tensor
 0 , 0.0e-0 , 0.0e-0
 0.0e-0 , 0 , 0.0e-0
