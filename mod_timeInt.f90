@@ -1,6 +1,6 @@
 module timeInt
   use param
-  use library, only: ApplyBVs, GlobalSystem_Time, PosProcess, MKLsolverResult, MKLfactoResult
+  use library, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
 
   contains
 
@@ -53,6 +53,7 @@ module timeInt
       double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F
       double precision, allocatable, dimension(:,:) :: AK_time, u_pre, u_fut, rhs_time, u_init
       integer, allocatable, dimension(:)            :: S_ipiv
+      character(len=20)                             :: solution_file_name
       double precision :: delta_t
       integer          :: time, info
       real             :: nt 
@@ -64,30 +65,38 @@ module timeInt
       allocate( u_fut(S_ldSol, 1))
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
       
-      ! call initial_condition ( node_num, node_xy, u0_cond, u_init ) !could be 0
+      
       delta_t  = ( time_fin - time_ini ) / max_time     !Step size
       u_init = 0.0                                      !Para prueba lo dejo sin subroutina
-      u_pre  = u_init                                   !u in present time 
       time   = 0                                        !initializing the time
-      
+      solution_file_name = 'CDR_u0000.post.res'
       write(*,*) ' '
       print*,'!============ TIME DISCRETIZATION ============!'
       write(*,"(A19,4X,F10.3,1X,A10)") ' - Initial time:          ', time_ini,' '
       write(*,"(A19,4X,F10.3,1X,A10)") ' - Final time:            ', time_fin,' '
-      write(*,"(A19,4X,F10.3,1X,A10)") ' - Step size:             ', delta_t,' '
+      write(*,"(A21,4X,F10.3,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
       write(*,"(A19,4X,F10.3,1X,A10)") ' - Number of steps:       ', max_time,' '
       write(*,*) ' '
+      call GID_PostProcess(u_pre, File_PostMsh, 'msh', time )
       
-      print'(A6,F10.3,A)','time: ',time_ini,'is equal to the initial condiction'
-      write ( *, '(a)' ) ' '
-      print*, 'Starting time-stepping. . . . .'
-      write ( *, '(a)' ) ' '
+      !call initial_condition ( node_num, node_xy, u0_cond, u_init ) !could be 0
+      u_pre  = u_init                                   !u in present time 
+      
+      !time_unit = 101
+      !open ( unit = time_unit, file = time_file_name, status = 'replace' )
+      !write ( time_unit, '(g14.6)' ) time
+      
+      
+      write(*,*) ' '
+      print*, 'Starting time integration. . . . .'
+      write(*,*) ' '
+      print'(A11,I4,A2,F10.3,A)',' time step:',time,' = ',time_ini,' is the value of the initial condiction'
+      call GID_PostProcess(u_pre, Solution_File_Name, 'res', time)
       do nt = time_ini+delta_t,time_fin,delta_t
         
         time = time + 1
         
         call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_K, A_C, A_F)
-        print'(A11,I4,A2,F10.3,A2,F10.3,A)','time step: ',time,'= ',nt,'of ',time_fin,'seg'
         
         !-------- Implicit Scheme --------!
         AK_time  = 1/delta_t*A_C + A_K
@@ -108,12 +117,13 @@ module timeInt
           call MKLsolverResult('dgbtrs',info)  !Aqui agregar el tiempo para en cada tiempo indicar el info de ejecucion
           print'(A32,I3)', '<<<Solving System error in time: ', time
         endif
+        u_pre = u_fut
         
-        u_pre = u_fut 
-        !---------- Print and write results -----------!
-        call PosProcess(u_pre, File_PostMsh, 'msh') !se debe agregar el nt como dummyvariable
-        call PosProcess(u_pre, File_PostRes, 'res')
-        write(*,*)
+        !---------- Printing and writing results -----------!
+        write(*,*) ' '
+        call file_name_inc(solution_file_name)
+        print'(A11,I4,A2,F10.3,A3,F10.3,A)',' time step:',time,' = ',nt,' of ',time_fin,' seg'
+        call GID_PostProcess(u_pre, solution_file_name, 'res', time)
         
       end do
       
