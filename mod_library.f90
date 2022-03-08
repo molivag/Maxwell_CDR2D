@@ -14,6 +14,7 @@ module library
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
       write(*,"(A19,4x,a13,3X,A1)") ' - Element type:           ', ElemType,''
+      write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
       write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
       write(*,"(A19,4X,I6,1X,A10)") ' - Elements:               ', nelem,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', nnodes, ' '
@@ -874,10 +875,12 @@ module library
       !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
       A_F = 0.0
+      A_C = 0.0
       do ielem = 1, nelem 
         !gather
-        Ke = 0.0       !Esto es amate
+        Ke = 0.0    !Esto es amate
         Fe = 0.0    !Fe(nevab)
+        Ce = 0.0
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
@@ -897,12 +900,11 @@ module library
         end do
         
         call gather(nodeIDmap, ugl_pre, ue_pre)
-        Fe_time = Fe + (matmul(Ce,ue_pre*delta_t))
+        Fe_time = Fe + (matmul(Ce,ue_pre*(1/delta_t) ))
         
-        call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
-        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C          cambiar nombre por AssemGlobalMat
+        call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
+        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
         call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
-        !call gather(node_IDmap, A_F, u_pre)
         
         ugl_pre = A_F
         
@@ -912,7 +914,7 @@ module library
     end subroutine GlobalSystem_Time
     
     
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
       
       implicit none
       
@@ -929,18 +931,18 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
       integer                                   :: igaus, ibase, ielem
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
       
-      call BandWidth( )
-      allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
+      allocate( A_K(ldAKban,ntotv), A_F(ntotv, 1) )
       
       !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
       A_F = 0.0
       do ielem = 1, nelem 
         !gather
-        Ke = 0.0       !Esto es amate
+        Ke = 0.0    !Esto es amate
         Fe = 0.0    !Fe(nevab)
+        Ce = 0.0    !elemental capacity matrix (not used in static case)
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
@@ -960,7 +962,6 @@ module library
         end do
         
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
-        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Capacity Matrix C   
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
         
       end do
@@ -1235,6 +1236,180 @@ module library
       print*,' '
     end subroutine MKLsolverResult
 
+
+ ! subroutine solution_write ( node_num, u, solution_file_name, time )
+ ! 
+ ! !*****************************************************************************80
+ ! !
+ ! !! SOLUTION_WRITE writes the solution to a file.
+ ! !
+ ! !  Licensing:
+ ! !
+ ! !    This code is distributed under the GNU LGPL license.
+ ! !
+ ! !  Modified:
+ ! !
+ ! !    28 August 2006
+ ! !
+ ! !  Author:
+ ! !
+ ! !    John Burkardt
+ ! !
+ ! !  Parameters:
+ ! !
+ ! !    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
+ ! !
+ ! !    Input, real ( kind = 8 ) U(NODE_NUM), the coefficients of
+ ! !    the solution.
+ ! !
+ ! !    Input, character ( len = * ) SOLUTION_FILE_NAME, the name of the file
+ ! !    in which the data should be stored.
+ ! !
+ ! !    Input, real ( kind = 8 ) TIME, the current time.
+ ! !
+ !   implicit none
+ ! 
+ !   integer ( kind = 4 ) node_num
+ ! 
+ !   logical, parameter :: debug = .true.
+ !   integer ( kind = 4 ) node
+ !   real ( kind = 8 ), dimension(node_num) :: u
+ !   character ( len = * ) :: solution_file_name
+ !   integer ( kind = 4 ) solution_file_status
+ !   integer ( kind = 4 ) solution_file_unit
+ !   real ( kind = 8 ) time
+ ! 
+ !   call get_unit ( solution_file_unit )
+ ! 
+ !   open ( unit = solution_file_unit, file = solution_file_name, &
+ !     status = 'replace', iostat = solution_file_status )
+ ! 
+ !   if ( solution_file_status /= 0 ) then
+ !     write ( *, '(a)' ) ' '
+ !     write ( *, '(a)' ) 'SOLUTION_WRITE - Warning!'
+ !     write ( *, '(a)' ) '  Could not write solution file "' &
+ !       // trim ( solution_file_name ) // '" for time T = ', time
+ !     return
+ !   end if
+ ! 
+ !   do node = 1, node_num
+ ! 
+ !     write ( solution_file_unit, '(g14.6)' ) u(node)
+ ! 
+ !   end do
+ ! 
+ !   close ( unit = solution_file_unit )
+ ! 
+ !   if ( debug ) then
+ !     write ( *, '(a,g14.6)' ) '  Wrote solution file "' &
+ !       // trim ( solution_file_name ) // '" for time T = ', time
+ !   end if
+ ! 
+ !   return
+ ! end
+
+
+  subroutine file_name_inc ( file_name )
+  
+  !*****************************************************************************80
+  !
+  !! FILE_NAME_INC increments a partially numeric filename.
+  !
+  !  Discussion:
+  !
+  !    It is assumed that the digits in the name, whether scattered or
+  !    connected, represent a number that is to be increased by 1 on
+  !    each call.  If this number is all 9's on input, the output number
+  !    is all 0's.  Non-numeric letters of the name are unaffected.
+  !
+  !    If the name is empty, then the routine stops.
+  !
+  !    If the name contains no digits, the empty string is returned.
+  !
+  !  Example:
+  !
+  !      Input            Output
+  !      -----            ------
+  !      'a7to11.txt'     'a7to12.txt'
+  !      'a7to99.txt'     'a8to00.txt'
+  !      'a9to99.txt'     'a0to00.txt'
+  !      'cat.txt'        ' '
+  !      ' '              STOP!
+  !
+  !  Licensing:
+  !
+  !    This code is distributed under the GNU LGPL license.
+  !
+  !  Modified:
+  !
+  !    14 September 2005
+  !
+  !  Author:
+  !
+  !    John Burkardt
+  !
+  !  Parameters:
+  !
+  !    Input/output, character ( len = * ) FILE_NAME.
+  !    On input, a character string to be incremented.
+  !    On output, the incremented string.
+  !
+    implicit none
+  
+    character c
+    integer ( kind = 4 ) change
+    integer ( kind = 4 ) digit
+    character ( len = * ) file_name
+    integer ( kind = 4 ) i
+    integer ( kind = 4 ) lens
+  
+    lens = len_trim ( file_name )
+  
+    if ( lens <= 0 ) then
+      write ( *, '(a)' ) ' '
+      write ( *, '(a)' ) 'FILE_NAME_INC - Fatal error!'
+      write ( *, '(a)' ) '  The input string is empty.'
+      stop
+    end if
+  
+    change = 0
+  
+    do i = lens, 1, -1
+  
+      c = file_name(i:i)
+  
+      if ( lge ( c, '0' ) .and. lle ( c, '9' ) ) then
+  
+        change = change + 1
+  
+        digit = ichar ( c ) - 48
+        digit = digit + 1
+  
+        if ( digit == 10 ) then
+          digit = 0
+        end if
+  
+        c = char ( digit + 48 )
+  
+        file_name(i:i) = c
+  
+        if ( c /= '0' ) then
+          return
+        end if
+  
+      end if
+  
+    end do
+  
+    if ( change == 0 ) then
+      file_name = ' '
+      return
+    end if
+  
+    return
+  end subroutine file_name_inc
+
+
     subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
       implicit none
 
@@ -1264,106 +1439,223 @@ module library
 
     end subroutine writeMatrix
 
-    subroutine PosProcess(solution, nameFile1, activity)
+    ! subroutine PosProcess(solution, nameFile1, activity)
 
+    !   implicit none
+    
+    !   character(len=*), parameter    :: fileplace = "Pos/"
+    !   double precision, dimension(ntotv, 1), intent(in) :: solution
+    !   character(*), intent(in)                :: nameFile1, activity
+    !   double precision, dimension(1, ntotv)   :: solution_T
+    !   double precision, dimension(1,nnodes)   :: xcor, ycor
+    !   integer                                 :: ipoin, ii
+    
+    !   solution_T = transpose(solution)
+    !   xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
+    !   ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
+    
+    !   open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
+    
+    !   if(activity == "msh")then !quitar este if y acomodar el numero de unidad
+    
+    !     write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+    !     write(555,"(A)") '#2D Convection-Diffusion-Reaction'
+    !     write(555,900) '#Element tipe: ', ElemType,'/',ElemType
+    !     write(555,"(A)")'Coordinates'
+    !     write(555,"(A)") '#   No        X           Y'
+    !     do ipoin = 1, nnodes
+    !       write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+    !     end do
+    !     write(555,"(A)") 'End Coordinates'
+    !     write(555,"(A)") 'Elements'
+    !     do ipoin = 1, nelem
+    !       write(555,908) lnods(ipoin,:)
+    !     end do
+    !     write(555,"(A)") 'End Elements'
+    !     close(555)
+    !     print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
+    
+    !   elseif(activity == "res")then
+    !     write(555,"(A)") 'GiD Post Results File 1.0'
+    !     write(555,"(A)") '#2D Convection-Diffusion-Reaction'
+    
+    !     ! se escribe el res de las componentes de la velocidad
+    !     select case(ndofn)
+    !       case(1)
+    !         write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
+    !         write(555,"(A)") 'ComponentNames "" '
+    !         write(555,"(A)") 'Values'
+    !         write(555,*) '#',   'No    ','             ux '
+    !         !  se escribe el res para el caso escalar de un grado de libertad
+    !         write(555,914)
+    !         do ipoin = 1, nnodes
+    !           write(555,916) ipoin, solution(ipoin, 1)
+    !         end do
+    !         !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
+    !         !Something like
+    !         !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
+    !         write(555,"(A)") 'End Values'
+    !       case(2)
+    !         write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
+    !         write(555,"(A)") 'ComponentNames "u" "v" "--" "" '
+    !         write(555,"(A)") 'Values'
+    !         write(555,*) '#',   'No    ','             ux ','               uy '
+    !         do ipoin = 1, nnodes
+    !           write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+    !         end do
+    !         write(555,"(A)") 'End Values'
+    !       case(3)
+    !         write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
+    !         write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
+    !         write(555,"(A)") 'Values'
+    !         write(555,*) '#',   'No    ','             ux ','               uy'
+    !        ! do ipoin = 1, nnodes
+    !        !   write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+    !        ! end do
+    !         do ipoin = 1, nnodes
+    !           write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+    !         end do
+    !         write(555,"(A)") 'End Values'
+    !     end select
+    !     write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
+    !     write(555,"(A)") 'ComponentNames "" '
+    !     write(555,"(A)") 'Values'
+    !     write(555,*) '#',   'No    ','             P '
+    !     !  se escribe el res para el caso escalar de un grado de libertad
+    !     write(555,914)
+    !     ii=1
+    !     do ipoin = 3, nnodes*3,3
+    !       write(555,916) ii, solution_T(1,ipoin)
+    !       ii=ii+1
+    !     end do
+    !     write(555,"(A)") 'End Values'
+    !     print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
+        
+    !     close(555)
+    !   else
+    !     write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
+    !     close(555)
+    !     stop
+    !   end if
+    
+    
+    !   900 format(A15, A13, A1, A13)
+    !   902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+    !   906 format(I7,2(3x,f9.4)) !format for msh
+    !   908 format(9(2x,I7) )
+    !   914 format('#',3x,'No',     9x, 'Dof')
+    !   916 format(I7,2x,E12.5)  !format for scalar case
+    !   918 format(I7,3x,f15.5,3x,f15.5) !format for res velocity
+    !   919 format(I7,3(3x,E15.5)) !format for res velocity
+    
+    ! end subroutine PosProcess
+    
+    subroutine GID_PostProcess(solution, Filename, activity, step_value)
+      
       implicit none
-
+      
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                :: nameFile1, activity
+      character(*), intent(in)                :: Filename, activity
+      integer, intent(in)                     :: step_value
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin, ii
-
+      
       solution_T = transpose(solution)
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
-
-      open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
-
+      
+      
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-
-        write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
-        write(555,"(A)") '#2D Convection-Diffusion-Reaction'
-        write(555,900) '#Element tipe: ', ElemType,'/',ElemType
-        write(555,"(A)")'Coordinates'
-        write(555,"(A)") '#   No        X           Y'
+        open(unit=100, file= fileplace//Filename, ACTION="write", STATUS="replace")
+        
+        write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+        write(100,"(A)") '#2D Convection-Diffusion-Reaction'
+        write(100,900) '#Element tipe: ', ElemType,'/',ElemType
+        write(100,"(A)")'Coordinates'
+        write(100,"(A)") '#   No        X           Y'
         do ipoin = 1, nnodes
-          write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+          write(100,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
         end do
-        write(555,"(A)") 'End Coordinates'
-        write(555,"(A)") 'Elements'
+        write(100,"(A)") 'End Coordinates'
+        write(100,"(A)") 'Elements'
         do ipoin = 1, nelem
-          write(555,908) lnods(ipoin,:)
+          write(100,908) lnods(ipoin,:)
         end do
-        write(555,"(A)") 'End Elements'
-        close(555)
-        print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
-
+        write(100,"(A)") 'End Elements'
+        close(100)
+        print"(A11,A19,A30)", ' Mesh file ',FileName, 'written succesfully in Pos/ '
+      ! if(status.eq.0)then continue 
       elseif(activity == "res")then
-        write(555,"(A)") 'GiD Post Results File 1.0'
-        write(555,"(A)") '#2D Convection-Diffusion-Reaction'
-
+       
+        open(unit=200, file= fileplace//Filename, ACTION="write", STATUS="replace")
+        if(step_value.ne.0) goto 10
+        write(200,"(A)") 'GiD Post Results File 1.0'
+        write(200,"(A)") '#2D Convection-Diffusion-Reaction'
+        10 continue
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
-            write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
-            write(555,"(A)") 'ComponentNames "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             ux '
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Scalar OnNodes'
+            write(200,"(A)") 'ComponentNames "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ux '
             !  se escribe el res para el caso escalar de un grado de libertad
-            write(555,914)
+            write(200,914)
             do ipoin = 1, nnodes
-              write(555,916) ipoin, solution(ipoin, 1)
+              write(200,916) ipoin, solution(ipoin, 1)
             end do
             !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
             !Something like
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
-            write(555,"(A)") 'End Values'
+            write(200,"(A)") 'End Values'
+            print"(A19,A30)", FileName, 'written succesfully in Pos/ '
           case(2)
-            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
-            write(555,"(A)") 'ComponentNames "u" "v" "--" "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             ux ','               uy '
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ux ','               uy '
             do ipoin = 1, nnodes
-              write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+              write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
-            write(555,"(A)") 'End Values'
+            write(200,"(A)") 'End Values'
+            print"(A19,A30)", FileName, 'written succesfully in Pos/ '
           case(3)
-            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
-            write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             ux ','               uy'
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ux ','               uy'
            ! do ipoin = 1, nnodes
-           !   write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+           !   write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
            ! end do
             do ipoin = 1, nnodes
-              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+              write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
             end do
-            write(555,"(A)") 'End Values'
+            write(200,"(A)") 'End Values'
+            write(200,"(A22, I3, A)") 'Result "P" "Preassure"', step_value,' Scalar OnNodes'
+            write(200,"(A)") 'ComponentNames "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','     P '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(200,914)
+            ii=1
+            do ipoin = 3, nnodes*3,3
+              write(200,916) ii, solution_T(1,ipoin)
+              ii=ii+1
+            end do
+            write(200,"(A)") 'End Values'
+            print"(A19,A30)", FileName, 'written succesfully in Pos/ '
+            
+            close(200)
         end select
-        write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
-        write(555,"(A)") 'ComponentNames "" '
-        write(555,"(A)") 'Values'
-        write(555,*) '#',   'No    ','             P '
-        !  se escribe el res para el caso escalar de un grado de libertad
-        write(555,914)
-        ii=1
-        do ipoin = 3, nnodes*3,3
-          write(555,916) ii, solution_T(1,ipoin)
-          ii=ii+1
-        end do
-        write(555,"(A)") 'End Values'
-        print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
-        
-        close(555)
       else
-        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
+        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" non ', activity
         close(555)
         stop
       end if
-
-
+      
+      
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
       906 format(I7,2(3x,f9.4)) !format for msh
@@ -1372,11 +1664,11 @@ module library
       916 format(I7,2x,E12.5)  !format for scalar case
       918 format(I7,3x,f15.5,3x,f15.5) !format for res velocity
       919 format(I7,3(3x,E15.5)) !format for res velocity
-
-    end subroutine PosProcess
-
-
-
+      
+    end subroutine GID_PostProcess
+   
+    
+    
   !Fin de contains
 
 
