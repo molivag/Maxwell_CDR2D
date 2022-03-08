@@ -5,13 +5,12 @@ program main_CDR3d
 implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
-  double precision, allocatable, dimension(:,:) :: A_K, A_F, A_C, presc
+  double precision, allocatable, dimension(:,:) :: A_K, A_F, presc
   double precision, allocatable, dimension(:,:) :: N, dN_dxi, dN_deta
   double precision,              dimension(3,4) :: Hesxieta
   integer, allocatable, dimension(:,:)          :: BVs, ifpre
   integer, allocatable, dimension(:)            :: nofix
   real                                          :: start, finish, time_ini, time_fin, max_time, u0_cond
-  character(len=5)                              :: problem_type
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   external :: dgbtrf, dgbtrs, dpbtrs, dpbtrf
   double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
@@ -23,7 +22,6 @@ implicit none
   call cpu_time(start)
   call inputData( )
   call GeneralInfo( )
-  problem_type = 'tran'
 
   !---------- Shape Functions ---------------!
   !print*, '!=============== INFO DURING EXECUTION ===============!'
@@ -36,7 +34,7 @@ implicit none
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
-  call ReadIntegerFile(30,"BVs.dat", nBVs, nBVscol, BVs)!Reading of boundary values file will store at BVs
+  call ReadIntegerFile(30,"BVs.dat", nBVs, nBVscol, BVs)!Reading the boundary values file and it will store at BVs
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) ) !memoria para el numero de nodo, si esta preescrito y su valor
   call VinculBVs(  BVs, nofix, ifpre, presc )
 
@@ -49,7 +47,7 @@ implicit none
   S_nrhs  = 1
 
   !-------- Problem Type Definition --------!
-  if(problem_type .eq. 'tran')then
+  if(ProbType .eq. 'trans')then
     time_ini = 0.0   !Estos valores
     time_fin = 0.5       !Deben ser leidos en
     max_time = 10.0           !el archivo de entrada
@@ -64,7 +62,7 @@ implicit none
   else
     !---------- Global Matrix and Vector ------!
     !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
-    call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C, A_F)
+    call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
     !print*, 'Antes de BV'
     !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
     !print*,'!=============== Output Files ================!'
@@ -73,13 +71,14 @@ implicit none
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     !print*, 'Despues de BV'
     !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+    
     !---------- Memory Relase -----------!
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
-    
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
-    print*,'!================= MKL <S>OLVER ===============!'
+    print*, ' '
+    print*, '!================ MKL Solver ==============!'
     AK_LU = A_K                 !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F                 !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
     !---------- Solving System of Equations by retpla solver -----------!
@@ -97,6 +96,8 @@ implicit none
     !---------- Print and write results -----------!
     call PosProcess(u_sol, File_PostMsh, 'msh') !se debe agregar el nt como dummyvariable
     call PosProcess(u_sol, File_PostRes, 'res')
+    !call GID_PostProcess(u_sol, File_PostMsh, File_PostRes,'msh', 0) !se debe agregar el nt como dummyvariable
+    !call GID_PostProcess(u_sol, File_PostMsh, File_PostRes,'res', 0) !se debe agregar el nt como dummyvariable
     
     print*, ' '
     print*, 'Shape of Global K: ',shape(A_K)
