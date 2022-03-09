@@ -31,6 +31,15 @@ implicit none
   !------- Computing half bandwidth  --------!
   call BandWidth( )
   
+  !---------- Global Matrix and Vector ------!
+  !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
+  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
+  !print*, 'Antes de BV'
+  !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+  !print*,'!=============== Output Files ================!'
+  !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
+  !call writeMatrixAKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
+
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
@@ -60,14 +69,6 @@ implicit none
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
     
   else
-    !---------- Global Matrix and Vector ------!
-    !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
-    call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
-    !print*, 'Antes de BV'
-    !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
-    !print*,'!=============== Output Files ================!'
-    !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
-    !call writeMatrixAKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     !print*, 'Despues de BV'
     !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
@@ -104,7 +105,7 @@ implicit none
     print*, 'Shape of Global F: ',shape(A_F)
     print*, 'Shape of Solution: ',shape(u_sol)
     write(*,*)
-  !---------- Memory Relase -----------!
+    !---------- Memory Relase -----------!
     DEALLOCATE( A_F, A_K, AK_LU, u_sol)
     
   endif

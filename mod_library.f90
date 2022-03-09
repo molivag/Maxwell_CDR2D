@@ -1439,116 +1439,116 @@ module library
 
     end subroutine writeMatrix
 
-    ! subroutine PosProcess(solution, nameFile1, activity)
+    subroutine PosProcess(solution, nameFile1, activity)
 
-    !   implicit none
+      implicit none
     
-    !   character(len=*), parameter    :: fileplace = "Pos/"
-    !   double precision, dimension(ntotv, 1), intent(in) :: solution
-    !   character(*), intent(in)                :: nameFile1, activity
-    !   double precision, dimension(1, ntotv)   :: solution_T
-    !   double precision, dimension(1,nnodes)   :: xcor, ycor
-    !   integer                                 :: ipoin, ii
+      character(len=*), parameter    :: fileplace = "Pos/"
+      double precision, dimension(ntotv, 1), intent(in) :: solution
+      character(*), intent(in)                :: nameFile1, activity
+      double precision, dimension(1, ntotv)   :: solution_T
+      double precision, dimension(1,nnodes)   :: xcor, ycor
+      integer                                 :: ipoin, ii
     
-    !   solution_T = transpose(solution)
-    !   xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
-    !   ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
+      solution_T = transpose(solution)
+      xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
+      ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
     
-    !   open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
+      open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
     
-    !   if(activity == "msh")then !quitar este if y acomodar el numero de unidad
+      if(activity == "msh")then !quitar este if y acomodar el numero de unidad
     
-    !     write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
-    !     write(555,"(A)") '#2D Convection-Diffusion-Reaction'
-    !     write(555,900) '#Element tipe: ', ElemType,'/',ElemType
-    !     write(555,"(A)")'Coordinates'
-    !     write(555,"(A)") '#   No        X           Y'
-    !     do ipoin = 1, nnodes
-    !       write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-    !     end do
-    !     write(555,"(A)") 'End Coordinates'
-    !     write(555,"(A)") 'Elements'
-    !     do ipoin = 1, nelem
-    !       write(555,908) lnods(ipoin,:)
-    !     end do
-    !     write(555,"(A)") 'End Elements'
-    !     close(555)
-    !     print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
+        write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+        write(555,"(A)") '#2D Convection-Diffusion-Reaction'
+        write(555,900) '#Element tipe: ', ElemType,'/',ElemType
+        write(555,"(A)")'Coordinates'
+        write(555,"(A)") '#   No        X           Y'
+        do ipoin = 1, nnodes
+          write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+        end do
+        write(555,"(A)") 'End Coordinates'
+        write(555,"(A)") 'Elements'
+        do ipoin = 1, nelem
+          write(555,908) lnods(ipoin,:)
+        end do
+        write(555,"(A)") 'End Elements'
+        close(555)
+        print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
     
-    !   elseif(activity == "res")then
-    !     write(555,"(A)") 'GiD Post Results File 1.0'
-    !     write(555,"(A)") '#2D Convection-Diffusion-Reaction'
+      elseif(activity == "res")then
+        write(555,"(A)") 'GiD Post Results File 1.0'
+        write(555,"(A)") '#2D Convection-Diffusion-Reaction'
     
-    !     ! se escribe el res de las componentes de la velocidad
-    !     select case(ndofn)
-    !       case(1)
-    !         write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
-    !         write(555,"(A)") 'ComponentNames "" '
-    !         write(555,"(A)") 'Values'
-    !         write(555,*) '#',   'No    ','             ux '
-    !         !  se escribe el res para el caso escalar de un grado de libertad
-    !         write(555,914)
-    !         do ipoin = 1, nnodes
-    !           write(555,916) ipoin, solution(ipoin, 1)
-    !         end do
-    !         !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
-    !         !Something like
-    !         !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
-    !         write(555,"(A)") 'End Values'
-    !       case(2)
-    !         write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
-    !         write(555,"(A)") 'ComponentNames "u" "v" "--" "" '
-    !         write(555,"(A)") 'Values'
-    !         write(555,*) '#',   'No    ','             ux ','               uy '
-    !         do ipoin = 1, nnodes
-    !           write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-    !         end do
-    !         write(555,"(A)") 'End Values'
-    !       case(3)
-    !         write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
-    !         write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
-    !         write(555,"(A)") 'Values'
-    !         write(555,*) '#',   'No    ','             ux ','               uy'
-    !        ! do ipoin = 1, nnodes
-    !        !   write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-    !        ! end do
-    !         do ipoin = 1, nnodes
-    !           write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
-    !         end do
-    !         write(555,"(A)") 'End Values'
-    !     end select
-    !     write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
-    !     write(555,"(A)") 'ComponentNames "" '
-    !     write(555,"(A)") 'Values'
-    !     write(555,*) '#',   'No    ','             P '
-    !     !  se escribe el res para el caso escalar de un grado de libertad
-    !     write(555,914)
-    !     ii=1
-    !     do ipoin = 3, nnodes*3,3
-    !       write(555,916) ii, solution_T(1,ipoin)
-    !       ii=ii+1
-    !     end do
-    !     write(555,"(A)") 'End Values'
-    !     print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
-        
-    !     close(555)
-    !   else
-    !     write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
-    !     close(555)
-    !     stop
-    !   end if
+        ! se escribe el res de las componentes de la velocidad
+        select case(ndofn)
+          case(1)
+            write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
+            write(555,"(A)") 'ComponentNames "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             ux '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(555,914)
+            do ipoin = 1, nnodes
+              write(555,916) ipoin, solution(ipoin, 1)
+            end do
+            !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
+            !Something like
+            !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
+            write(555,"(A)") 'End Values'
+          case(2)
+            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "u" "v" "--" "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             ux ','               uy '
+            do ipoin = 1, nnodes
+              write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(555,"(A)") 'End Values'
+          case(3)
+            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             ux ','               uy'
+           ! do ipoin = 1, nnodes
+           !   write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+           ! end do
+            do ipoin = 1, nnodes
+              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+            end do
+            write(555,"(A)") 'End Values'
+            write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
+            write(555,"(A)") 'ComponentNames "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             P '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(555,914)
+            ii=1
+            do ipoin = 3, nnodes*3,3
+              write(555,916) ii, solution_T(1,ipoin)
+              ii=ii+1
+            end do
+            write(555,"(A)") 'End Values'
+            print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
+        end select
+      
+        close(555)
+      else
+        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
+        close(555)
+        stop
+      end if
     
     
-    !   900 format(A15, A13, A1, A13)
-    !   902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-    !   906 format(I7,2(3x,f9.4)) !format for msh
-    !   908 format(9(2x,I7) )
-    !   914 format('#',3x,'No',     9x, 'Dof')
-    !   916 format(I7,2x,E12.5)  !format for scalar case
-    !   918 format(I7,3x,f15.5,3x,f15.5) !format for res velocity
-    !   919 format(I7,3(3x,E15.5)) !format for res velocity
+      900 format(A15, A13, A1, A13)
+      902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+      906 format(I7,2(3x,f9.4)) !format for msh
+      908 format(9(2x,I7) )
+      914 format('#',3x,'No',     9x, 'Dof')
+      916 format(I7,2x,E12.5)  !format for scalar case
+      918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
+      919 format(I7,3(3x,E15.5)) !format for res velocity
     
-    ! end subroutine PosProcess
+    end subroutine PosProcess
     
     subroutine GID_PostProcess(solution, Filename, activity, step_value)
       
@@ -1589,7 +1589,7 @@ module library
       ! if(status.eq.0)then continue 
       elseif(activity == "res")then
        
-        open(unit=200, file= fileplace//Filename, ACTION="write", STATUS="replace")
+        open(unit=200, file= fileplace//"time/"//Filename, ACTION="write", STATUS="replace")
         if(step_value.ne.0) goto 10
         write(200,"(A)") 'GiD Post Results File 1.0'
         write(200,"(A)") '#2D Convection-Diffusion-Reaction'

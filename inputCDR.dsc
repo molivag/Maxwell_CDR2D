@@ -6,12 +6,12 @@
 
 # > > > > > > > Geometry
 ElemType = Quadrilateral !Triangle, Quadrilateral
-ProbType = Stat          !Problem type transient or static
+ProbType = trans          !Problem type transient or static
 DimPr    = 2             !Dimension del problema
 nelem    = 100           !Number of lnods
 nnodes   = 121           !Total number of nodal points
 nne      = 4             !Number of nodes in the element
-ndofn    = 3             !Degrees of freedom
+ndofn    = 2             !Degrees of freedom
 totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P
 maxband  = 78             !Maximo ancho de banda
 
@@ -23,31 +23,31 @@ hnatu    = 2.0           !Reference element length
 
 # > > > > > > > Physical Properties
 #DIFMA_11                        !Diffusion tensor
-   1    , 0.0E-0  , 0.0E-0
-0.0E-0  ,   1     , 0.0E-0
+   10    , 0.0E-0  , 0.0E-0
+0.0E-0  ,   10     , 0.0E-0
 0.0E-0  , 0.0E-0  , 0
 #DIFMA_12
 0 ,  0.0e-0 ,  0.0e-0
 0.0e-0  , 0  , 0.0e-0
 0.0e-0  , 0.0e-0  , 0
 #DIFMA_22
-   1   , 0.0E-0 ,  0.0E-0
-0.0E-0 ,    1   ,  0.0E-0
+   10   , 0.0E-0 ,  0.0E-0
+0.0E-0 ,    10  ,  0.0E-0
 0.0E-0 , 0.0E-0 , 0
 #COMAT_1                        !Convection tensor
-0.0E-0 , 0.0e-0 ,    10
-0.0e-0 , 0.0E-0 , 0.0e-0
-   10   , 0.0e-0 , 0.0E-0
+1 , 0 , 0.0e-0
+0.0e-0 , 1 , 0.0e-0
+0.0e-0 , 0 , 0.0e-0
 #COMAT_2
-0.0e+0 , 0.0e-0 , 0.0e-0
-0.0e-0 , 0.0e+0 ,    10
-0.0e-0 ,    10   , 0.0e+0
+1 , 0.0e-0 , 0
+0.0e-0 , 1 , 0.0e-0
+0.0e-0 , 0 , 0.0e-0
 #REAMA                          !Reaction tensor
-0 , 0.0e-0 , 0.0e-0
+0.0e-0 , 0.0e-0 , 0
 0.0e-0 , 0 , 0.0e-0
 0.0e-0 , 0.0e-0 , 0
 #FORCE                          !Force tensor
-0.0e+0 , 0.0e+0 , 0.0e+0
+0.0e+0 , 0.5 , 0.0e+0
 
 # > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes
 1 91 75 73 88

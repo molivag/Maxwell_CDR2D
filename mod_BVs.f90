@@ -42,9 +42,9 @@ module BoundVal
           
           if(y.eq.ymax) then 
             if(x.eq.xmax)then!            ux       uy        p 
-              write(100,51) i, 1, 1, 0, real(1), real(0), real(0)       !right top corner
+              write(100,50) i, 1, 1, 0, real(1), real(0), real(0)       !right top corner
             elseif(x.eq.xmin)then                               
-              write(100,51) i, 1, 1, 0, real(1), real(0), real(0)       !left top corner
+              write(100,50) i, 1, 1, 0, real(1), real(0), real(0)       !left top corner
             else
               write(100,50) i, 1, 1, 0, real(1), real(0), real(0)       !top edge 
             end if
@@ -56,9 +56,9 @@ module BoundVal
             
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    
-              write(100,51) i, 1, 1, 0, real(0), real(0), real(0)       !left bottom corner
+              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !left bottom corner
             elseif(x.eq.xmax)then                               
-              write(100,51) i, 1, 1, 0, real(0), real(0), real(0)       !right bottom corner  
+              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !right bottom corner  
             else
               write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !botomm edge 
             end if
@@ -85,28 +85,28 @@ module BoundVal
           x=coord(i,2)
           y=coord(i,3)
           if(y.eq.ymax) then 
-            if(x.eq.xmax)then                          !right top corner
-              write(100,51) i, 1,1, real(0), real(0) 
-            elseif(x.eq.xmin)then                      !left top corner
-              write(100,51) i, 1,1, real(1), real(0)
+            if(x.eq.xmax)then                         
+              write(100,60) i, 1,1, real(0), real(0)     !right top corner 
+            elseif(x.eq.xmin)then                     
+              write(100,60) i, 1,1, real(1), real(0)     !left top corner
             else
-              write(100,50) i, 0,0, real(0), real(0)   !top edge 
+              write(100,60) i, 0,1, real(0), real(0)     !top edge 
             end if
             a = a+2
           else if (y.eq.ymin)then
-            if(x.eq.xmin)then                          !left bottom corner
-              write(100,51) i, 1,1, real(1), real(0) 
-            elseif(x.eq.xmax)then                      !right bottom corner
-              write(100,51) i, 1,1, real(0), real(0)  
+            if(x.eq.xmin)then                         
+              write(100,60) i, 1,1, real(1), real(0)    !left bottom corner 
+            elseif(x.eq.xmax)then                      
+              write(100,60) i, 1,1, real(0), real(0)    !right bottom corner
             else
-              write(100,50) i, 0,0, real(0), real(0)   !botomm edge
+              write(100,60) i, 0,1, real(0), real(0)    !botomm edge
             end if
             b = b+2
-          else if(x.eq.xmax)then                       !right edge
-              write(100,50) i, 1,1, real(0), real(0)
+          else if(x.eq.xmax)then                      
+              write(100,60) i, 1,0, real(0), real(0)    !right edge
             d = d+2
-          else if (x.eq.xmin)then                      !left edge
-              write(100,50) i, 1,1, real(1), real(0) 
+          else if (x.eq.xmin)then                     
+              write(100,60) i, 1,0, real(1), real(0)    !left edge
             c = c+2
            
           end if
@@ -157,7 +157,6 @@ module BoundVal
       
       
       50 format(I5,2x,3I2,2x,3f12.5)
-      51 format(I5,2x,3I2,2x,3f12.5,5x,A20)
       60 format(I5,2x,2I2,2x,2f12.5)
       70 format(I5,2x,1I2,2x,f12.5)
       
