@@ -1,6 +1,6 @@
 module timeInt
   use param
-  use library, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
+  use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
 
   contains
 
@@ -66,10 +66,9 @@ module timeInt
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
       
       
-      delta_t  = ( time_fin - time_ini ) / max_time     !Step size
-      u_init = 0.0                                      !Para prueba lo dejo sin subroutina
-      time   = 0                                        !initializing the time
-      solution_file_name = 'CDR_u0000.post.res'
+      delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)    !Step size
+      time   = 0                                               !initializing the time
+      !solution_file_name = 'CDR_u0000.post.res'
       write(*,*) ' '
       print*,'!============ TIME DISCRETIZATION ============!'
       write(*,"(A19,4X,F10.3,1X,A10)") ' - Initial time:          ', time_ini,' '
@@ -79,27 +78,26 @@ module timeInt
       write(*,*) ' '
       call GID_PostProcess(u_pre, File_PostMsh, 'msh', time )
       
-      !call initial_condition ( node_num, node_xy, u0_cond, u_init ) !could be 0
+      !call initial_condition(node_num, node_xy, u0_cond, u_init) 
+      u_init = u0_cond                                  !Para prueba lo dejo sin subroutina
       u_pre  = u_init                                   !u in present time 
       
       !time_unit = 101
       !open ( unit = time_unit, file = time_file_name, status = 'replace' )
       !write ( time_unit, '(g14.6)' ) time
       
-      
       write(*,*) ' '
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
       print'(A11,I4,A2,F10.3,A)',' time step:',time,' = ',time_ini,' is the value of the initial condiction'
-      call GID_PostProcess(u_pre, Solution_File_Name, 'res', time)
+      call GID_PostProcess(u_pre, File_PostRes, 'res', time)
       do nt = time_ini+delta_t,time_fin,delta_t
-        
         time = time + 1
         
         call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_K, A_C, A_F)
         
         !-------- Implicit Scheme --------!
-        AK_time  = 1/delta_t*A_C + A_K
+        AK_time  = (1.0/delta_t)*A_C + A_K
         rhs_time = A_F 
         ! rhs_time = A_F +  (A_C * u_pre * 1/elta_t)
         call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
@@ -121,12 +119,10 @@ module timeInt
         
         !---------- Printing and writing results -----------!
         write(*,*) ' '
-        call file_name_inc(solution_file_name)
+        !call file_name_inc(solution_file_name)
         print'(A11,I4,A2,F10.3,A3,F10.3,A)',' time step:',time,' = ',nt,' of ',time_fin,' seg'
-        call GID_PostProcess(u_pre, solution_file_name, 'res', time)
-        
+        call GID_PostProcess(u_pre, File_PostRes, 'res', time)
       end do
-      
       DEALLOCATE( AK_time, rhs_time, u_pre, u_fut)
     end subroutine BackwardEuler
     

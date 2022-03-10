@@ -20,8 +20,8 @@ module param
   !character(len=20), parameter :: File_element  = 'lnods.dat'
   !character(len=20), parameter :: File_coord    = 'coord.dat'
   !character(len=20), parameter :: File_tensors  = 'tensors.dat'
-  character(len=19), parameter :: File_PostMsh  = 'CDR_Stokes.post.msh'
-  character(len=19), parameter :: File_PostRes  = 'CDR_Stokes.post.res'
+  character(len=19), parameter :: File_PostMsh  = 'CDR_time.post.msh'
+  character(len=19), parameter :: File_PostRes  = 'CDR_time.post.res'
   
   contains
     

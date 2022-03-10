@@ -1589,11 +1589,15 @@ module library
       ! if(status.eq.0)then continue 
       elseif(activity == "res")then
        
-        open(unit=200, file= fileplace//"time/"//Filename, ACTION="write", STATUS="replace")
-        if(step_value.ne.0) goto 10
-        write(200,"(A)") 'GiD Post Results File 1.0'
-        write(200,"(A)") '#2D Convection-Diffusion-Reaction'
-        10 continue
+        if(step_value == 0)then
+          open(unit=200, file= fileplace//"time/"//Filename, ACTION="write", STATUS="replace")
+          write(200,"(A)") 'GiD Post Results File 1.0'
+          write(200,"(A)") '#2D Convection-Diffusion-Reaction'
+        else
+          continue
+        endif
+        open(unit=200, file= fileplace//"time/"//Filename, ACTION="write", STATUS="old", position="append")
+        
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
@@ -1610,6 +1614,7 @@ module library
             !Something like
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
+            !close(200)
             print"(A19,A30)", FileName, 'written succesfully in Pos/ '
           case(2)
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
@@ -1620,6 +1625,7 @@ module library
               write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
             write(200,"(A)") 'End Values'
+            close(200)
             print"(A19,A30)", FileName, 'written succesfully in Pos/ '
           case(3)
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
@@ -1645,13 +1651,13 @@ module library
               ii=ii+1
             end do
             write(200,"(A)") 'End Values'
+            close(200)
             print"(A19,A30)", FileName, 'written succesfully in Pos/ '
             
-            close(200)
         end select
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" non ', activity
-        close(555)
+        close(200)
         stop
       end if
       
@@ -1662,7 +1668,7 @@ module library
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
-      918 format(I7,3x,f15.5,3x,f15.5) !format for res velocity
+      918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess

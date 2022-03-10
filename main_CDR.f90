@@ -16,7 +16,7 @@ implicit none
   double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
   integer, allocatable, dimension(:) :: S_ipiv
   integer :: S_m, S_n, S_nrhs, info, S_ldSol
-  character(len=1) :: S_trans, S_uplo
+  character(len=1) :: S_trans
 
   !---------- Input Data -----------!
   call cpu_time(start)
@@ -52,7 +52,6 @@ implicit none
   S_n     = size(A_K,2)  !antes ntotv
   S_ldSol = max(1,S_n)
   S_trans = 'N'
-  S_uplo  = 'U'
   S_nrhs  = 1
 
   !-------- Problem Type Definition --------!
