@@ -1590,13 +1590,13 @@ module library
       elseif(activity == "res")then
        
         if(step_value == 0)then
-          open(unit=200, file= fileplace//"time/"//Filename, ACTION="write", STATUS="replace")
+          open(unit=200, file= fileplace//Filename, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
           write(200,"(A)") '#2D Convection-Diffusion-Reaction'
         else
           continue
         endif
-        open(unit=200, file= fileplace//"time/"//Filename, ACTION="write", STATUS="old", position="append")
+        open(unit=200, file= fileplace//Filename, ACTION="write", STATUS="old", position="append")
         
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
@@ -1614,8 +1614,6 @@ module library
             !Something like
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
-            !close(200)
-            print"(A19,A30)", FileName, 'written succesfully in Pos/ '
           case(2)
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
@@ -1625,8 +1623,6 @@ module library
               write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
             write(200,"(A)") 'End Values'
-            close(200)
-            print"(A19,A30)", FileName, 'written succesfully in Pos/ '
           case(3)
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
@@ -1651,15 +1647,16 @@ module library
               ii=ii+1
             end do
             write(200,"(A)") 'End Values'
-            close(200)
-            print"(A19,A30)", FileName, 'written succesfully in Pos/ '
-            
         end select
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" non ', activity
         close(200)
         stop
       end if
+      close(200)
+      !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
+      print*, ' '
+      if(step_value == 11) print"(1x, A19,A30)", FileName, 'written succesfully in Pos/ '
       
       
       900 format(A15, A13, A1, A13)

@@ -89,7 +89,7 @@ module timeInt
       write(*,*) ' '
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
-      print'(A11,I4,A2,F10.3,A)',' time step:',time,' = ',time_ini,' is the value of the initial condiction'
+      print'(A11,I4,A2,F10.3,A)',' time step:',time,' = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(u_pre, File_PostRes, 'res', time)
       do nt = time_ini+delta_t,time_fin,delta_t
         time = time + 1
@@ -118,7 +118,7 @@ module timeInt
         u_pre = u_fut
         
         !---------- Printing and writing results -----------!
-        write(*,*) ' '
+        !write(*,*) ' '
         !call file_name_inc(solution_file_name)
         print'(A11,I4,A2,F10.3,A3,F10.3,A)',' time step:',time,' = ',nt,' of ',time_fin,' seg'
         call GID_PostProcess(u_pre, File_PostRes, 'res', time)
