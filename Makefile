@@ -17,10 +17,12 @@ FC = ifort
 CFLAGS = -stand f03 #f90 #f08
 #	debugger option
 CFLAGS += -g
+#	debugger option
+CFLAGS += -debug all
 #	warning flags
 CFLAGS += -warn all
 #	optimization flags
-CFLAGS += -O0 -heap-arrays
+CFLAGS += -O2 -heap-arrays
 #	error finding options
 CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
 # at the end of the tests return to -check all option
