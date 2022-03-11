@@ -9,3 +9,4 @@ Msh/
 *.o
 *.mod
 DS_Store/
+gdblinux
