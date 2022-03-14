@@ -82,15 +82,11 @@ module timeInt
       u_init = u0_cond                                  !Para prueba lo dejo sin subroutina
       u_pre  = u_init                                   !u in present time 
       
-      !time_unit = 101
-      !open ( unit = time_unit, file = time_file_name, status = 'replace' )
-      !write ( time_unit, '(g14.6)' ) time
-      
-      write(*,*) ' '
-      print*, 'Starting time integration. . . . .'
       write(*,*) ' '
       print'(A11,I4,A2,F10.3,A)',' time step:',time,' = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(u_pre, File_PostRes, 'res', time)
+      print*, 'Starting time integration. . . . .'
+      write(*,*) ' '
       do nt = time_ini+delta_t,time_fin,delta_t
         time = time + 1
         
@@ -98,8 +94,8 @@ module timeInt
         
         !-------- Implicit Scheme --------!
         AK_time  = (1.0/delta_t)*A_C + A_K
+        !AK_time  = A_C + delta_t*A_K
         rhs_time = A_F 
-        ! rhs_time = A_F +  (A_C * u_pre * 1/elta_t)
         call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
         u_fut  = A_F                                      !here mkl will rewrite u_fut by the solution vector
         
@@ -115,6 +111,7 @@ module timeInt
           call MKLsolverResult('dgbtrs',info)  !Aqui agregar el tiempo para en cada tiempo indicar el info de ejecucion
           print'(A32,I3)', '<<<Solving System error in time: ', time
         endif
+        
         u_pre = u_fut
         
         !---------- Printing and writing results -----------!
@@ -122,8 +119,11 @@ module timeInt
         !call file_name_inc(solution_file_name)
         print'(A11,I4,A2,F10.3,A3,F10.3,A)',' time step:',time,' = ',nt,' of ',time_fin,' seg'
         call GID_PostProcess(u_pre, File_PostRes, 'res', time)
+        
       end do
+      
       DEALLOCATE( AK_time, rhs_time, u_pre, u_fut)
+      
     end subroutine BackwardEuler
     
     
