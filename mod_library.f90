@@ -102,7 +102,7 @@ module library
     subroutine DerivativesXY(Gp, InvJaco, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
 
       implicit none
-
+      
       double precision, dimension(DimPr,DimPr),intent(in):: InvJaco
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)     :: Hesxieta
@@ -112,8 +112,8 @@ module library
       integer                                            :: idime, inode, jdime
       double precision, dimension(2,nne), intent(out)    :: dN_dxy
       double precision, dimension(3,nne), intent(out)    :: HesXY
-
-
+      
+      
       Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
       Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
 
@@ -835,17 +835,17 @@ module library
       !  endif
       !
       !end select
-
-
+      
+      
       write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
-
+      
       write(*,"(A15,9X,I6,1X,A9)")' - UpBand:      ', upban,'   '
       write(*,"(A15,9X,I6,1X,A9)")' - LowBand:     ', lowban,'  '
       write(*,"(A15,9X,I6,1X,A9)")' - TotBand:     ', totban,'  '
       write(*,"(A15,9X,I6,1X,A9)")' - ledimAK:     ', ldAKban,' '
-
-
+      
+      
     end subroutine BandWidth
     
     subroutine GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldSol, delta_t, ugl_pre ,A_K, A_C, A_F)
@@ -861,7 +861,7 @@ module library
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce
-      double precision, dimension(nevab,1)      :: Fe, Fe_time, ue_pre
+      double precision, dimension(nevab,1)      :: Fe, Fe_time, ue_pre, time_cont
       double precision, dimension(3,3)          :: tauma
       real, dimension(nne,DimPr)                :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
@@ -872,7 +872,6 @@ module library
       allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
       !allocate(ugl_pre(S_ldSol,1) )
       
-      !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
       A_F = 0.0
       A_C = 0.0
@@ -882,7 +881,10 @@ module library
         Fe = 0.0    !Fe(nevab)
         Ce = 0.0
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
-        !do-loop: compute element stiffness matrix Ke
+        call gather(nodeIDmap, ugl_pre, ue_pre)
+        time_cont = ue_pre * 1.0/delta_t
+        
+        !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
           Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
           detJ = m22det(Jaco)
@@ -897,16 +899,14 @@ module library
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          !Fe_time = delta_t * Fe + matmul(Ce,ue_pre)
+          Fe_time = Fe + matmul(Ce,time_cont)
         end do
         
-        call gather(nodeIDmap, ugl_pre, ue_pre)
-        Fe_time = Fe + (matmul(Ce,ue_pre*(1/delta_t) ))
         
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
         call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
-        
-        ugl_pre = A_F
         
       end do
       
