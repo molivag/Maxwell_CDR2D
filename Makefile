@@ -13,24 +13,23 @@ FC = ifort
 #SRC_DIR = .
 
 #	compiler flags
-#	standard
 CFLAGS = -stand f03 #f90 #f08
 #	debugger option
-CFLAGS += -g
-#	debugger option
-CFLAGS += -debug all
+CFLAGS += -g -debug all
 #	warning flags
 CFLAGS += -warn all
 #	optimization flags
-CFLAGS += -O2 -heap-arrays
+CFLAGS += -O0 -heap-arrays
 #	error finding options
 CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
 # at the end of the tests return to -check all option
 #	mkl library
 CFLAGS += -mkl
+	
 #	source files
 SRCS = mod_param mod_biunit mod_BVs mod_library mod_timeInt main_CDR
 
+#	object files
 OBJS = $(SRCS:=.o)
 
 #	executable
@@ -68,6 +67,7 @@ clean :
 	@$(RM) -rf Res/*.txt
 #@$(RM) Res/ *.txt
 #	clean no tiene dependencias pero si objetivos
+	@echo ' '
 	@echo '* * * * * '
 	@echo ' - Everything is clean -'
 	@echo '* * * * * '
