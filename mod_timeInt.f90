@@ -97,7 +97,7 @@ module timeInt
         !AK_time  = A_C + delta_t*A_K
         rhs_time = A_F 
         call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
-        u_fut  = A_F                                      !here mkl will rewrite u_fut by the solution vector
+        u_fut  = rhs_time                               !here mkl will rewrite u_fut by the solution vector
         
         !------- Factorizing Matrix -------!
         call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
