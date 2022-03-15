@@ -57,8 +57,8 @@ implicit none
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'trans')then
     time_ini = 0.0   !Estos valores
-    time_fin = 0.5       !Deben ser leidos en
-    max_time = 10.0           !el archivo de entrada
+    time_fin = 1.0       !Deben ser leidos en
+    max_time = 50.0           !el archivo de entrada
     u0_cond  = 0.0  
     
     call BackwardEuler(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, u0_cond,&
