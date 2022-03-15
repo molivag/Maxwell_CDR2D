@@ -8,5 +8,6 @@ Msh/
 *.dat
 *.o
 *.mod
+.DS_Store
 DS_Store/
 gdblinux
