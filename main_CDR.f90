@@ -1,6 +1,5 @@
 program main_CDR3d
   use library; use param ; use biunit ; use boundVal ; use timeInt
-  !use solver
 
 implicit none
 
@@ -12,11 +11,13 @@ implicit none
   integer, allocatable, dimension(:)            :: nofix
   real                                          :: start, finish, time_ini, time_fin, max_time, u0_cond
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
-  external :: dgbtrf, dgbtrs, dpbtrs, dpbtrf
+  external :: dgbtrf, dgbtrs, dgbrfs
   double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
-  integer, allocatable, dimension(:) :: S_ipiv
-  integer :: S_m, S_n, S_nrhs, info, S_ldSol
+  double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
+  integer, allocatable, dimension(:) :: S_ipiv, S_iwork
+  integer :: S_m, S_n, S_nrhs, info, S_ldSol, workdim, S_info,  i, j
   character(len=1) :: S_trans
+  
 
   !---------- Input Data -----------!
   call cpu_time(start)
@@ -24,7 +25,6 @@ implicit none
   call GeneralInfo( )
 
   !---------- Shape Functions ---------------!
-  !print*, '!=============== INFO DURING EXECUTION ===============!'
   call GaussQuadrature(ngaus, weigp)
   call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta, Hesxieta)
 
@@ -32,8 +32,7 @@ implicit none
   call BandWidth( )
   
   !---------- Global Matrix and Vector ------!
-  !the allocate of A_K is inside of GlobalSystem, first compute the semi bandwidth, then allocate A_K
-  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
+  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F) !the allocate of A_K and A_F are inside of GlobalSystem
   !print*, 'Antes de BV'
   !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
   !print*,'!=============== Output Files ================!'
@@ -53,6 +52,8 @@ implicit none
   S_ldSol = max(1,S_n)
   S_trans = 'N'
   S_nrhs  = 1
+  workdim = max(1,3*S_n)
+
 
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'trans')then
@@ -62,7 +63,7 @@ implicit none
     u0_cond  = 0.0  
     
     call BackwardEuler(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, u0_cond,&
-    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol )
+    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
    
     !---------- Memory Relase -----------!
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
@@ -70,29 +71,52 @@ implicit none
   else
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     !print*, 'Despues de BV'
-    !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+    !write(*,"(I2,1x, F11.5)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+    !do i =1, ntotv
+    !  print '(F13.5)', A_F(i,1)
+    !end do
     
     !---------- Memory Relase -----------!
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
+    allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
+
     print*, ' '
     print*, '!================ MKL Solver ==============!'
     AK_LU = A_K                 !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F                 !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
     !---------- Solving System of Equations by retpla solver -----------!
-    !  print*, 'Cholesky-decomposition of band-storaged Matrix'          
-    !  call solsistem(A_K,A_K,1,A_F,Sols)                                                             
     print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
-    !print*, 'Cholesky-decomposition of band-storaged Matrix'     
-    !call dpbtrf( uplo, S_n, nband, AKb_LU, ldAKban, info )
     call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
     call MKLfactoResult('dgbtrf',info)  !Aqui agregar el paso del tiempo para en cada tiempo indicar el info de ejecucion
     print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
-    !call dpbtrs( uplo, S_n, nband, 1, AKb_LU, ldAKbn, b, ldb, info )                                     
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
-    call MKLsolverResult('dgbtrs',info) !Aqui agregar el paso del tiempo para en cada tiempo indicar el info de ejecucion
+    call MKLsolverResult('dgbtrs',info)
+   !   print*,"Solution vector"
+   !   do i =1, ntotv
+   !     print '(F13.5)', u_sol(i,1)
+   !   end do
+   ! print*, ' '
+   ! 
+   !  print*,'  •REFINING SOLUTION..... '
+   !  call dgbrfs(S_trans, S_n, lowban, upban, S_nrhs, A_K, ldAKban, AK_LU, ldAKban, S_ipiv,&
+   ! &           A_F, S_ldSol, u_sol, S_ldSol, S_ferr, S_berr, S_work, S_iwork, S_info )
+   !  call MKLsolverResult('dgbrfs',S_info) 
+   !  print*, 'Refined Solution'
+   !    do i =1, ntotv
+   !      print '(9F13.5)', u_sol(i,1)
+   !    end do
+   !  print*, ' '
+   !  Write (*,*) 'Backward errors (machine-dependent)'
+   !  Write (*,99) S_berr(1:S_nrhs)
+   !  Write (*,*) 'Estimated forward error bounds (machine-dependent)'
+   !  Write (*,99) S_ferr(1:S_nrhs)
+    
+   
+    99 Format ((3X,1P,7E11.1))
+    
     !---------- Print and write results -----------!
     call PosProcess(u_sol, File_PostMsh, 'msh') !se debe agregar el nt como dummyvariable
     call PosProcess(u_sol, File_PostRes, 'res')
