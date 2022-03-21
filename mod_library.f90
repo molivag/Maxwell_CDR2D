@@ -895,7 +895,7 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
@@ -1550,7 +1550,7 @@ module library
     
     end subroutine PosProcess
     
-    subroutine GID_PostProcess(solution, Filename, activity, step_value)
+    subroutine GID_PostProcess(solution, Filename, activity, step_value, interval, time_final)
       
       implicit none
       
@@ -1558,6 +1558,7 @@ module library
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(*), intent(in)                :: Filename, activity
       integer, intent(in)                     :: step_value
+      real, intent(in)                        :: interval, time_final
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin, ii
@@ -1655,8 +1656,10 @@ module library
       end if
       close(200)
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
-      print*, ' '
-      if(step_value == 11) print"(1x, A19,A30)", FileName, 'written succesfully in Pos/ '
+      if(interval == time_final) then
+        print*, ' '
+        print"(1x, A19,A30)", FileName, 'written succesfully in Pos/ '
+      endif
       
       
       900 format(A15, A13, A1, A13)
