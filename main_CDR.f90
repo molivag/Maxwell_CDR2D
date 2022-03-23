@@ -9,7 +9,8 @@ implicit none
   double precision,              dimension(3,4) :: Hesxieta
   integer, allocatable, dimension(:,:)          :: BVs, ifpre
   integer, allocatable, dimension(:)            :: nofix
-  real                                          :: start, finish, time_ini, time_fin, max_time, u0_cond
+  real                                          :: start, finish, time_ini, time_fin, u0_cond
+  integer                                       :: max_time
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   external :: dgbtrf, dgbtrs, dgbrfs
   double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
@@ -59,7 +60,7 @@ implicit none
   if(ProbType .eq. 'trans')then
     time_ini = 0.0   !Estos valores
     time_fin = 1.0       !Deben ser leidos en
-    max_time = 50.0           !el archivo de entrada
+    max_time = 35           !el archivo de entrada
     u0_cond  = 0.0  
     
     call BackwardEuler(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, u0_cond,&
@@ -115,7 +116,7 @@ implicit none
    !  Write (*,99) S_ferr(1:S_nrhs)
     
    
-    99 Format ((3X,1P,7E11.1))
+   ! 99 Format ((3X,1P,7E11.1))
     
     !---------- Print and write results -----------!
     call PosProcess(u_sol, File_PostMsh, 'msh') !se debe agregar el nt como dummyvariable
