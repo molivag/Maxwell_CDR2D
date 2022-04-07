@@ -899,7 +899,6 @@ module library
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
-          !Fe_time = delta_t * Fe + matmul(Ce,ue_pre)
           Fe_time = Fe + matmul(Ce,time_cont)
         end do
         
@@ -1108,7 +1107,7 @@ module library
       integer, intent(in)         :: nofix(nBVs), ifpre(ndofn,nBVs)
       !                                    nvfix             ,nvfix
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
-      integer :: ivfix, idofn, itotv, jpoin, jdofn, jtotv, itot1, jband, itot2, nvfix
+      integer :: ivfix, idofn, itotv, jpoin, jdofn, jtotv, itot1, jband, itot2, nvfix, ii, jj, aa, b
       double precision,intent(inout)  :: rigid(ldAKban,ntotv), gload(ntotv)
 
       nvfix = nBVs
@@ -1133,26 +1132,53 @@ module library
             
             !***  Modificacio de les equacions anteriors a la del g.d.ll. prescrit (arriba de diagonal)
             if (jtotv.gt.1) then
-              itot1=jtotv-nband
+              itot1=jtotv-upban
               if (itot1.lt.1) itot1=1
               do itotv=itot1,jtotv-1
                 jband=itotv-jtotv+totban               !Algoritmo de recuperacion
                 gload(itotv) = gload(itotv)-rigid(jband,jtotv)*presc(jdofn,ivfix)
-                rigid(jband,jtotv)=0.0
+                rigid(jband,jtotv)=0!7.77777
                 
+              end do
+            end if
+            !Algoritmo para ceros en filas arriba de la diagonal principal    
+            if (jtotv.lt.ntotv) then
+              itot2=jtotv+lowban
+              if (itot2.gt.ntotv) itot2=ntotv
+              do itotv=jtotv+1,itot2
+                jband=jtotv-itotv+totban  
+                rigid(jband,itotv)= 0!2.222222
               end do
             end if
             
             !***  Modificacio de les equacions posteriors a la del g.d.ll. prescrit (abajo de la diagonal)
             if (jtotv.lt.ntotv) then
-              itot2=jtotv+nband
+              itot2=jtotv+lowban
               if (itot2.gt.ntotv) itot2=ntotv
               do itotv=jtotv+1,itot2
-                jband=jtotv-itotv+totban                !Algoritmo de recuperacion
-                gload(itotv) = gload(itotv)-rigid(jband,itotv)*presc(jdofn,ivfix)
-                rigid(jband,itotv)=0.0
+                jband=itotv-jtotv+totban                !Algoritmo de recuperacion
+                gload(itotv) = gload(itotv)-rigid(jband,jtotv)*presc(jdofn,ivfix)
+                rigid(jband,jtotv)=0!3.33333
               end do
             end if
+            
+            !**  Modificacion de las ecuiaciones en las filas de los g.d.ll. preescritos bajo la diagonal
+            if(jpoin.eq.1)then
+              continue
+            elseif(jpoin.lt.lowban)then
+              do ii =1,lowban-2
+                rigid(totban+ii,jpoin-ii) = 0!9191.91
+              end do
+            elseif(jpoin.eq.lowban)then
+              do ii =1,lowban-1
+                rigid(totban+ii,jpoin-ii) = 0!9191.91
+              end do
+            elseif(jpoin.gt.lowban)then
+              do ii = 1, lowban
+                rigid(totban+ii,jpoin-ii) = 0!473.217
+              end do
+            end if
+            
             
             !***  Equacio trivial per al grau de llibertat prescrit (en la diagonal)
             rigid(totban,jtotv)=1.0
