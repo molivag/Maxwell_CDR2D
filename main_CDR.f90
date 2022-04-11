@@ -34,11 +34,9 @@ implicit none
   
   !---------- Global Matrix and Vector ------!
   call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F) !the allocate of A_K and A_F are inside of GlobalSystem
-  !print*, 'Antes de BV'
-  !write(*,"(I2,1x, 16F13.9)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
-  !print*,'!=============== Output Files ================!'
-  !call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
-  !call writeMatrixAKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
+ ! print*,'!=============== Output Files ================!'
+ ! call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
+ ! call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
 
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
@@ -70,12 +68,12 @@ implicit none
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
     
   else
+    print*, 'Antes de BV'
+    write(*,"(I2,1x, 16F8.5)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+    do i =1, ntotv
+      print '(I2, 1x, E13.5)',i, A_F(i,1)
+    end do
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
-    !print*, 'Despues de BV'
-    !write(*,"(I2,1x, F11.5)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
-    !do i =1, ntotv
-    !  print '(F13.5)', A_F(i,1)
-    !end do
     
     !---------- Memory Relase -----------!
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
@@ -88,6 +86,13 @@ implicit none
     print*, '!================ MKL Solver ==============!'
     AK_LU = A_K                 !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F                 !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
+    print*, 'Despues de BV'
+    write(*,"(I2,1x, 16F8.5)") (i, (AK_LU(i,j), j=1,ntotv), i=1,ldAKban)
+    do i =1, ntotv
+      print '(I2,1X,F9.5)', i, u_sol(i,1)
+    end do
+    print*, ' '
+    
     !---------- Solving System of Equations by retpla solver -----------!
     print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
     call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
@@ -95,11 +100,12 @@ implicit none
     print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
-   !   print*,"Solution vector"
-   !   do i =1, ntotv
-   !     print '(F13.5)', u_sol(i,1)
-   !   end do
-   ! print*, ' '
+    print*, ' '
+    print*,"Solution vector"
+      do i =1, ntotv
+        print '(I2, 1x, F13.5)',i, u_sol(i,1)
+      end do
+    print*, ' '
    ! 
    !  print*,'  •REFINING SOLUTION..... '
    !  call dgbrfs(S_trans, S_n, lowban, upban, S_nrhs, A_K, ldAKban, AK_LU, ldAKban, S_ipiv,&

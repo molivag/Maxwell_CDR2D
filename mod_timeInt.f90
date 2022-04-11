@@ -69,7 +69,7 @@ module timeInt
       allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
       
       
-      S_ipiv   = 0
+      !S_ipiv   = 0
       u_pre    = 0.0
       u_fut    = 0.0
       rhs_time = 0.0
@@ -102,22 +102,29 @@ module timeInt
         
         call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_K, A_C, A_F)
         !-------- Implicit Scheme --------!
-        AK_time  = (1.0/delta_t)*A_C + A_K
-        !AK_time  = A_C + delta_t*A_K
+        AK_time  = (1.0/delta_t)*A_C + A_K !A_C + delta_t*A_K
         rhs_time = A_F 
-        call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
+       ! print*, 'AK_time Matrix before BV'
+       ! write(*,"(I2,1x, 16F8.5)") (i, (AK_time(i,j), j=1,ntotv), i=1,ldAKban)
+       ! print*," "
+       ! print*, 'rhs_time before BV'
+       ! do i =1, ntotv
+       !   print '(I2, 1x, E13.5)', i, rhs_time(i,1)
+       ! end do
         
-        ! print*, 'Global Band Matrix after BV'
-        ! write(*,"(I2,1x, F11.5)") (i, (AK_time(i,j), j=1,ntotv), i=1,ldAKban)
-        ! print*," "
-        ! print*, 'Global vetor after BV'
-        ! do i =1, ntotv
-        !   print '(F13.5)', rhs_time(i,1)
-        ! end do
+        call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
         
         !------------- Solver -------------!
         u_fut = rhs_time   !here mkl will rewrite u_fut by the solution vector
         AK_LU = AK_time  
+       ! print*, 'AK_LU Matrix after BV'
+       ! write(*,"(I2,1x, 16F8.5)") (i, (AK_time(i,j), j=1,ntotv), i=1,ldAKban)
+       ! print*," "
+       ! print*, 'rhs_time after BV'
+       ! do i =1, ntotv
+       !   print '(I2, 1x, E13.5)', i, rhs_time(i,1)
+       ! end do
+        
         !--- Factorizing Matrix
         call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)
         if(info.ne.0)then
@@ -131,6 +138,20 @@ module timeInt
           print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
         endif
         u_pre = u_fut
+        !print*, ' '
+        !print*,"u_fut"
+        !do i =1, ntotv
+        !  print '(I2, 1x, E13.5)', i, u_fut(i,1)
+        !end do
+        !print*, ' '
+        !print*, 'Avanzar? 1=yes ; other stop'
+        !read(*,*) ans
+        !if(ans.eq.1)then
+        !  continue
+        !else
+        !  stop
+        !endif
+        
         !---------- Printing and writing results -----------!
         !call file_name_inc(solution_file_name)
         print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
