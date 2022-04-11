@@ -15,6 +15,12 @@ ndofn    = 2             !Degrees of freedom
 totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P
 maxband  = 78             !Maximo ancho de banda
 
+# > > > > > > > Time Discretization
+time_ini = 1.0             !Starting time simulation
+time_fin = 10.0             !Ending time simulation
+max_time = 10              !Max time of simulation
+u0_cond  = 0.0             !Value of initial condition
+
 # > > > > > > > Stabilization
 kstab    = 3             !Type of stabilization: 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG)
 ktaum    = 1             !Type of tau matrix: 0, 1, 2 
