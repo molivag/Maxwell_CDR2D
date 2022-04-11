@@ -851,7 +851,6 @@ module library
     subroutine GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldSol, delta_t, ugl_pre ,A_K, A_C, A_F)
       
       implicit none
-      
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)    :: Hesxieta
@@ -861,7 +860,7 @@ module library
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce
-      double precision, dimension(nevab,1)      :: Fe, Fe_time, ue_pre, time_cont
+      double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
       double precision, dimension(3,3)          :: tauma
       real, dimension(nne,DimPr)                :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
@@ -877,7 +876,7 @@ module library
       A_C = 0.0
       do ielem = 1, nelem 
         !gather
-        Ke = 0.0    !Esto es amate
+        Ke = 0.0
         Fe = 0.0    !Fe(nevab)
         Ce = 0.0
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
@@ -1073,23 +1072,23 @@ module library
     end subroutine Assemb_Glob_Mat
 
     subroutine Assemb_Glob_Vec( nodeIDmap, fe, F_global)
-
+      
       implicit none
-
+      
       double precision, dimension(nevab,1), intent(in)   :: fe  !nevab = Num of element variable
       integer, dimension(nne), intent(in)                :: nodeIDmap
       integer :: i, rowNode, row
       double precision, dimension(ntotv,1),intent(inout):: F_global
-
+      
       do i = 1, nne
         rowNode = nodeIDmap(i)                !global id for row nodes
         row =  ndofn * rowNode - (ndofn-1)    !row number in the global F
         F_global(row:row+ndofn-1,1) =  F_global(row:row+ndofn-1,1) + fe( (i-1)*ndofn+1:i*ndofn, 1)
-
+        
       end do
-
+      
     end subroutine Assemb_Glob_Vec
-
+    
     subroutine ApplyBVs(nofix,ifpre,presc,rigid,gload)
       !                                   ,A_K ,A_F
       !        vincul(rigid,gload,treac,nofix,ifpre,presc)
@@ -1098,94 +1097,47 @@ module library
       !   Imposa les condicions de contorn
       !
       !*****************************************************************************
-
+      
       implicit none !real*8(a-h,o-z)
-
+      
       !Agregar un common a BVs para guardar nBVs y nBVscol asi como nband.
       !Ya se hizo y se uso el modulo mod_param para guardarlos ahi y el valor se comparte
       double precision,intent(in) :: presc(ndofn,nBVs)
       integer, intent(in)         :: nofix(nBVs), ifpre(ndofn,nBVs)
       !                                    nvfix             ,nvfix
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
-      integer :: ivfix, idofn, itotv, jpoin, jdofn, jtotv, itot1, jband, itot2, nvfix, ii, jj, aa, b
+      integer :: ivfix, idofn, itotv, jband, nvfix, ktotv, ipoin
       double precision,intent(inout)  :: rigid(ldAKban,ntotv), gload(ntotv)
-
+      
       nvfix = nBVs
-      !***  Inicialitzacio de les reaccions per als graus de llibertat prescrits
+      
+      !***  Llac sobre els nodes coaccionats (Lazo sobre los nodos preescritos)
       do ivfix=1,nvfix
-        do idofn=1,ndofn!3
+        ipoin=nofix(ivfix)
+        do idofn=1,ndofn !3
           if (ifpre(idofn,ivfix).eq.1) then
-            itotv              = (nofix(ivfix)-1)*ndofn+idofn   !3+idofn
-            !treac(idofn,ivfix) = -gload(itotv) !Yo no uso treac, solo gload. Preguntar a Ramon como definir gload
-          end if
-        end do
-      end do
-
-      !***  Llac sobre els nodes coaccionats
-      do ivfix=1,nvfix
-        jpoin=nofix(ivfix)
-        do jdofn=1,ndofn !3
-          if (ifpre(jdofn,ivfix).eq.1) then
             
             !***  Ca de grau de llibertat prescrit
-            jtotv=(jpoin-1)*ndofn+jdofn
-            
-            !***  Modificacio de les equacions anteriors a la del g.d.ll. prescrit (arriba de diagonal)
-            if (jtotv.gt.1) then
-              itot1=jtotv-upban
-              if (itot1.lt.1) itot1=1
-              do itotv=itot1,jtotv-1
-                jband=itotv-jtotv+totban               !Algoritmo de recuperacion
-                gload(itotv) = gload(itotv)-rigid(jband,jtotv)*presc(jdofn,ivfix)
-                rigid(jband,jtotv)=0!7.77777
-                
-              end do
-            end if
-            !Algoritmo para ceros en filas arriba de la diagonal principal    
-            if (jtotv.lt.ntotv) then
-              itot2=jtotv+lowban
-              if (itot2.gt.ntotv) itot2=ntotv
-              do itotv=jtotv+1,itot2
-                jband=jtotv-itotv+totban  
-                rigid(jband,itotv)= 0!2.222222
-              end do
-            end if
-            
-            !***  Modificacio de les equacions posteriors a la del g.d.ll. prescrit (abajo de la diagonal)
-            if (jtotv.lt.ntotv) then
-              itot2=jtotv+lowban
-              if (itot2.gt.ntotv) itot2=ntotv
-              do itotv=jtotv+1,itot2
-                jband=itotv-jtotv+totban                !Algoritmo de recuperacion
-                gload(itotv) = gload(itotv)-rigid(jband,jtotv)*presc(jdofn,ivfix)
-                rigid(jband,jtotv)=0!3.33333
-              end do
-            end if
-            
-            !**  Modificacion de las ecuiaciones en las filas de los g.d.ll. preescritos bajo la diagonal
-            if(jpoin.eq.1)then
-              continue
-            elseif(jpoin.lt.lowban)then
-              do ii =1,lowban-2
-                rigid(totban+ii,jpoin-ii) = 0!9191.91
-              end do
-            elseif(jpoin.eq.lowban)then
-              do ii =1,lowban-1
-                rigid(totban+ii,jpoin-ii) = 0!9191.91
-              end do
-            elseif(jpoin.gt.lowban)then
-              do ii = 1, lowban
-                rigid(totban+ii,jpoin-ii) = 0!473.217
-              end do
-            end if
-            
-            
-            !***  Equacio trivial per al grau de llibertat prescrit (en la diagonal)
-            rigid(totban,jtotv)=1.0
-            gload(jtotv)=presc(jdofn,ivfix)
+            itotv=(ipoin-1)*ndofn+idofn
+            do ktotv=1,ntotv
+              jband = ktotv-itotv + totban
+              if((lowban +1.le. jband).and.(jband.le.ldAKban))then
+                gload(ktotv) = gload(ktotv)-rigid(jband,itotv)*presc(idofn,ivfix)
+                rigid(jband,itotv)=0!7.777
+              end if
+            end do
+            do ktotv= 1, ntotv
+              jband = itotv-ktotv + totban
+              if((lowban +1.le. jband).and.(jband.le.ldAKban))then
+                rigid(jband,ktotv)=0!5.555 !columna K
+              end if
+            end do
+            rigid(totban,itotv)=1.0
+            gload(itotv)=presc(idofn,ivfix)
           end if
         end do
       end do
+      
       return
       
     end subroutine ApplyBVs
