@@ -67,11 +67,11 @@ implicit none
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
     
   else
-    print*, 'Antes de BV'
-    write(*,"(I2,1x, 16F8.5)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
-    do i =1, ntotv
-      print '(I2, 1x, E13.5)',i, A_F(i,1)
-    end do
+   ! print*, 'Antes de BV'
+   ! write(*,"(I2,1x, 16F8.5)") (i, (A_K(i,j), j=1,ntotv), i=1,ldAKban)
+   ! do i =1, ntotv
+   !   print '(I2, 1x, E13.5)',i, A_F(i,1)
+   ! end do
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !---------- Memory Relase -----------!
@@ -85,12 +85,12 @@ implicit none
     print*, '!================ MKL Solver ==============!'
     AK_LU = A_K                 !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F                 !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
-    print*, 'Despues de BV'
-    write(*,"(I2,1x, 16F8.5)") (i, (AK_LU(i,j), j=1,ntotv), i=1,ldAKban)
-    do i =1, ntotv
-      print '(I2,1X,F9.5)', i, u_sol(i,1)
-    end do
-    print*, ' '
+   ! print*, 'Despues de BV'
+   ! write(*,"(I2,1x, 16F8.5)") (i, (AK_LU(i,j), j=1,ntotv), i=1,ldAKban)
+   ! do i =1, ntotv
+   !   print '(I2,1X,F9.5)', i, u_sol(i,1)
+   ! end do
+   ! print*, ' '
     
     !---------- Solving System of Equations by retpla solver -----------!
     print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
@@ -100,11 +100,11 @@ implicit none
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
     print*, ' '
-    print*,"Solution vector"
-      do i =1, ntotv
-        print '(I2, 1x, F13.5)',i, u_sol(i,1)
-      end do
-    print*, ' '
+   ! print*,"Solution vector"
+   !   do i =1, ntotv
+   !     print '(I2, 1x, F13.5)',i, u_sol(i,1)
+   !   end do
+   ! print*, ' '
    ! 
    !  print*,'  •REFINING SOLUTION..... '
    !  call dgbrfs(S_trans, S_n, lowban, upban, S_nrhs, A_K, ldAKban, AK_LU, ldAKban, S_ipiv,&
