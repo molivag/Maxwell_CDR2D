@@ -147,10 +147,10 @@ module param
       
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
       &         2/, 2(11x,I5,/),2(11x,F7.2,/),/)    !esta linea es de input: stabilization
-      101 format(1/,e15.5,2/)
+      101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
-      105 format(1/,e15.5,2/)
+      105 format(1/,F12.5,2/)
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,e15.5,e15.5,e15.5,2/) 
       
@@ -160,7 +160,7 @@ module param
       !   do j = 1,DimPr
       !     print"(A,2I1)", 'k_',i,j
       !     do k = 1,ndofn
-      !       print"(e10.3,1x,e10.3, 1x, e10.3)",( difma(k,l,i,j), l=1,ndofn)
+      !       print"(F10.3,1x,F10.3, 1x, F10.3)",( difma(k,l,i,j), l=1,ndofn)
       !     end do
       !     print*,' '
       !   end do
@@ -170,19 +170,21 @@ module param
       ! do k = 1, DimPr
       !   print"(A,2I1)",'A_',k
       !   do i = 1, ndofn
-      !     write(*, "(e10.3,1x,e10.3, 1x, e10.3)")( conma(i,j,k) ,j=1, ndofn)
+      !     write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
       !   end do
-      !   print*,''
+      !   print*,' '
       ! end do
       ! print*,'Reaction'
       ! do i=1,ndofn
-      !   write(*,"(e10.3,1x,e10.3, 1x, e10.3)" )( reama(i,j) ,j=1,ndofn)
+      !   write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
       ! end do
+      !   print*,' '
       ! print*,'force'
       ! do i =1, ndofn
-      !   print"(e10.3)", force(i)
+      !   print"(f10.3)", force(i)
       ! end do
       ! print*, ' '
+      
     end subroutine inputData
     
   !end contains
