@@ -371,11 +371,43 @@ module library
       return
 
     end function elemsize
-
-    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, Fe)
-
+    
+    
+    subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
+     
+      !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
       implicit none
-
+      
+      double precision, intent(in) :: basis(nne)
+      double precision, intent(in) :: dvol
+      real, intent(in)             :: u0_cond
+      integer :: inode, idofn, ievab, jevab, jnode, jdofn
+      double precision :: cpcty
+      
+      double precision, intent(out) :: u0e(nevab), C0e(nevab,nevab)
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              cpcty = basis(inode) * basis(jnode)
+              C0e(ievab,jevab) = C0e(ievab,jevab) + cpcty * dvol       !element Capacity (Mass) matrix
+            end do
+          end do
+          u0e(ievab) = u0e(ievab) + basis(inode) * u0_cond * dvol
+        end do
+      end do
+      
+    end subroutine Galerkin_Init_Cond
+    
+    
+    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, Fe)
+      
+      implicit none
+      
       double precision, intent(in) :: basis(nne), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
@@ -410,6 +442,35 @@ module library
       end do
 
     end subroutine Galerkin
+
+    subroutine Galerkin_prevTime(dvol, basis, Ce, Fe)
+      
+      implicit none
+      
+      double precision, intent(in) :: basis(nne)
+      double precision, intent(in) :: dvol
+      integer :: inode, idofn, ievab, jevab, jnode, jdofn
+      double precision ::  cpcty
+      double precision, intent(out) :: Fe(nevab), Ce(nevab,nevab)
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              cpcty = basis(inode) * basis(jnode)
+              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
+            end do
+          end do
+          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
+        end do
+      end do
+
+    end subroutine Galerkin_prevTime
+
+
 
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
@@ -848,13 +909,67 @@ module library
       
     end subroutine BandWidth
     
-    subroutine GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldSol, delta_t, ugl_pre ,A_K, A_C, A_F)
+    !subroutine prevTime(N, dN_dxi, dN_deta, Hesxieta,  delta_t, ugl_pre ,A_K, A_C, A_F)
+    subroutine TimeLevels(N, dN_dxi, dN_deta, Hesxieta, delta_t, Ucurr, Uprev, F_plus_MU)
+      implicit none
+      double precision, allocatable, dimension(:,:), intent(in out) :: Uprev, Ucurr
+      double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
+      double precision, dimension(3,nne), intent(in)    :: Hesxieta
+      double precision, dimension(nne)          :: basis
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+      double precision, dimension(nevab, nevab) :: Ke, Ce
+      double precision, dimension(nevab)        :: Fe, Fe_time, ue_prev, ue_curr, AvrgeTime
+      double precision, dimension(3,3)          :: tauma
+      real, dimension(nne,DimPr)                :: element_nodes
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ, delta_t
+      integer                                   :: igaus, ibase, ielem
+      double precision, allocatable, dimension(:,:), intent(out)  :: F_plus_MU
+      
+      allocate( F_plus_MU(ntotv, 1) )
+      F_plus_MU = 0.0
+    
+      do ielem = 1, nelem 
+        Ke = 0.0; Fe = 0.0; Ce = 0.0
+        call SetElementNodes(ielem, element_nodes, nodeIDmap)
+        call gather(nodeIDmap, Uprev, ue_prev)
+        call gather(nodeIDmap, Ucurr, ue_curr)
+        AvrgeTime =  (2*ue_curr + 0.5*ue_prev) / delta_t 
+        
+        !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
+        do igaus = 1, TotGp
+          Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
+          detJ = m22det(Jaco)
+          Jinv = inv2x2(Jaco)
+          dvol = detJ *  weigp(igaus,1)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jinv)
+          do ibase = 1, nne
+            basis(ibase) = N(ibase,igaus)
+          end do
+          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
+          call Galerkin_prevTime(dvol, basis, Ce, Fe)
+          call TauMat(hmaxi,tauma)
+          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          Fe_time = Fe - matmul(Ce,AvrgeTime)
+        end do
+  
+        call Assemb_Glob_Vec(nodeIDmap, Fe_time, F_plus_MU) !Assemble Global Source vector F
+        
+      end do
+      
+    end subroutine TimeLevels
+    
+
+    subroutine GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta,  delta_t, ugl_pre ,A_K, A_C, A_F)
       
       implicit none
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)    :: Hesxieta
-      integer, intent(in)                               :: S_ldSol
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -875,10 +990,7 @@ module library
       A_F = 0.0
       A_C = 0.0
       do ielem = 1, nelem 
-        !gather
-        Ke = 0.0
-        Fe = 0.0    !Fe(nevab)
-        Ce = 0.0
+        Ke = 0.0; Fe = 0.0; Ce = 0.0
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
         call gather(nodeIDmap, ugl_pre, ue_pre)
         time_cont = ue_pre * 1.0/delta_t
@@ -900,14 +1012,12 @@ module library
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
           Fe_time = Fe + matmul(Ce,time_cont)
         end do
-        
-        
+                
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
         call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
         
       end do
-      
       
     end subroutine GlobalSystem_Time
     
