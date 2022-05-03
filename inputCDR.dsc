@@ -16,6 +16,7 @@ totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P
 maxband  = 78             !Maximo ancho de banda
 
 # > > > > > > > Time Discretization
+theta    = 2               !FDF=1 ;BDF1=2 ;CN=3 ;BDF2=4
 time_ini = 1.0             !Starting time simulation
 time_fin = 10.0            !Ending time simulation
 max_time = 69             !Max time of simulation
@@ -41,7 +42,7 @@ hnatu    = 2.0           !Reference element length
 0.0  , 100.0  , 0.0
 0.0  , 0.0  , 100.0
 #COMAT_1                        !Convection tensor
-1.0 , 0.0 , 0.0
+2.0 , 0.0 , 0.0
 0.0 , 0.0 , 0.0
 0.0 , 0.0 , 0.0
 #COMAT_2

@@ -94,9 +94,13 @@ module timeInt
       
       !the allocate of A_K and A_F are inside of GlobalSystem
       call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F) 
-      !--- LHS BDF1
-      AK_time  = (1.0/delta_t)*A_C + A_K 
-      
+      select case(theta)
+        case(2)!--- LHS BDF1
+          AK_time  = (1.0/delta_t)*A_C + A_K 
+        case(3)!-- CN
+          AK_time  = (1.0/delta_t)*A_C + 0.5*A_K !A_C + delta_t*A_K
+      end select
+
       nt = 0.0 
       do time = 1, max_time +1
         nt = nt + delta_t!,time_fin,delta_t
@@ -104,6 +108,7 @@ module timeInt
         call TimeContribution(N, dN_dxi, dN_deta, Hesxieta, delta_t, Uprev, Ftime)
         !--- LHS BDF1
         rhs_time = Ftime 
+
         call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
         !------------- Solver -------------!
         Unext = rhs_time   !here mkl will rewrite Unext by the solution vector

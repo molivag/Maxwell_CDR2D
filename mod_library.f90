@@ -741,9 +741,6 @@ module library
       implicit none
 
       integer :: iband, ielem, inode, ipoin, jnode, jpoin, nband       ! , C, D
-      !integer :: i,j,k
-      !real, allocatable, dimension(:) :: A, B, BB
-      !real, allocatable :: AA(:,:)
 
       iband=0
       do ielem =1, nelem
@@ -767,75 +764,7 @@ module library
       upban  = nband
       lowban = nband
       totban = lowban + upban + 1
-      ldAKban= 2*lowban + upban + 1
-
-      !AA = diag([(0.5*i+1*0.851,i=1,10)]) ! creates a 10 by 10 identity matrix
-
-      !do k =1,10
-      !  write(*,"(10(1x,f10.2))") (AA(k,j),j=1,10)
-      !end do
-      !allocate(BB(size(AA,1)))
-      !allocate(A(size(conma,1)))
-      !allocate(B(size(reama,1)))
-
-      !BB = diag(AA)
-      !A = diag(conma(ndofn,ndofn,1))
-      !B = diag(reama)
-      !select case(ndofn)
-      !
-      !case(1)
-      !  C = abs(sum(conma))
-      !  D = abs(sum(reama))
-      !  if((C.EQ.0) .OR. (D.EQ.0))then
-      !    write(*,*) '-Global Matrix is symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  else
-      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  endif
-      !
-      !case(2)
-      !  C = abs(sum(conma))
-      !  D = abs(sum(reama))
-      !  if((C.EQ.0) .OR. (D.EQ.0))then
-      !    write(*,*) '-Global Matrix is symmetric'
-      !    upban  = nband
-      !    lowban = 0
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  else
-      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  endif
-      !
-      !case(3)
-      !  C = abs(sum(conma) )
-      !  D = abs(sum(reama) )
-      !  if((C.EQ.0) .OR. (D.EQ.0))then
-      !    write(*,*) '-Global Matrix is symmetric'
-      !    upban  = nband
-      !    lowban = 0
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  else
-      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  endif
-      !
-      !end select
-      
+      ldAKban= 2*lowban + upban + 1   
       
       write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
@@ -858,7 +787,7 @@ module library
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
-      double precision, dimension(nevab, nevab) :: Ke, Ce
+      double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
       double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
       double precision, dimension(3,3)          :: tauma
       real, dimension(nne,DimPr)                :: element_nodes
@@ -890,8 +819,16 @@ module library
           call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           call TauMat(hmaxi,tauma)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          
+          select case(theta)
+            case(2)
+              Fe_time = Fe + matmul(Ce,time_cont)
+            case(3)
+              rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
+              Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+          endselect
 
-          Fe_time = Fe + matmul(Ce,time_cont)
+          !Fe_time = Fe + matmul(Ce,time_cont)
         end do
         
         call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
