@@ -44,25 +44,25 @@ module BoundVal
             if(x.eq.xmax)then           
               write(100,70) i, 1, real(0)   !right top corner
             elseif(x.eq.xmin)then
-              write(100,70) i, 1, real(0)   !left top corner
+              write(100,70) i, 1, real(1)   !left top corner
             else                
-              write(100,70) i, 1, real(0)   !top edge
+              write(100,70) i, 0, real(0)   !top edge
             end if
             a = a+1
           else if (y.eq.ymin)then
             if(x.eq.xmin)then
-              write(100,70) i, 1, real(0)   !left bottom corner
+              write(100,70) i, 1, real(1)   !left bottom corner
             elseif(x.eq.xmax)then                                
               write(100,70) i, 1, real(0)   !right bottom corner
             else
-              write(100,70) i, 1, real(0)   !botomm edge
+              write(100,70) i, 0, real(0)   !botomm edge
             end if
             b = b+1
           else if(x.eq.xmax)then
-              write(100,70) i, 0, real(0)   !right edge
+              write(100,70) i, 1, real(0)   !right edge
             d = d+1
           else if (x.eq.xmin)then
-              write(100,70) i, 0, real(0)   !left edge
+              write(100,70) i, 1, real(1)   !left edge
             c = c+1
            
           end if

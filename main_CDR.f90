@@ -4,7 +4,7 @@ program main_CDR3d
 implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
-  double precision, allocatable, dimension(:,:) :: A_K, A_F, presc
+  double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, presc
   double precision, allocatable, dimension(:,:) :: N, dN_dxi, dN_deta
   double precision,              dimension(3,4) :: Hesxieta
   integer, allocatable, dimension(:,:)          :: BVs, ifpre
@@ -15,7 +15,7 @@ implicit none
   double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
   double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
   integer, allocatable, dimension(:) :: S_ipiv, S_iwork
-  integer :: S_m, S_n, S_nrhs, info, S_ldSol, workdim, S_info,  i, j
+  integer :: S_m, S_n, S_nrhs, info, S_ldSol, workdim
   character(len=1) :: S_trans
   
 
@@ -32,7 +32,7 @@ implicit none
   call BandWidth( )
   
   !---------- Global Matrix and Vector ------!
-  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F) !the allocate of A_K and A_F are inside of GlobalSystem
+  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F) !the allocate of A_K and A_F are inside of GlobalSystem
  ! print*,'!=============== Output Files ================!'
  ! call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
  ! call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
