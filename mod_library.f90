@@ -411,6 +411,39 @@ module library
 
     end subroutine Galerkin
 
+
+    subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
+     
+      !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
+      implicit none
+      
+      double precision, intent(in) :: basis(nne), u0_cond(nne)
+      double precision, intent(in) :: dvol
+      !real, intent(in)             :: u0_cond
+      integer :: inode, idofn, ievab, jevab, jnode, jdofn
+      double precision :: cpcty
+      
+      double precision, intent(out) :: u0e(nevab), C0e(nevab,nevab)
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              cpcty = basis(inode) * basis(jnode)
+              C0e(ievab,jevab) = C0e(ievab,jevab) + cpcty * dvol       !element Capacity (Mass) matrix
+            end do
+          end do
+          u0e(ievab) = u0e(ievab) + basis(inode) * u0_cond(inode) * dvol
+          !u0e(ievab) = u0e(ievab) + basis(inode) * u0_cond * dvol
+        end do
+      end do
+      
+    end subroutine Galerkin_Init_Cond
+
+    
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
       !***************************************************************************
@@ -826,7 +859,7 @@ module library
             case(3)
               rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
               Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
-          endselect
+          end select
 
           !Fe_time = Fe + matmul(Ce,time_cont)
         end do
@@ -1037,7 +1070,7 @@ module library
         call xerbla( routine_name, num )
         print*, ' ~ ~ ~ Stopping the execution'
         print*, ' '
-        !stop
+        stop
       endif
       print*, ' '
 
