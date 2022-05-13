@@ -7,7 +7,7 @@ module param
   integer           :: nevab, ntotv, nBVs, nBVscol, nband, max_time
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: DimPr, nelem, nnodes, nne, ndofn, totGp, kstab, ktaum, maxband, theta
-  real              :: hnatu, patau, time_ini, time_fin, u0_cond
+  real              :: hnatu, patau, time_ini, time_fin, u0cond
   integer,          allocatable, dimension(:,:)     :: lnods
   real,             allocatable, dimension(:,:)     :: coord
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
@@ -37,7 +37,7 @@ module param
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100) ElemType, ProbType, DimPr, nelem, nnodes, nne, & 
-      ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0_cond, kstab, ktaum, patau, hnatu
+      ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu
 
       allocate(lnods(nelem,nne+1))
       allocate(coord(nnodes,Dimpr+1))
