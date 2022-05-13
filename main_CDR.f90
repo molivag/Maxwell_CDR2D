@@ -60,7 +60,7 @@ implicit none
    ! max_time = 35           !el archivo de entrada
    ! u0_cond  = 0.0  
     
-    call BackwardEuler(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, u0_cond,&
+    call TimeIntegration(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, &
     &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
    
     !---------- Memory Relase -----------!
