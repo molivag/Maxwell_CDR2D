@@ -443,15 +443,19 @@ module library
 
     end subroutine Galerkin
 
-    subroutine Galerkin_prevTime(dvol, basis, Ce, Fe)
-      
+
+    subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
+     
+      !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
       implicit none
       
-      double precision, intent(in) :: basis(nne)
+      double precision, intent(in) :: basis(nne), u0_cond(nne)
       double precision, intent(in) :: dvol
+      !real, intent(in)             :: u0_cond
       integer :: inode, idofn, ievab, jevab, jnode, jdofn
-      double precision ::  cpcty
-      double precision, intent(out) :: Fe(nevab), Ce(nevab,nevab)
+      double precision :: cpcty
+      
+      double precision, intent(out) :: u0e(nevab), C0e(nevab,nevab)
       ievab=0
       do inode=1,nne
         do idofn=1,ndofn
@@ -461,17 +465,17 @@ module library
             do jdofn=1,ndofn
               jevab=jevab+1
               cpcty = basis(inode) * basis(jnode)
-              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
+              C0e(ievab,jevab) = C0e(ievab,jevab) + cpcty * dvol       !element Capacity (Mass) matrix
             end do
           end do
-          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
+          u0e(ievab) = u0e(ievab) + basis(inode) * u0_cond(inode) * dvol
+          !u0e(ievab) = u0e(ievab) + basis(inode) * u0_cond * dvol
         end do
       end do
+      
+    end subroutine Galerkin_Init_Cond
 
-    end subroutine Galerkin_prevTime
-
-
-
+    
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
       !***************************************************************************
@@ -802,9 +806,6 @@ module library
       implicit none
 
       integer :: iband, ielem, inode, ipoin, jnode, jpoin, nband       ! , C, D
-      !integer :: i,j,k
-      !real, allocatable, dimension(:) :: A, B, BB
-      !real, allocatable :: AA(:,:)
 
       iband=0
       do ielem =1, nelem
@@ -828,75 +829,7 @@ module library
       upban  = nband
       lowban = nband
       totban = lowban + upban + 1
-      ldAKban= 2*lowban + upban + 1
-
-      !AA = diag([(0.5*i+1*0.851,i=1,10)]) ! creates a 10 by 10 identity matrix
-
-      !do k =1,10
-      !  write(*,"(10(1x,f10.2))") (AA(k,j),j=1,10)
-      !end do
-      !allocate(BB(size(AA,1)))
-      !allocate(A(size(conma,1)))
-      !allocate(B(size(reama,1)))
-
-      !BB = diag(AA)
-      !A = diag(conma(ndofn,ndofn,1))
-      !B = diag(reama)
-      !select case(ndofn)
-      !
-      !case(1)
-      !  C = abs(sum(conma))
-      !  D = abs(sum(reama))
-      !  if((C.EQ.0) .OR. (D.EQ.0))then
-      !    write(*,*) '-Global Matrix is symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  else
-      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  endif
-      !
-      !case(2)
-      !  C = abs(sum(conma))
-      !  D = abs(sum(reama))
-      !  if((C.EQ.0) .OR. (D.EQ.0))then
-      !    write(*,*) '-Global Matrix is symmetric'
-      !    upban  = nband
-      !    lowban = 0
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  else
-      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  endif
-      !
-      !case(3)
-      !  C = abs(sum(conma) )
-      !  D = abs(sum(reama) )
-      !  if((C.EQ.0) .OR. (D.EQ.0))then
-      !    write(*,*) '-Global Matrix is symmetric'
-      !    upban  = nband
-      !    lowban = 0
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  else
-      !    write(*,*) '-Global Matrix is structural-or-non symmetric'
-      !    upban  = nband
-      !    lowban = nband
-      !    totban = lowban + upban + 1
-      !    ldAKban= 2*lowban + upban + 1
-      !  endif
-      !
-      !end select
-      
+      ldAKban= 2*lowban + upban + 1   
       
       write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
@@ -963,8 +896,7 @@ module library
       
     end subroutine TimeLevels
     
-
-    subroutine GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta,  delta_t, ugl_pre ,A_K, A_C, A_F)
+    subroutine TimeContribution(N, dN_dxi, dN_deta, Hesxieta, delta_t, ugl_pre, A_F)
       
       implicit none
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
@@ -974,27 +906,24 @@ module library
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
-      double precision, dimension(nevab, nevab) :: Ke, Ce
+      double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
       double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
       double precision, dimension(3,3)          :: tauma
       real, dimension(nne,DimPr)                :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ, delta_t
       integer                                   :: igaus, ibase, ielem
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_F
       
-      allocate( A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
-      !allocate(ugl_pre(S_ldSol,1) )
+      allocate(A_F(ntotv, 1) )
       
-      A_K = 0.0
       A_F = 0.0
-      A_C = 0.0
       do ielem = 1, nelem 
         Ke = 0.0; Fe = 0.0; Ce = 0.0
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
+
         call gather(nodeIDmap, ugl_pre, ue_pre)
         time_cont = ue_pre * 1.0/delta_t
-        
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
           Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
@@ -1008,21 +937,27 @@ module library
           end do
           call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           call TauMat(hmaxi,tauma)
-          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
-          Fe_time = Fe + matmul(Ce,time_cont)
+          
+          select case(theta)
+            case(2)
+              Fe_time = Fe + matmul(Ce,time_cont)
+            case(3)
+              rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
+              Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+          end select
+
+          !Fe_time = Fe + matmul(Ce,time_cont)
         end do
-                
-        call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
-        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
+        
         call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
         
       end do
       
-    end subroutine GlobalSystem_Time
+    end subroutine TimeContribution
     
     
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_F)
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F)
       
       implicit none
       
@@ -1039,9 +974,9 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
       integer                                   :: igaus, ibase, ielem
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_F
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
-      allocate( A_K(ldAKban,ntotv), A_F(ntotv, 1) )
+      allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
       
       !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
@@ -1069,6 +1004,7 @@ module library
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
         end do
         
+        call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
         
@@ -1093,66 +1029,6 @@ module library
       double precision, intent(in out) :: A_K(ldAKban,ntotv)
      !                                        ldAKban= 2*lowban + upban + 1
      !                                          totban = lowban + upban + 1
-      !if(lowban.EQ.0)then
-      !  write(*,*) 'Symmetric case'
-      !  do inode=1,nne    !nne = number of node in the element
-      !    ipoin=lnods(inode)
-      !    !print*,'ipoin',ipoin
-      !    do idofn=1,ndofn
-      !      ievab=(inode-1)*ndofn+idofn
-      !      itotv=(ipoin-1)*ndofn+idofn
-      !      do jnode=1,nne
-      !        jpoin=lnods(jnode)
-      !        do jdofn=1,ndofn
-      !          jevab=(jnode-1)*ndofn+jdofn
-      !          jtotv=(jpoin-1)*ndofn+jdofn
-
-      !          jband=jtotv-itotv+1   !   ------> Original de retpla
-      !          if (jband.ge.1)then
-      !          A_K(jband,itotv)=A_K(jband,itotv) +Ke(ievab,jevab)
-      !          endif
-      !        end do
-      !      end do
-      !    end do
-      !  end do
-      !  !Reorder the global band matrix into LAPACK format
-      !  !i=0
-      !  !do k = nband+1, 1,-1
-      !  !  i = i+1
-      !  !  j = 1
-      !  !  do l = ntotv,1,-1
-      !  !    A_K(i,j) = A_K(k,l)
-      !  !    j=j+1
-      !  !  end do
-      !  !end do
-      !else
-      !  !Non or structural symmetric case
-      !  do inode=1,nne    !nne = number of node in the element
-      !    ipoin=lnods(inode)
-      !    !print*,'ipoin',ipoin
-      !    do idofn=1,ndofn
-      !      ievab=(inode-1)*ndofn+idofn
-      !      itotv=(ipoin-1)*ndofn+idofn
-      !      do jnode=1,nne
-      !        jpoin=lnods(jnode)
-      !        do jdofn=1,ndofn
-      !          jevab=(jnode-1)*ndofn+jdofn
-      !          jtotv=(jpoin-1)*ndofn+jdofn
-
-      !          !jband=jtotv-itotv+1      ------> Original de retpla
-      !          !A_K(jband,itotv)=A_K(jband,itotv) + ...
-
-      !          !jband= upban +1 +itotv-jtotv    !Algoritmo de recuperacion para LAPACK
-      !          jband = itotv-jtotv + totban
-      !          if (jband.ge.1)then
-      !            A_K(jband,jtotv)=A_K(jband,jtotv)+Ke(ievab,jevab)
-      !          endif
-      !        end do
-      !      end do
-      !    end do
-      !  end do
-      !endif
-
       do inode=1,nne    !nne = number of node in the element
         ipoin=lnods(inode)
         !print*,'ipoin',ipoin
@@ -1280,7 +1156,7 @@ module library
         call xerbla( routine_name, num )
         print*, ' ~ ~ ~ Stopping the execution'
         print*, ' '
-        !stop
+        stop
       endif
       print*, ' '
 
