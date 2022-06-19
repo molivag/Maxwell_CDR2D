@@ -9,7 +9,7 @@ module param
   integer           :: DimPr, nelem, nnodes, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   real              :: hnatu, patau, time_ini, time_fin, u0cond
   integer,          allocatable, dimension(:,:)     :: lnods
-  real,             allocatable, dimension(:,:)     :: coord
+  double precision, allocatable, dimension(:,:)     :: coord
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -17,17 +17,17 @@ module param
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
   double precision, allocatable, dimension(:)       :: force !Force vector 
   
-  character(len=19), parameter :: File_PostMsh  = 'CDR_test.post.msh'
-  character(len=19), parameter :: File_PostRes  = 'CDR_test.post.res'
+  character(len=29), parameter :: File_PostMsh  = 'Maxwell_augmented.post.msh'
+  character(len=29), parameter :: File_PostRes  = 'Maxwell_augmented.post.res'
   
   contains
     
     subroutine inputData( ) 
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-      !
-      ! subrutina que lee todos los parametros de entrada para la simulacion, 
-      ! la geometria, lista de nodos, coordenadas y parametros de estabilizacion
-      !
+      !                                                                                   !
+      ! subrutina que lee todos los parametros de entrada para la simulacion,             !
+      ! la geometria, lista de nodos, coordenadas y parametros de estabilizacion          !
+      !                                                                                   !
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
@@ -52,7 +52,8 @@ module param
       force = 0.0
       
       if(ndofn.eq.1)then
-        read(5,101) difma(1,1,1,1), difma(1,1,1,2), difma(1,1,2,2)
+        read(5,101) difma(1,1,1,1), difma(1,1,1,2)
+        read(5,101) difma(1,1,2,1), difma(1,1,2,2)
        
         read(5,101) conma(1,1,1)
         read(5,101) conma(1,1,2)
@@ -64,6 +65,7 @@ module param
       elseif(ndofn.eq.2) then
         read(5,102) difma(1,1,1,1), difma(1,2,1,1), difma(2,1,1,1),difma(2,2,1,1)
         read(5,102) difma(1,1,1,2), difma(1,2,1,2), difma(2,1,1,2),difma(2,2,1,2)
+        read(5,102) difma(1,1,2,1), difma(1,2,2,1), difma(2,1,2,1),difma(2,2,2,1)
         read(5,102) difma(1,1,2,2), difma(1,2,2,2), difma(2,1,2,2),difma(2,2,2,2)
         
         read(5,102) conma(1,1,1), conma(1,2,1), conma(2,1,1), conma(2,2,1)
@@ -83,6 +85,10 @@ module param
         difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
         difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2), &
         difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
+        read(5,103) &
+        difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
+        difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1), &
+        difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
         read(5,103) &
         difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
         difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2), &
@@ -126,25 +132,7 @@ module param
       nevab = ndofn*nne   
       ntotv = ndofn*nnodes
       
-      if(ndofn.eq.1)then
-        difma(1,1,2,1) = difma(1,1,1,2)
-      elseif(ndofn.eq.2)then
-        difma(1,1,2,1) = difma(1,1,1,2)
-        difma(1,2,2,1) = difma(2,1,1,2)
-        difma(2,1,2,1) = difma(1,2,1,2)
-        difma(2,2,2,1) = difma(2,2,1,2)
-      elseif(ndofn.eq.3) then
-        difma(1,3,2,1) = difma(3,1,1,2)
-        difma(2,3,2,1) = difma(3,2,1,2)
-        difma(3,1,2,1) = difma(1,3,1,2)
-        difma(3,2,2,1) = difma(2,3,1,2)
-        difma(3,3,2,1) = difma(3,3,1,2)
-      end if
-      
-      
-      !100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,f7.2,/, 11x,f7.2,/, 11x, I3,/ 11x, f7.2,&
-      !&         2/, 2(11x,I5,/),11x,f7.2,/,11x,F7.2,2/)    !esta linea es de input: stabilization
-      
+
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
       &         2/, 2(11x,I5,/),2(11x,F7.2,/),/)    !esta linea es de input: stabilization
       101 format(1/,F12.5,2/)
@@ -154,36 +142,36 @@ module param
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,e15.5,e15.5,e15.5,2/) 
       
-      ! print*, ' '
-      ! print*, 'Diffusion matrix'
-      ! do i = 1,dimPr
-      !   do j = 1,DimPr
-      !     print"(A,2I1)", 'k_',i,j
-      !     do k = 1,ndofn
-      !       print"(F10.3,1x,F10.3, 1x, F10.3)",( difma(k,l,i,j), l=1,ndofn)
-      !     end do
-      !     print*,' '
-      !   end do
-      ! end do
-      ! print*, ' '  
-      ! print*, 'Convection matrix'
-      ! do k = 1, DimPr
-      !   print"(A,2I1)",'A_',k
-      !   do i = 1, ndofn
-      !     write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-      !   end do
-      !   print*,' '
-      ! end do
-      ! print*,'Reaction'
-      ! do i=1,ndofn
-      !   write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      ! end do
-      !   print*,' '
-      ! print*,'force'
-      ! do i =1, ndofn
-      !   print"(f10.3)", force(i)
-      ! end do
-      ! print*, ' '
+      print*, ' '
+      print*, 'Diffusion matrix'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(F10.5,1x,F10.5, 1x, F10.5)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection matrix'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+        print*,' '
+      end do
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
+      end do
+        print*,' '
+      print*,'force'
+      do i =1, ndofn
+        print"(f10.5)", force(i)
+      end do
+      print*, ' '
       
     end subroutine inputData
     
