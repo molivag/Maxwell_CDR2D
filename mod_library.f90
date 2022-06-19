@@ -924,6 +924,11 @@ module library
         
       end do
       
+      ! print*,'!=============== Output Files ================!'
+      ! call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
+      ! call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
+      
+
       
     end subroutine GlobalSystem
     
@@ -1351,7 +1356,7 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
-        print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
+        print"(A6,A26,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
     
       elseif(activity == "res")then
         write(555,"(A)") 'GiD Post Results File 1.0'
@@ -1406,7 +1411,7 @@ module library
               ii=ii+1
             end do
             write(555,"(A)") 'End Values'
-            print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
+            print"(A6,A26,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
         end select
       
         close(555)
@@ -1536,7 +1541,7 @@ module library
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
       if(interval == time_final) then
         print*, ' '
-        print"(1x, A19,A30)", FileName, 'written succesfully in Pos/ '
+        print"(1x, A26,A30)", FileName, 'written succesfully in Pos/ '
       endif
       
       
