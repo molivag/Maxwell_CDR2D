@@ -17,8 +17,8 @@ module param
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
   double precision, allocatable, dimension(:)       :: force !Force vector 
   
-  character(len=29), parameter :: File_PostMsh  = 'Maxwell_augmented.post.msh'
-  character(len=29), parameter :: File_PostRes  = 'Maxwell_augmented.post.res'
+  character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
+  character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
   
   contains
     
