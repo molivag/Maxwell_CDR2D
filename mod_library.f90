@@ -349,12 +349,6 @@ module library
     end subroutine gather
 
 
-
-
-
-
-
-
     function elemSize(InvJacobian)
       implicit none
 
@@ -475,7 +469,7 @@ module library
         end do
         pertu=prod1
         
-        ! Galerkin least squares
+        ! galerkin least squares
       else if(kstab.eq.2) then
         prod1=0.0
         do k=1,2
@@ -490,7 +484,7 @@ module library
         prod3=reama(jdofn,idofn)*basis
         pertu=-prod2+prod1+prod3
         
-        ! Subgrid scale & Taylor Galerkin
+        ! subgrid scale & taylor galerkin
       else if((kstab.eq.3).or.(kstab.eq.5)) then
         prod1=0.0
         do k=1,2
@@ -505,7 +499,7 @@ module library
         prod3=reama(idofn,jdofn)*basis
         pertu=prod2+prod1-prod3
         
-        ! Characteristic Galerkin
+        ! characteristic galerkin
       else if(kstab.eq.4) then
         prod1=0.0
         if(idofn.eq.jdofn) then
@@ -518,6 +512,122 @@ module library
       
     end subroutine pertur
         
+    subroutine TauMat(hmaxi,tauma)
+      !
+      !     Matrix of intrinsic time scales, computed as
+      !     TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
+
+      implicit none
+
+      double precision, intent(in) :: hmaxi
+      integer :: i, j, k
+      !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
+      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
+      double precision :: a, b, c, tau, det            !hnatu -> declarado en parameters
+      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
+
+      !v_ini = 0.0
+      !call initia(tauma,9,v_ini)
+      tauma = 0.0
+      if(kstab.eq.0) return
+      tauin = 0.0
+      chaco = 0.0
+      chadi = 0.0
+
+      !  Characteristic convection matrix: A = sqrt | A_i A_i |
+      do i=1,ndofn
+        do j=1,ndofn
+          chaco(i,j)=0.0
+          do k=1,ndofn
+            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
+          end do
+        end do
+      end do
+      call sqrtma(chaco,chaco)
+      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
+      do i=1,ndofn
+        do j=1,ndofn
+          chadi(i,j)=0.0
+          do k=1,ndofn
+            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
+              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,2)*difma(k,j,2,2)
+          end do
+        end do
+      end do
+      
+      call sqrtma(chadi,chadi)
+      
+      !  Characteristic reaction matrix: S = | S |
+      do i=1,ndofn
+        do j=1,ndofn
+          chare(i,j)=0.0
+          do k=1,ndofn
+            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
+          end do
+        end do
+      end do
+      call sqrtma(chare,chare)
+      
+      ! Invers of the matrix of characteristic times
+      do i=1,ndofn
+        do j=1,ndofn
+          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
+        end do
+      end do
+
+      !  Matrix tau, corresponding to:
+      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
+      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
+
+      if(ktaum.eq.0) then
+        tau = 0.0
+        do i=1,ndofn
+          do j=1,ndofn
+            tau = max(tau,abs(tauin(i,j)))
+          end do
+        end do
+        tau = patau/tau
+        do i=1,ndofn
+          tauma(i,i) = tau
+        end do
+
+      else if(ktaum.eq.1) then
+        a = 0.0
+        b = 0.0
+        c = 0.0
+        do j=1,ndofn
+          a = max(a,abs(tauin(    1,j)))
+          b = max(b,abs(tauin(    2,j)))
+          c = max(c,abs(tauin(ndofn,j)))
+        end do
+        a = patau/a
+        b = patau/b
+        c = patau/c
+        tauma(    1,    1) = a
+        tauma(    2,    2) = b
+        tauma(ndofn,ndofn) = c
+
+      else if(ktaum.eq.2) then
+        call invmtx(tauin,det,tauma)
+        do i = 1,ndofn
+          do j = 1,ndofn
+            tauma(i,j) = tauma(i,j)*patau
+          end do
+        end do
+        tauma(ndofn,ndofn) = 0.0
+
+      else if(ktaum.eq.3) then
+        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        tauma(1,1) = a
+        tauma(2,2) = a
+        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
+        tauma(3,3) = a
+      end if
+
+    end subroutine TauMat
+
     subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
 
@@ -599,129 +709,9 @@ module library
 
     end subroutine Stabilization
 
-    subroutine TauMat(hmaxi,tauma)
-      !
-      !     Matrix of intrinsic time scales, computed as
-      !
-      !     TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
 
-      implicit none
 
-      double precision, intent(in) :: hmaxi
-      integer :: i, j, k
-      !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
-      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-      double precision :: a, b, c, tau, det            !hnatu -> declarado en parameters
-      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
-
-      !common/numert/hnatu,patau,ksoty,kprec,kstab,ktaum
-      !common/proper/difma,conma,reama,force
-
-      !v_ini = 0.0
-      !call initia(tauma,9,v_ini)
-      tauma = 0.0
-      if(kstab.eq.0) return
-      !call initia(tauin,9,v_ini)
-      !call initia(chaco,9,v_ini)
-      !call initia(chadi,9,v_ini)
-      tauin = 0.0
-      chaco = 0.0
-      chadi = 0.0
-
-      !  Characteristic convection matrix: A = sqrt | A_i A_i |
-      do i=1,ndofn
-        do j=1,ndofn
-          chaco(i,j)=0.0
-          do k=1,ndofn
-            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
-          end do
-        end do
-      end do
-      call sqrtma(chaco,chaco)
-
-      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
-      do i=1,ndofn
-        do j=1,ndofn
-          chadi(i,j)=0.0
-          do k=1,ndofn
-            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
-              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,2)*difma(k,j,2,2)
-          end do
-        end do
-      end do
-
-      call sqrtma(chadi,chadi)
-
-      !  Characteristic reaction matrix: S = | S |
-      do i=1,ndofn
-        do j=1,ndofn
-          chare(i,j)=0.0
-          do k=1,ndofn
-            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
-          end do
-        end do
-      end do
-      call sqrtma(chare,chare)
-
-      ! Invers of the matrix of characteristic times
-      do i=1,ndofn
-        do j=1,ndofn
-          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
-        end do
-      end do
-
-      !  Matrix tau, corresponding to:
-      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
-      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
-
-      if(ktaum.eq.0) then
-        tau = 0.0
-        do i=1,ndofn
-          do j=1,ndofn
-            tau = max(tau,abs(tauin(i,j)))
-          end do
-        end do
-        tau = patau/tau
-        do i=1,ndofn
-          tauma(i,i) = tau
-        end do
-
-      else if(ktaum.eq.1) then
-        a = 0.0
-        b = 0.0
-        c = 0.0
-        do j=1,ndofn
-          a = max(a,abs(tauin(    1,j)))
-          b = max(b,abs(tauin(    2,j)))
-          c = max(c,abs(tauin(ndofn,j)))
-        end do
-        a = patau/a
-        b = patau/b
-        c = patau/c
-        tauma(    1,    1) = a
-        tauma(    2,    2) = b
-        tauma(ndofn,ndofn) = c
-
-      else if(ktaum.eq.2) then
-        call invmtx(tauin,det,tauma)
-        do i = 1,ndofn
-          do j = 1,ndofn
-            tauma(i,j) = tauma(i,j)*patau
-          end do
-        end do
-        tauma(ndofn,ndofn) = 0.0
-
-      else if(ktaum.eq.3) then
-        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-        tauma(1,1) = a
-        tauma(2,2) = a
-        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
-        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
-        tauma(3,3) = a
-      end if
-
-    end subroutine TauMat
+  
 
     subroutine VinculBVs(  BVs, nofix, ifpre, presc )
 
