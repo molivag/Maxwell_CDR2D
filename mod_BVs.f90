@@ -117,34 +117,34 @@ module BoundVal
           
           if(y.eq.ymax) then 
             if(x.eq.xmax)then!            ux       uy        p 
-              write(100,50) i, 1, 1, 0, real(1), real(0), real(0)       !right top corner
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !right top corner
             elseif(x.eq.xmin)then                               
-              write(100,50) i, 1, 1, 0, real(1), real(0), real(0)       !left top corner
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !left top corner
             else
-              write(100,50) i, 1, 1, 0, real(1), real(0), real(0)       !top edge 
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !top edge 
             end if
             
             if(x.eq.xhalf)then
-              write(100,50) i, 1, 1, 1, real(1), real(0), real(0)       !half top edge
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !half top edge
             end if
             a = a+3
             
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    
-              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !left bottom corner
-            elseif(x.eq.xmax)then                               
-              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !right bottom corner  
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !left bottom corner
+            elseif(x.eq.xmax)then                              
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !right bottom corner  
             else
-              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !botomm edge 
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !botomm edge 
             end if
             b = b+3
             
           else if(x.eq.xmax)then                                 
-              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !right edge
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !right edge
             d = d+3
             
           else if (x.eq.xmin)then                                
-              write(100,50) i, 1, 1, 0, real(0), real(0), real(0)       !left edge 
+              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !left edge 
             c = c+3
            
           end if
