@@ -66,7 +66,7 @@ module biunit
             write(*,*) 'Invalid number of Gauss poooints for this element'   
             stop
           end if
-        case('Triangle') 
+        case("Triangle") 
           if(totGp.eq.1) then
             ngaus(1,1) = 1.0/3.0
             ngaus(1,2) = 1.0/3.0
@@ -126,7 +126,8 @@ module biunit
             stop
           end if
         case DEFAULT
-          write(*,*) 'Invalid type of element.'   
+          print*, 'En GaussQuadrature'
+          write(*,*) 'Invalid type of element.'
           stop
       end select
       
@@ -304,7 +305,7 @@ module biunit
             stop
           end select
           
-        CASE ('Triangle')
+        CASE ("Triangle")
           !  |
           !  |        o
           !  |       / \
@@ -396,6 +397,7 @@ module biunit
           end if
          
         case DEFAULT
+          print*, 'En ShapeFucntions'
           write(*,*) 'Invalid type of element.'   
           stop
       end select
