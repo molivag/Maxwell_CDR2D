@@ -366,11 +366,11 @@ module library
 
     end function elemsize
 
-    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, Fe)
+    subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
 
       implicit none
 
-      double precision, intent(in) :: basis(nne), dNdxy(DimPr,nne)
+      double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty
@@ -399,11 +399,141 @@ module library
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
             end do
           end do
-          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
+          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * source(idofn) * dvol
+          !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
 
     end subroutine Galerkin
+
+    subroutine source_term_orig(element_nodes, source)
+     !         source_term(idofn, source)
+      implicit none
+
+      !***********************************************************!
+      !The source term is given by:                               !
+      !                                                           !
+      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+      ! where:                                                    !
+      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               !
+      !                                                           !
+      !***********************************************************!
+    
+      !integer, intent(in) :: ievab
+      integer :: i, j
+      real    :: n
+      real, dimension(nne,DimPr), intent(in)        :: element_nodes
+      double precision, allocatable, dimension(:,:) :: r_coor, theta_coor, x_coor, y_coor
+      double precision, dimension(nevab,1), intent(out)  :: source
+
+      if(idofn.eq.3)goto 101
+
+      allocate(r_coor(nne,1), theta_coor(nne,1))
+      allocate(x_coor(nne,1), y_coor(nne,1))
+      
+      do j= 1, 3
+        do i =1, nne
+          print*, element_nodes(i,j)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
+        end do
+      end do
+
+
+      do i =1, nne
+        x_coor(i,1) = element_nodes(i,2)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
+        y_coor(i,1) = element_nodes(i,3)!A NODEIMAP
+      end do
+
+      !ESTAS VARIABLES QUEDARIAN DE 4X4
+      r_coor = sqrt(x_coor**2 + y_coor**2) 
+      theta_coor = atan(y_coor/x_coor)
+
+     
+
+      !Si se construye el vector global F elemento a elemento (elemental)
+      if(idofn.eq.1)then
+        source = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
+      else
+        source = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
+      end if
+
+      !Si se construye el vector global F directamente (sin proyección elemental)
+      ! i = 1
+      ! do j =1, ndofn - 3
+      !     source(i,1) = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
+      !     source(i+1,1) = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
+      !     source(i+2,1) = A_F(j*3,1)
+      !     i=i+3
+      ! end do
+
+
+      101 continue
+    
+    end subroutine source_term_orig
+
+    subroutine source_term(igaus, source)
+     !         source_term(idofn, source)
+      implicit none
+
+      !***********************************************************!
+      !The source term is given by:                               !
+      !                                                           !
+      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+      ! where:                                                    !
+      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               !
+      !                                                           !
+      !***********************************************************!
+    
+      !integer, intent(in) :: ievab
+      integer, intent(in) :: igaus
+      real    :: n
+      real, dimension(nne,DimPr), intent(in)        :: element_nodes
+      double precision, dimension(totGp) :: x_coor, y_coor
+      double precision, dimension(totGp) :: x, y
+      double precision, dimension(ndofn,1), intent(out)  :: source
+
+
+      x_coor = ngaus(:,1)
+      y_coor = ngaus(:,2)
+
+      x = x_coor(igaus)                      ! xi-coordinate of point j 
+      y = y_coor(igaus)                    ! eta-coordinate of point j 
+    
+      !terms for derivatives
+      n  = 1.0
+      aa = (2.0*n**2)/27.0
+      bb = (2.0*n)/27.0
+      cc = x**2(4.0*n + 3.0) - y**2.0(n+3.0)
+      dd = atan(x/y)
+      ee = sin(2.0*n/3.0 * dd)
+      ff = cos(2.0*n/3.0 * dd)
+      gg = (x**2 + y**2)
+      exp_1 = -(2.0 + n/6.0)
+      exp_2 = n/3.0 - 5.0/2.0
+     
+      !Derivatives in x-direction
+      dey_dydx = bb * gg**exp_2 ( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n (n-3.0)*gg * ee )  
+      dex_dy2  = aa * gg**exp_1 ( cc * ee - 4*x*y*(n+3.0) * ff )
+      dex_dx2  = aa * gg**exp_1 ( cc * ee - 4*x*y*(n+3.0) * ff )
+      dey_dxdy = bb * gg**exp_2 ( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n (n-3.0)*gg * ee   
+
+      !Derivatives in y-direction
+      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * (2.0*n**2 - 9.0*n + 9.0) + y**2 * (-4.0*n**2 +6.0*n -9.0))*ff - 8.0*n*x*y*(n-3.0)* ee )
+      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
+      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
+      dey_dy2  = -bb * gg**exp_2 * ( (x**2 * (4.0*n**2 - 6.0*n + 9.0) - 2.0*y**2 * (2.0*n**2 -9.0*n + 9.0))*ff - 8.0*n*x*y*(n-3.0)* ee  
+
+      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 + 0.000025 * (dex_dx2 + dey_dxdy )
+
+      source(2) = -1.0*dey_dx2 + 1.0*dex_dxdy + 0.000025 * (dex_dydx + dey_dy2  
+
+      source(3) = force(3)
+    
+    end subroutine source_term
+
+
+
+
+
 
 
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
@@ -867,6 +997,7 @@ module library
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(ndofn)        :: source
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -880,7 +1011,7 @@ module library
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
-      allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
+      allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
       
       !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
@@ -902,7 +1033,9 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
+          call source_term(igaus, source)
+          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
+          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
@@ -911,7 +1044,8 @@ module library
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
-        
+
+
       end do
       
       ! print*,'!=============== Output Files ================!'
@@ -1392,7 +1526,7 @@ module library
             write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
             write(555,"(A)") 'ComponentNames "" '
             write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             P '
+            write(555,*) '#',   'No    ','             p '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(555,914)
             ii=1
@@ -1478,7 +1612,7 @@ module library
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux '
+            write(200,*) '#',   'No    ','             Ex '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(200,914)
             do ipoin = 1, nnodes
@@ -1492,7 +1626,7 @@ module library
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux ','               uy '
+            write(200,*) '#',   'No    ','             Ex ','               Ey '
             do ipoin = 1, nnodes
               write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
@@ -1501,7 +1635,7 @@ module library
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux ','               uy'
+            write(200,*) '#',   'No    ','             Ex ','               Ey'
            ! do ipoin = 1, nnodes
            !   write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
            ! end do
@@ -1512,7 +1646,7 @@ module library
             write(200,"(A22, I3, A)") 'Result "P" "Preassure"', step_value,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','     P '
+            write(200,*) '#',   'No    ','     p '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(200,914)
             ii=1
