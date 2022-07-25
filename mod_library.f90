@@ -492,7 +492,7 @@ module library
       double precision, dimension(totGp) :: x_coor, y_coor
       !double precision, dimension(totGp) :: x, y
       real    :: n
-      integer :: i
+      !integer :: i
       double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
       double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, exp_1, exp_2
       double precision, dimension(ndofn), intent(out)  :: source
@@ -764,7 +764,7 @@ module library
 
     end subroutine TauMat
 
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe)
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,source,tauma,Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
 
       ! Contribution to the system matrix and RHS from the stabilization term
@@ -772,7 +772,7 @@ module library
       implicit none
 
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), hesxy(3,nne), tauma(3,3)
-      double precision, intent(in)  :: dvolu
+      double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
       double precision              :: prod1, prod2, prod3
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
@@ -836,7 +836,7 @@ module library
           prod1=0.0
           do k=1,ndofn
             do l=1,ndofn
-              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l)
+              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l) * source(l)
             end do
           end do
           Fe(ievab) = Fe(ievab) + prod1 * dvolu
@@ -979,8 +979,8 @@ module library
           call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
-          
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, source, Ke, Fe)
+
           select case(theta)
             case(2)
               Fe_time = Fe + matmul(Ce,time_cont)
@@ -1046,7 +1046,7 @@ module library
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, source, Ke, Fe)
           stop
         end do
         
