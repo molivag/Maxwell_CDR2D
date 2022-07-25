@@ -305,18 +305,17 @@ module biunit
             stop
           end select
           
-        CASE ("Triangle")
-          !  |
-          !  |        o
-          !  |       / \
-          !  |      /   \
-          !  Y     /     \
-          !  |    /       \
-          !  |   o---------o
-          !  |
-          !  +--------X-------->
-          
+        CASE ("Triangle")      
           if(Nne .EQ. 3) then
+            !  |
+            !  |        o
+            !  |       / \
+            !  |      /   \
+            !  Y     /     \
+            !  |    /       \
+            !  |   o---------o
+            !  |
+            !  +--------X-------->
             if (present(dN_dxi) .and. present(dN_deta))then
               !write(*,*) 'Using derivatives of shape functions', Nne
               allocate(dN_dxi(Nne,totGp) )
@@ -348,6 +347,16 @@ module biunit
               N(3,j) = eta
             end do
           elseif(Nne .EQ. 6) then
+            !  |
+            !  |        o
+            !  |       / \
+            !  |      /   \
+            !  Y     o     o
+            !  |    /       \
+            !  |   /         \
+            !  |  o-----o-----o
+            !  |
+            !  +--------X-------->
             if (present(dN_dxi) .and. present(dN_deta))then
               allocate(dN_dxi(Nne,totGp) )
               allocate(dN_deta(Nne,totGp) )
