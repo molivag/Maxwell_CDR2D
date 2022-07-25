@@ -406,69 +406,69 @@ module library
 
     end subroutine Galerkin
 
-    subroutine source_term_orig(element_nodes, source)
-     !         source_term(idofn, source)
-      implicit none
+    ! subroutine source_term_orig(element_nodes, source)
+    !  !         source_term(idofn, source)
+    !   implicit none
 
-      !***********************************************************!
-      !The source term is given by:                               !
-      !                                                           !
-      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
-      ! where:                                                    !
-      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               !
-      !                                                           !
-      !***********************************************************!
+    !   !***********************************************************!
+    !   !The source term is given by:                               !
+    !   !                                                           !
+    !   !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+    !   ! where:                                                    !
+    !   ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               !
+    !   !                                                           !
+    !   !***********************************************************!
     
-      !integer, intent(in) :: ievab
-      integer :: i, j
-      real    :: n
-      real, dimension(nne,DimPr), intent(in)        :: element_nodes
-      double precision, allocatable, dimension(:,:) :: r_coor, theta_coor, x_coor, y_coor
-      double precision, dimension(nevab,1), intent(out)  :: source
+    !   !integer, intent(in) :: ievab
+    !   integer :: i, j
+    !   real    :: n
+    !   real, dimension(nne,DimPr), intent(in)        :: element_nodes
+    !   double precision, allocatable, dimension(:,:) :: r_coor, theta_coor, x_coor, y_coor
+    !   double precision, dimension(nevab,1), intent(out)  :: source
 
-      if(idofn.eq.3)goto 101
+    !   if(idofn.eq.3)goto 101
 
-      allocate(r_coor(nne,1), theta_coor(nne,1))
-      allocate(x_coor(nne,1), y_coor(nne,1))
+    !   allocate(r_coor(nne,1), theta_coor(nne,1))
+    !   allocate(x_coor(nne,1), y_coor(nne,1))
       
-      do j= 1, 3
-        do i =1, nne
-          print*, element_nodes(i,j)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
-        end do
-      end do
+    !   do j= 1, 3
+    !     do i =1, nne
+    !       print*, element_nodes(i,j)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
+    !     end do
+    !   end do
 
 
-      do i =1, nne
-        x_coor(i,1) = element_nodes(i,2)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
-        y_coor(i,1) = element_nodes(i,3)!A NODEIMAP
-      end do
+    !   do i =1, nne
+    !     x_coor(i,1) = element_nodes(i,2)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
+    !     y_coor(i,1) = element_nodes(i,3)!A NODEIMAP
+    !   end do
 
-      !ESTAS VARIABLES QUEDARIAN DE 4X4
-      r_coor = sqrt(x_coor**2 + y_coor**2) 
-      theta_coor = atan(y_coor/x_coor)
+    !   !ESTAS VARIABLES QUEDARIAN DE 4X4
+    !   r_coor = sqrt(x_coor**2 + y_coor**2) 
+    !   theta_coor = atan(y_coor/x_coor)
 
      
 
-      !Si se construye el vector global F elemento a elemento (elemental)
-      if(idofn.eq.1)then
-        source = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
-      else
-        source = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
-      end if
+    !   !Si se construye el vector global F elemento a elemento (elemental)
+    !   if(idofn.eq.1)then
+    !     source = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
+    !   else
+    !     source = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
+    !   end if
 
-      !Si se construye el vector global F directamente (sin proyección elemental)
-      ! i = 1
-      ! do j =1, ndofn - 3
-      !     source(i,1) = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
-      !     source(i+1,1) = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
-      !     source(i+2,1) = A_F(j*3,1)
-      !     i=i+3
-      ! end do
+    !   !Si se construye el vector global F directamente (sin proyección elemental)
+    !   ! i = 1
+    !   ! do j =1, ndofn - 3
+    !   !     source(i,1) = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
+    !   !     source(i+1,1) = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
+    !   !     source(i+2,1) = A_F(j*3,1)
+    !   !     i=i+3
+    !   ! end do
 
 
-      101 continue
+    !   101 continue
     
-    end subroutine source_term_orig
+    ! end subroutine source_term_orig
 
     subroutine source_term(igaus, source)
      !         source_term(idofn, source)
@@ -479,17 +479,23 @@ module library
       !                                                           !
       !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
       ! where:                                                    !
-      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               !
+      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
+      !                                                           !
+      ! and                                                       !
+      !                                                           !
+      !   f = Lu       ;   where L is the diferential operator    !
       !                                                           !
       !***********************************************************!
     
       !integer, intent(in) :: ievab
       integer, intent(in) :: igaus
-      real    :: n
-      real, dimension(nne,DimPr), intent(in)        :: element_nodes
       double precision, dimension(totGp) :: x_coor, y_coor
-      double precision, dimension(totGp) :: x, y
-      double precision, dimension(ndofn,1), intent(out)  :: source
+      !double precision, dimension(totGp) :: x, y
+      real    :: n
+      integer :: i
+      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
+      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, exp_1, exp_2
+      double precision, dimension(ndofn), intent(out)  :: source
 
 
       x_coor = ngaus(:,1)
@@ -502,38 +508,38 @@ module library
       n  = 1.0
       aa = (2.0*n**2)/27.0
       bb = (2.0*n)/27.0
-      cc = x**2(4.0*n + 3.0) - y**2.0(n+3.0)
+      cc = x**2*(4.0*n + 3.0) - y**2.0*(n+3.0)
       dd = atan(x/y)
       ee = sin(2.0*n/3.0 * dd)
       ff = cos(2.0*n/3.0 * dd)
       gg = (x**2 + y**2)
       exp_1 = -(2.0 + n/6.0)
       exp_2 = n/3.0 - 5.0/2.0
-     
+      hh = (2.0*n**2 - 9.0*n + 9.0)
+      ii = (4.0*n**2 - 6.0*n + 9.0)
+
       !Derivatives in x-direction
-      dey_dydx = bb * gg**exp_2 ( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n (n-3.0)*gg * ee )  
-      dex_dy2  = aa * gg**exp_1 ( cc * ee - 4*x*y*(n+3.0) * ff )
-      dex_dx2  = aa * gg**exp_1 ( cc * ee - 4*x*y*(n+3.0) * ff )
-      dey_dxdy = bb * gg**exp_2 ( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n (n-3.0)*gg * ee   
+      dey_dydx = bb * gg**exp_2 *( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )  
+      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff )
+      dex_dx2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff )
+      dey_dxdy = bb * gg**exp_2 *( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )
 
       !Derivatives in y-direction
-      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * (2.0*n**2 - 9.0*n + 9.0) + y**2 * (-4.0*n**2 +6.0*n -9.0))*ff - 8.0*n*x*y*(n-3.0)* ee )
+      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - 8.0*n*x*y*(n-3.0)* ee )
       dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
       dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
-      dey_dy2  = -bb * gg**exp_2 * ( (x**2 * (4.0*n**2 - 6.0*n + 9.0) - 2.0*y**2 * (2.0*n**2 -9.0*n + 9.0))*ff - 8.0*n*x*y*(n-3.0)* ee  
+      dey_dy2  =-bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
 
       source(1) = 1.0*dey_dydx + 1.0*dex_dy2 + 0.000025 * (dex_dx2 + dey_dxdy )
-
-      source(2) = -1.0*dey_dx2 + 1.0*dex_dxdy + 0.000025 * (dex_dydx + dey_dy2  
-
+      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy + 0.000025 * (dex_dydx + dey_dy2 )
       source(3) = force(3)
-    
+
+      ! print*, ' Se imprime el termino de fuente '
+      ! do i =1,ndofn
+      !   print*, source(i)
+      ! end do
+
     end subroutine source_term
-
-
-
-
-
 
 
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
@@ -936,6 +942,7 @@ module library
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)    :: Hesxieta
+      double precision, dimension(ndofn)        :: source
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -969,7 +976,8 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
+          call source_term(igaus, source)
+          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
           
@@ -1039,6 +1047,7 @@ module library
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          stop
         end do
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
