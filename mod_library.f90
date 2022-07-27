@@ -349,12 +349,6 @@ module library
     end subroutine gather
 
 
-
-
-
-
-
-
     function elemSize(InvJacobian)
       implicit none
 
@@ -371,44 +365,12 @@ module library
       return
 
     end function elemsize
-    
-    
-    subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
-     
-      !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
+
+    subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
+
       implicit none
-      
-      double precision, intent(in) :: basis(nne)
-      double precision, intent(in) :: dvol
-      real, intent(in)             :: u0_cond
-      integer :: inode, idofn, ievab, jevab, jnode, jdofn
-      double precision :: cpcty
-      
-      double precision, intent(out) :: u0e(nevab), C0e(nevab,nevab)
-      ievab=0
-      do inode=1,nne
-        do idofn=1,ndofn
-          ievab=ievab+1
-          jevab=0
-          do jnode=1,nne
-            do jdofn=1,ndofn
-              jevab=jevab+1
-              cpcty = basis(inode) * basis(jnode)
-              C0e(ievab,jevab) = C0e(ievab,jevab) + cpcty * dvol       !element Capacity (Mass) matrix
-            end do
-          end do
-          u0e(ievab) = u0e(ievab) + basis(inode) * u0_cond * dvol
-        end do
-      end do
-      
-    end subroutine Galerkin_Init_Cond
-    
-    
-    subroutine Galerkin(dvol, basis, dNdxy, Ke, Ce, Fe)
-      
-      implicit none
-      
-      double precision, intent(in) :: basis(nne), dNdxy(DimPr,nne)
+
+      double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty
@@ -437,11 +399,147 @@ module library
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
             end do
           end do
-          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
+          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * source(idofn) * dvol
+          !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
 
     end subroutine Galerkin
+
+    ! subroutine source_term_orig(element_nodes, source)
+    !  !         source_term(idofn, source)
+    !   implicit none
+
+    !   !***********************************************************!
+    !   !The source term is given by:                               !
+    !   !                                                           !
+    !   !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+    !   ! where:                                                    !
+    !   ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               !
+    !   !                                                           !
+    !   !***********************************************************!
+    
+    !   !integer, intent(in) :: ievab
+    !   integer :: i, j
+    !   real    :: n
+    !   real, dimension(nne,DimPr), intent(in)        :: element_nodes
+    !   double precision, allocatable, dimension(:,:) :: r_coor, theta_coor, x_coor, y_coor
+    !   double precision, dimension(nevab,1), intent(out)  :: source
+
+    !   if(idofn.eq.3)goto 101
+
+    !   allocate(r_coor(nne,1), theta_coor(nne,1))
+    !   allocate(x_coor(nne,1), y_coor(nne,1))
+      
+    !   do j= 1, 3
+    !     do i =1, nne
+    !       print*, element_nodes(i,j)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
+    !     end do
+    !   end do
+
+
+    !   do i =1, nne
+    !     x_coor(i,1) = element_nodes(i,2)!LAS OPERACIONES TIENEN QUE SER ELEMENTALES Y AQUI DEBE X y Y IGUALARSE 
+    !     y_coor(i,1) = element_nodes(i,3)!A NODEIMAP
+    !   end do
+
+    !   !ESTAS VARIABLES QUEDARIAN DE 4X4
+    !   r_coor = sqrt(x_coor**2 + y_coor**2) 
+    !   theta_coor = atan(y_coor/x_coor)
+
+     
+
+    !   !Si se construye el vector global F elemento a elemento (elemental)
+    !   if(idofn.eq.1)then
+    !     source = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
+    !   else
+    !     source = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
+    !   end if
+
+    !   !Si se construye el vector global F directamente (sin proyección elemental)
+    !   ! i = 1
+    !   ! do j =1, ndofn - 3
+    !   !     source(i,1) = (2*n/3) * r_coor**(n/3) * sin(2*n*theta_coor/3)
+    !   !     source(i+1,1) = (2*n/3*r_coor) * r_coor**(2*n/3) * cos(2*n*theta_coor/3)
+    !   !     source(i+2,1) = A_F(j*3,1)
+    !   !     i=i+3
+    !   ! end do
+
+
+    !   101 continue
+    
+    ! end subroutine source_term_orig
+
+    subroutine source_term(igaus, source)
+     !         source_term(idofn, source)
+      implicit none
+
+      !***********************************************************!
+      !The source term is given by:                               !
+      !                                                           !
+      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+      ! where:                                                    !
+      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
+      !                                                           !
+      ! and                                                       !
+      !                                                           !
+      !   f = Lu       ;   where L is the diferential operator    !
+      !                                                           !
+      !***********************************************************!
+    
+      !integer, intent(in) :: ievab
+      integer, intent(in) :: igaus
+      double precision, dimension(totGp) :: x_coor, y_coor
+      !double precision, dimension(totGp) :: x, y
+      real    :: n
+      !integer :: i
+      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
+      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, exp_1, exp_2
+      double precision, dimension(ndofn), intent(out)  :: source
+
+
+      x_coor = ngaus(:,1)
+      y_coor = ngaus(:,2)
+
+      x = x_coor(igaus)                      ! xi-coordinate of point j 
+      y = y_coor(igaus)                    ! eta-coordinate of point j 
+    
+      !terms for derivatives
+      n  = 1.0
+      aa = (2.0*n**2)/27.0
+      bb = (2.0*n)/27.0
+      cc = x**2*(4.0*n + 3.0) - y**2.0*(n+3.0)
+      dd = atan(x/y)
+      ee = sin(2.0*n/3.0 * dd)
+      ff = cos(2.0*n/3.0 * dd)
+      gg = (x**2 + y**2)
+      exp_1 = -(2.0 + n/6.0)
+      exp_2 = n/3.0 - 5.0/2.0
+      hh = (2.0*n**2 - 9.0*n + 9.0)
+      ii = (4.0*n**2 - 6.0*n + 9.0)
+
+      !Derivatives in x-direction
+      dey_dydx = bb * gg**exp_2 *( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )  
+      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff )
+      dex_dx2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff )
+      dey_dxdy = bb * gg**exp_2 *( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )
+
+      !Derivatives in y-direction
+      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - 8.0*n*x*y*(n-3.0)* ee )
+      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
+      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
+      dey_dy2  =-bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
+
+      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 + 0.000025 * (dex_dx2 + dey_dxdy )
+      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy + 0.000025 * (dex_dydx + dey_dy2 )
+      source(3) = force(3)
+
+      ! print*, ' Se imprime el termino de fuente '
+      ! do i =1,ndofn
+      !   print*, source(i)
+      ! end do
+
+    end subroutine source_term
 
 
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
@@ -507,7 +605,7 @@ module library
         end do
         pertu=prod1
         
-        ! Galerkin least squares
+        ! galerkin least squares
       else if(kstab.eq.2) then
         prod1=0.0
         do k=1,2
@@ -522,7 +620,7 @@ module library
         prod3=reama(jdofn,idofn)*basis
         pertu=-prod2+prod1+prod3
         
-        ! Subgrid scale & Taylor Galerkin
+        ! subgrid scale & taylor galerkin
       else if((kstab.eq.3).or.(kstab.eq.5)) then
         prod1=0.0
         do k=1,2
@@ -537,7 +635,7 @@ module library
         prod3=reama(idofn,jdofn)*basis
         pertu=prod2+prod1-prod3
         
-        ! Characteristic Galerkin
+        ! characteristic galerkin
       else if(kstab.eq.4) then
         prod1=0.0
         if(idofn.eq.jdofn) then
@@ -550,7 +648,123 @@ module library
       
     end subroutine pertur
         
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe)
+    subroutine TauMat(hmaxi,tauma)
+      !
+      !     Matrix of intrinsic time scales, computed as
+      !     TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
+
+      implicit none
+
+      double precision, intent(in) :: hmaxi
+      integer :: i, j, k
+      !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
+      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
+      double precision :: a, b, c, tau, det            !hnatu -> declarado en parameters
+      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
+
+      !v_ini = 0.0
+      !call initia(tauma,9,v_ini)
+      tauma = 0.0
+      if(kstab.eq.0) return
+      tauin = 0.0
+      chaco = 0.0
+      chadi = 0.0
+
+      !  Characteristic convection matrix: A = sqrt | A_i A_i |
+      do i=1,ndofn
+        do j=1,ndofn
+          chaco(i,j)=0.0
+          do k=1,ndofn
+            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
+          end do
+        end do
+      end do
+      call sqrtma(chaco,chaco)
+      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
+      do i=1,ndofn
+        do j=1,ndofn
+          chadi(i,j)=0.0
+          do k=1,ndofn
+            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
+              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,2)*difma(k,j,2,2)
+          end do
+        end do
+      end do
+      
+      call sqrtma(chadi,chadi)
+      
+      !  Characteristic reaction matrix: S = | S |
+      do i=1,ndofn
+        do j=1,ndofn
+          chare(i,j)=0.0
+          do k=1,ndofn
+            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
+          end do
+        end do
+      end do
+      call sqrtma(chare,chare)
+      
+      ! Invers of the matrix of characteristic times
+      do i=1,ndofn
+        do j=1,ndofn
+          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
+        end do
+      end do
+
+      !  Matrix tau, corresponding to:
+      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
+      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
+
+      if(ktaum.eq.0) then
+        tau = 0.0
+        do i=1,ndofn
+          do j=1,ndofn
+            tau = max(tau,abs(tauin(i,j)))
+          end do
+        end do
+        tau = patau/tau
+        do i=1,ndofn
+          tauma(i,i) = tau
+        end do
+
+      else if(ktaum.eq.1) then
+        a = 0.0
+        b = 0.0
+        c = 0.0
+        do j=1,ndofn
+          a = max(a,abs(tauin(    1,j)))
+          b = max(b,abs(tauin(    2,j)))
+          c = max(c,abs(tauin(ndofn,j)))
+        end do
+        a = patau/a
+        b = patau/b
+        c = patau/c
+        tauma(    1,    1) = a
+        tauma(    2,    2) = b
+        tauma(ndofn,ndofn) = c
+
+      else if(ktaum.eq.2) then
+        call invmtx(tauin,det,tauma)
+        do i = 1,ndofn
+          do j = 1,ndofn
+            tauma(i,j) = tauma(i,j)*patau
+          end do
+        end do
+        tauma(ndofn,ndofn) = 0.0
+
+      else if(ktaum.eq.3) then
+        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        tauma(1,1) = a
+        tauma(2,2) = a
+        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
+        tauma(3,3) = a
+      end if
+
+    end subroutine TauMat
+
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,source,tauma,Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
 
       ! Contribution to the system matrix and RHS from the stabilization term
@@ -558,7 +772,7 @@ module library
       implicit none
 
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), hesxy(3,nne), tauma(3,3)
-      double precision, intent(in)  :: dvolu
+      double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
       double precision              :: prod1, prod2, prod3
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
@@ -622,7 +836,7 @@ module library
           prod1=0.0
           do k=1,ndofn
             do l=1,ndofn
-              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l)
+              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l) * source(l)
             end do
           end do
           Fe(ievab) = Fe(ievab) + prod1 * dvolu
@@ -631,129 +845,9 @@ module library
 
     end subroutine Stabilization
 
-    subroutine TauMat(hmaxi,tauma)
-      !
-      !     Matrix of intrinsic time scales, computed as
-      !
-      !     TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
 
-      implicit none
 
-      double precision, intent(in) :: hmaxi
-      integer :: i, j, k
-      !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
-      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-      double precision :: a, b, c, tau, det            !hnatu -> declarado en parameters
-      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
-
-      !common/numert/hnatu,patau,ksoty,kprec,kstab,ktaum
-      !common/proper/difma,conma,reama,force
-
-      !v_ini = 0.0
-      !call initia(tauma,9,v_ini)
-      tauma = 0.0
-      if(kstab.eq.0) return
-      !call initia(tauin,9,v_ini)
-      !call initia(chaco,9,v_ini)
-      !call initia(chadi,9,v_ini)
-      tauin = 0.0
-      chaco = 0.0
-      chadi = 0.0
-
-      !  Characteristic convection matrix: A = sqrt | A_i A_i |
-      do i=1,ndofn
-        do j=1,ndofn
-          chaco(i,j)=0.0
-          do k=1,ndofn
-            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
-          end do
-        end do
-      end do
-      call sqrtma(chaco,chaco)
-
-      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
-      do i=1,ndofn
-        do j=1,ndofn
-          chadi(i,j)=0.0
-          do k=1,ndofn
-            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
-              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,2)*difma(k,j,2,2)
-          end do
-        end do
-      end do
-
-      call sqrtma(chadi,chadi)
-
-      !  Characteristic reaction matrix: S = | S |
-      do i=1,ndofn
-        do j=1,ndofn
-          chare(i,j)=0.0
-          do k=1,ndofn
-            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
-          end do
-        end do
-      end do
-      call sqrtma(chare,chare)
-
-      ! Invers of the matrix of characteristic times
-      do i=1,ndofn
-        do j=1,ndofn
-          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
-        end do
-      end do
-
-      !  Matrix tau, corresponding to:
-      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
-      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
-
-      if(ktaum.eq.0) then
-        tau = 0.0
-        do i=1,ndofn
-          do j=1,ndofn
-            tau = max(tau,abs(tauin(i,j)))
-          end do
-        end do
-        tau = patau/tau
-        do i=1,ndofn
-          tauma(i,i) = tau
-        end do
-
-      else if(ktaum.eq.1) then
-        a = 0.0
-        b = 0.0
-        c = 0.0
-        do j=1,ndofn
-          a = max(a,abs(tauin(    1,j)))
-          b = max(b,abs(tauin(    2,j)))
-          c = max(c,abs(tauin(ndofn,j)))
-        end do
-        a = patau/a
-        b = patau/b
-        c = patau/c
-        tauma(    1,    1) = a
-        tauma(    2,    2) = b
-        tauma(ndofn,ndofn) = c
-
-      else if(ktaum.eq.2) then
-        call invmtx(tauin,det,tauma)
-        do i = 1,ndofn
-          do j = 1,ndofn
-            tauma(i,j) = tauma(i,j)*patau
-          end do
-        end do
-        tauma(ndofn,ndofn) = 0.0
-
-      else if(ktaum.eq.3) then
-        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-        tauma(1,1) = a
-        tauma(2,2) = a
-        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
-        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
-        tauma(3,3) = a
-      end if
-
-    end subroutine TauMat
+  
 
     subroutine VinculBVs(  BVs, nofix, ifpre, presc )
 
@@ -902,6 +996,7 @@ module library
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)    :: Hesxieta
+      double precision, dimension(ndofn)        :: source
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -935,10 +1030,11 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
+          call source_term(igaus, source)
+          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
-          
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, source, Ke, Fe)
+
           select case(theta)
             case(2)
               Fe_time = Fe + matmul(Ce,time_cont)
@@ -963,6 +1059,7 @@ module library
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(ndofn)        :: source
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -976,7 +1073,7 @@ module library
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
-      allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1) )
+      allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
       
       !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
       A_K = 0.0
@@ -998,18 +1095,27 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
+          call source_term(igaus, source)
+          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
+          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, source, Ke, Fe)
+          stop
         end do
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
-        
+
+
       end do
       
+      ! print*,'!=============== Output Files ================!'
+      ! call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
+      ! call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
+      
+
       
     end subroutine GlobalSystem
     
@@ -1437,7 +1543,7 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
-        print"(A6,A19,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
+        print"(A6,A26,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
     
       elseif(activity == "res")then
         write(555,"(A)") 'GiD Post Results File 1.0'
@@ -1483,7 +1589,7 @@ module library
             write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
             write(555,"(A)") 'ComponentNames "" '
             write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             P '
+            write(555,*) '#',   'No    ','             p '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(555,914)
             ii=1
@@ -1492,7 +1598,7 @@ module library
               ii=ii+1
             end do
             write(555,"(A)") 'End Values'
-            print"(A6,A19,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
+            print"(A6,A26,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
         end select
       
         close(555)
@@ -1569,7 +1675,7 @@ module library
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux '
+            write(200,*) '#',   'No    ','             Ex '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(200,914)
             do ipoin = 1, nnodes
@@ -1583,7 +1689,7 @@ module library
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux ','               uy '
+            write(200,*) '#',   'No    ','             Ex ','               Ey '
             do ipoin = 1, nnodes
               write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
@@ -1592,7 +1698,7 @@ module library
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux ','               uy'
+            write(200,*) '#',   'No    ','             Ex ','               Ey'
            ! do ipoin = 1, nnodes
            !   write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
            ! end do
@@ -1603,7 +1709,7 @@ module library
             write(200,"(A22, I3, A)") 'Result "P" "Preassure"', step_value,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','     P '
+            write(200,*) '#',   'No    ','     p '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(200,914)
             ii=1
@@ -1622,7 +1728,7 @@ module library
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
       if(interval == time_final) then
         print*, ' '
-        print"(1x, A19,A30)", FileName, 'written succesfully in Pos/ '
+        print"(1x, A26,A30)", FileName, 'written succesfully in Pos/ '
       endif
       
       

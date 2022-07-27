@@ -66,7 +66,7 @@ module biunit
             write(*,*) 'Invalid number of Gauss poooints for this element'   
             stop
           end if
-        case('Triangle') 
+        case("Triangle") 
           if(totGp.eq.1) then
             ngaus(1,1) = 1.0/3.0
             ngaus(1,2) = 1.0/3.0
@@ -126,7 +126,8 @@ module biunit
             stop
           end if
         case DEFAULT
-          write(*,*) 'Invalid type of element.'   
+          print*, 'En GaussQuadrature'
+          write(*,*) 'Invalid type of element.'
           stop
       end select
       
@@ -304,18 +305,17 @@ module biunit
             stop
           end select
           
-        CASE ('Triangle')
-          !  |
-          !  |        o
-          !  |       / \
-          !  |      /   \
-          !  Y     /     \
-          !  |    /       \
-          !  |   o---------o
-          !  |
-          !  +--------X-------->
-          
+        CASE ("Triangle")      
           if(Nne .EQ. 3) then
+            !  |
+            !  |        o
+            !  |       / \
+            !  |      /   \
+            !  Y     /     \
+            !  |    /       \
+            !  |   o---------o
+            !  |
+            !  +--------X-------->
             if (present(dN_dxi) .and. present(dN_deta))then
               !write(*,*) 'Using derivatives of shape functions', Nne
               allocate(dN_dxi(Nne,totGp) )
@@ -347,6 +347,16 @@ module biunit
               N(3,j) = eta
             end do
           elseif(Nne .EQ. 6) then
+            !  |
+            !  |        o
+            !  |       / \
+            !  |      /   \
+            !  Y     o     o
+            !  |    /       \
+            !  |   /         \
+            !  |  o-----o-----o
+            !  |
+            !  +--------X-------->
             if (present(dN_dxi) .and. present(dN_deta))then
               allocate(dN_dxi(Nne,totGp) )
               allocate(dN_deta(Nne,totGp) )
@@ -396,6 +406,7 @@ module biunit
           end if
          
         case DEFAULT
+          print*, 'En ShapeFucntions'
           write(*,*) 'Invalid type of element.'   
           stop
       end select

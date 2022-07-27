@@ -114,7 +114,7 @@ module timeInt
       ! end if
       
       do ii = 1 , nnodes
-        Uinit(ii,1)  = coord(ii,2)!Uinit             !u in present time 
+        Uinit(ii,1)  = 0!coord(ii,2)!Uinit             !u in present time 
       end do
 
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
@@ -125,7 +125,7 @@ module timeInt
     
     
     subroutine TimeIntegration(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time,&
-      &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim)
+      &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)!, workdim)
 
       implicit none
 
@@ -142,10 +142,10 @@ module timeInt
       ! - - Local Variables - -!
       double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, Ftime
       double precision, allocatable, dimension(:,:) :: AK_time, AK_LU, Uprev, Unext, rhs_time, Uinit
-      double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
-      integer, allocatable, dimension(:)            :: S_ipiv, S_iwork
+      !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
+      integer, allocatable, dimension(:)            :: S_ipiv!, S_iwork
       double precision :: delta_t
-      integer          :: time, info, workdim
+      integer          :: time, info!, workdim
       real             :: nt 
 
 
@@ -155,7 +155,7 @@ module timeInt
       allocate( Unext(S_ldSol, 1))
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
 
-      allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
+      !allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
 
       Uprev = 0.0;  Unext = 0.0;  rhs_time = 0.0;  AK_time  = 0.0;  time = 0 
 
