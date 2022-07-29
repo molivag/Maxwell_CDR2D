@@ -562,7 +562,7 @@ module library
     
     ! end subroutine source_term_orig
 
-    subroutine source_term(igaus, source)
+    subroutine source_term(helem, igaus, source)
      !         source_term(idofn, source)
       implicit none
 
@@ -581,6 +581,7 @@ module library
     
       !integer, intent(in) :: ievab
       integer, intent(in) :: igaus
+      double precision, intent(in) :: helem
       double precision, dimension(totGp) :: x_coor, y_coor
       !double precision, dimension(totGp) :: x, y
       real    :: n
@@ -622,8 +623,8 @@ module library
       dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
       dey_dy2  =-bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
 
-      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 + 0.000025 * (dex_dx2 + dey_dxdy )
-      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy + 0.000025 * (dex_dydx + dey_dy2 )
+      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
+      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
       source(3) = force(3)
 
       ! print*, ' Se imprime el termino de fuente '
@@ -1069,7 +1070,7 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(igaus, source)
+          call source_term(hmaxi, igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, hmaxi, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           call Stabilization(dvol, basis, dN_dxy, HesXY, source, hmaxi, tauma, Ke, Fe)
@@ -1135,11 +1136,11 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(igaus, source)
+          call TauMat(hmaxi,tauma)
+          call source_term(hmaxi, igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, hmaxi, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
-          call TauMat(hmaxi,tauma)
-          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, source, hmaxi, tauma, Ke, Fe)
         end do
         
