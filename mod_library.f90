@@ -373,7 +373,7 @@ module library
       double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
-      double precision ::  diff, convec, reac, cpcty
+      double precision ::  diff, convec, reac, cpcty, cte
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       ievab=0
       do inode=1,nne
@@ -385,8 +385,9 @@ module library
               jevab=jevab+1
               diff=0.0
               do i=1,2
-                do j=1,2                      !conductivity tensor
-                  diff=diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                do j=1,2   
+                  call param_stab(idofn, jdofn, i, j, cte)                   !conductivity tensor
+                  diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)                
                 end do
               end do
               convec=0.0
@@ -405,6 +406,97 @@ module library
       end do
 
     end subroutine Galerkin
+
+    subroutine param_stab(idofn, jdofn, i, j, cte)       
+      !***********************************************************!
+      !                                                           !
+      ! Subroutine which check the dofn and x and y position in   !
+      ! in the diffusion tensor and take the coefficient to       !
+      ! multiply the sistem of PDE to corresponding coefficient.  !
+      !                                                           !
+      ! coeficients:                                              !
+      !               Cuλ(h^2/ell) and λ                          !
+      !                                                           !
+      !  λ represents the magnetic permeability µ                 !
+      !  (call it mu in the code)                                 !
+      !                                                           !
+      ! h = 2^-i ; computed as in the paper                       !
+      !***********************************************************!
+    
+      implicit none
+
+      integer, intent(in) :: idofn, jdofn, i, j
+      !double precision, intent(in)  :: helem
+      double precision, intent(out) :: cte
+
+      if(idofn.eq.1)then
+        if(jdofn.eq.1)then
+          if(i==1 .and. j==1)then
+            !difma(idofn,jdofn,i,j)
+            !difma(1,1,1,1) k_11
+            cte = Cu*mu*(helem**2/ell)
+          end if
+
+          if(i==2 .and. j==2)then
+            !difma(1,1,2,2) k_22
+            cte = mu
+          endif
+        
+        elseif(jdofn==2)then
+          if(i==1 .and. j==2)then
+            !difma(1,2,1,2) k_12
+            cte = Cu*mu*(helem**2/ell)
+          end if
+
+          if(i==2.and.j==1)then
+            !difma(1,2,2,1) k_21
+            cte = mu
+          end if
+        end if
+      
+      elseif(idofn==2)then
+        if(jdofn.eq.1)then
+          if(i==1 .and. j==2)then
+            !difma(idofn,jdofn,i,j)
+            !difma(2,1,1,2) k_12
+            cte = mu
+          end if
+
+          if(i==2 .and. j==1)then
+            !difma(2,1,2,1) k_21
+            cte = Cu*mu*(helem**2/ell)
+          endif
+        
+        elseif(jdofn==2)then
+          if(i==1 .and. j==1)then
+            !difma(2,2,1,1) k_11
+            cte = mu
+          end if
+
+          if(i==2.and.j==2)then
+            !difma(2,2,2,2) k_22
+            cte = Cu*mu*(helem**2/ell)
+          end if
+        end if
+
+      elseif(idofn==3 .and. jdofn==3)then
+        if( i==j )then
+          !difma(3,3,1,1) k_11
+          !difma(3,3,2,2) k_22
+          cte = ell**2/mu
+        endif
+      
+      end if
+      
+      !Next lines are to taste the 
+      !print*, 'hmaxi', h
+      !print*, 'Cu µ h^2/ell', Cu*mu*(h**2/ell)
+      !print*, 'ell^2/µ', ell**2/mu
+            
+
+
+    end subroutine param_stab
+
 
     ! subroutine source_term_orig(element_nodes, source)
     !  !         source_term(idofn, source)
@@ -530,8 +622,8 @@ module library
       dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
       dey_dy2  =-bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
 
-      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 + 0.000025 * (dex_dx2 + dey_dxdy )
-      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy + 0.000025 * (dex_dydx + dey_dy2 )
+      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
+      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
       source(3) = force(3)
 
       ! print*, ' Se imprime el termino de fuente '
@@ -606,7 +698,7 @@ module library
         pertu=prod1
         
         ! galerkin least squares
-      else if(kstab.eq.2) then
+      else if(kstab.eq.2)then
         prod1=0.0
         do k=1,2
           prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
@@ -764,7 +856,7 @@ module library
 
     end subroutine TauMat
 
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,source,tauma,Ke,Fe)
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,source, tauma, Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
 
       ! Contribution to the system matrix and RHS from the stabilization term
@@ -774,7 +866,7 @@ module library
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), hesxy(3,nne), tauma(3,3)
       double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
-      double precision              :: prod1, prod2, prod3
+      double precision              :: prod1, prod2, prod3, cte
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
 
@@ -805,7 +897,8 @@ module library
             prod3=0.0
             do k=1,2
               do l=1,2
-                prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
+                call param_stab(jdofn,idofn,k,l,cte)
+                prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
               end do
             end do
 
@@ -1033,7 +1126,7 @@ module library
           call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, source, Ke, Fe)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
 
           select case(theta)
             case(2)
@@ -1070,6 +1163,7 @@ module library
       real, dimension(nne,DimPr)                :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
+      
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
@@ -1095,13 +1189,12 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
+          call TauMat(hmaxi,tauma)
           call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
-          call TauMat(hmaxi,tauma)
-          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, source, Ke, Fe)
-          stop
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
         end do
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K

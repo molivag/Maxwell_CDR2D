@@ -27,23 +27,27 @@ kstab    = 3             !Stabilization: 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG)
 ktaum    = 2             !Tau matrix: 0, 1, 2 
 patau    = 1.0           !Parameter to obtain tau
 hnatu    = 1.0           !Reference element length
+Cu       = 1.0          !Algorithmic constant
+mu (µ)   = 1.0           !Magnetic permeability
+ell      = 1.0           !Constante de longitud  
+i_exp    = 2.0           !Exponent of characteristic mesh size 3,4,5 or 6
 
 # > > > > > > > Physical Properties
 #DIFMA_11                        !Diffusion tensor
--0.25E-4  , 0.0  , 0.0
+-1.0  , 0.0  , 0.0
 0.0  , 1.0  , 0.0
 0.0  , 0.0  , -1.0
 #DIFMA_12
-0.0  , -0.25E-4  , 0.0
+0.0  , -1  , 0.0
 -1.0  , 0.0  , 0.0
 0.0  , 0.0  , 0.0
 #DIFMA_21
 0.0  , -1.0  , 0.0
--0.25E-4  , 0.0  , 0.0
+-1  , 0.0  , 0.0
 0.0  , 0.0  , 0.0
 #DIFMA_22
 1.0  , 0.0  , 0.0
-0.0  , -0.25E-4  , 0.0
+0.0  , -1  , 0.0
 0.0  , 0.0  , -1.0
 #COMAT_1                        !Convection tensor
 0.0 , 0.0 , 1.0
