@@ -8,7 +8,7 @@ module param
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: DimPr, nelem, nnodes, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   real              :: hnatu, patau, time_ini, time_fin, u0cond
-  real              :: Cu,mu, ell
+  real              :: Cu,mu, ell, helem, i_exp
   integer,          allocatable, dimension(:,:)     :: lnods
   double precision, allocatable, dimension(:,:)     :: coord
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
@@ -38,8 +38,8 @@ module param
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100) ElemType, ProbType, DimPr, nelem, nnodes, nne, & 
-      ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu &
-      Cu, mu, ell
+      ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
+      Cu, mu, ell, i_exp
 
       allocate(lnods(nelem,nne+1))
       allocate(coord(nnodes,Dimpr+1))
@@ -133,11 +133,12 @@ module param
      
       nevab = ndofn*nne   
       ntotv = ndofn*nnodes
+      helem = 2**(-i_exp)
 
       print*, 'Cu', Cu
       print*, 'µ', mu
       print*, 'ell', ell
-
+      print*, 'h^-i', helem
 
       !Paramter of stabilization
 
@@ -145,7 +146,7 @@ module param
       
 
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
-      &         2/, 2(11x,I5,/),5(11x,F7.2,/),/)    !esta linea es de input: stabilization
+      &         2/, 2(11x,I5,/),6(11x,F7.2,/),/)    !esta linea es de input: stabilization
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
