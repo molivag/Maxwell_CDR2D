@@ -366,12 +366,12 @@ module library
 
     end function elemsize
 
-    subroutine Galerkin(dvol, basis, dNdxy, source, hmaxi, Ke, Ce, Fe)
+    subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
 
       implicit none
 
       double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
-      double precision, intent(in) :: dvol, hmaxi
+      double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty, cte
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
@@ -386,7 +386,7 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
-                  call param_stab(hmaxi, idofn, jdofn, i, j, cte)                   !conductivity tensor
+                  call param_stab(idofn, jdofn, i, j, cte)                   !conductivity tensor
                   diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)                
                 end do
               end do
@@ -407,7 +407,7 @@ module library
 
     end subroutine Galerkin
 
-    subroutine param_stab(h, idofn, jdofn, i, j, cte)       
+    subroutine param_stab(idofn, jdofn, i, j, cte)       
       !***********************************************************!
       !                                                           !
       ! Subroutine which check the dofn and x and y position in   !
@@ -420,13 +420,13 @@ module library
       !  λ represents the magnetic permeability µ                 !
       !  (call it mu in the code)                                 !
       !                                                           !
-      ! h = elemSize ; computed on GlobalSystem                   !
+      ! h = 2^-i ; computed as in the paper                       !
       !***********************************************************!
     
       implicit none
 
       integer, intent(in) :: idofn, jdofn, i, j
-      double precision, intent(in)  :: h
+      !double precision, intent(in)  :: helem
       double precision, intent(out) :: cte
 
       if(idofn.eq.1)then
@@ -434,7 +434,7 @@ module library
           if(i==1 .and. j==1)then
             !difma(idofn,jdofn,i,j)
             !difma(1,1,1,1) k_11
-            cte = Cu*mu*(h**2/ell)
+            cte = Cu*mu*(helem**2/ell)
           end if
 
           if(i==2 .and. j==2)then
@@ -445,7 +445,7 @@ module library
         elseif(jdofn==2)then
           if(i==1 .and. j==2)then
             !difma(1,2,1,2) k_12
-            cte = Cu*mu*(h**2/ell)
+            cte = Cu*mu*(helem**2/ell)
           end if
 
           if(i==2.and.j==1)then
@@ -464,7 +464,7 @@ module library
 
           if(i==2 .and. j==1)then
             !difma(2,1,2,1) k_21
-            cte = Cu*mu*(h**2/ell)
+            cte = Cu*mu*(helem**2/ell)
           endif
         
         elseif(jdofn==2)then
@@ -475,7 +475,7 @@ module library
 
           if(i==2.and.j==2)then
             !difma(2,2,2,2) k_22
-            cte = Cu*mu*(h**2/ell)
+            cte = Cu*mu*(helem**2/ell)
           end if
         end if
 
@@ -562,7 +562,7 @@ module library
     
     ! end subroutine source_term_orig
 
-    subroutine source_term(helem, igaus, source)
+    subroutine source_term(igaus, source)
      !         source_term(idofn, source)
       implicit none
 
@@ -581,7 +581,6 @@ module library
     
       !integer, intent(in) :: ievab
       integer, intent(in) :: igaus
-      double precision, intent(in) :: helem
       double precision, dimension(totGp) :: x_coor, y_coor
       !double precision, dimension(totGp) :: x, y
       real    :: n
@@ -857,7 +856,7 @@ module library
 
     end subroutine TauMat
 
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,source, hmaxi, tauma, Ke,Fe)
+    subroutine Stabilization(dvolu, basis, derxy,hesxy,source, tauma, Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
 
       ! Contribution to the system matrix and RHS from the stabilization term
@@ -867,7 +866,7 @@ module library
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), hesxy(3,nne), tauma(3,3)
       double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
-      double precision              :: prod1, prod2, prod3, hmaxi, cte
+      double precision              :: prod1, prod2, prod3, cte
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
 
@@ -898,7 +897,7 @@ module library
             prod3=0.0
             do k=1,2
               do l=1,2
-                call param_stab(hmaxi, jdofn,idofn,k,l,cte)
+                call param_stab(jdofn,idofn,k,l,cte)
                 prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
               end do
             end do
@@ -1070,10 +1069,10 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(hmaxi, igaus, source)
-          call Galerkin(dvol, basis, dN_dxy, source, hmaxi, Ke, Ce, Fe) !amate lo llame Ke
+          call source_term(igaus, source)
+          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, source, hmaxi, tauma, Ke, Fe)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
 
           select case(theta)
             case(2)
@@ -1137,11 +1136,11 @@ module library
             basis(ibase) = N(ibase,igaus)
           end do
           call TauMat(hmaxi,tauma)
-          call source_term(hmaxi, igaus, source)
-          call Galerkin(dvol, basis, dN_dxy, source, hmaxi, Ke, Ce, Fe) !amate lo llame Ke
+          call source_term(igaus, source)
+          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, source, hmaxi, tauma, Ke, Fe)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
         end do
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
