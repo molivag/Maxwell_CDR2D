@@ -91,6 +91,9 @@ implicit none
     !---------- Print and write results -----------!
     call PosProcess(u_sol, File_PostMsh, 'msh') !se debe agregar el nt como dummyvariable
     call PosProcess(u_sol, File_PostRes, 'res')
+
+    call Res_Matlab(u_sol, 'Maxwell_Res_matlab.txt')
+
     
     print*, ' '
     print*, 'Shape of Global K: ',shape(A_K)
