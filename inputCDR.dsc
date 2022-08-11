@@ -16,24 +16,25 @@ totGp    = 4             !1,4,9 for Q, 1,3,4,6 for P
 maxband  = 357           !Maximo ancho de banda
 
 # > > > > > > > Time Discretization
-theta    = 2               !FDF=1 ;BDF1=2 ;CN=3 ;BDF2=4
-time_ini = 0.0             !Starting time simulation
-time_fin = 2.0             !Ending time simulation
-max_time = 50              !Max time of simulation
-u0cond   = 0.0             !Value of initial condition
+theta    = 2             !FDF=1 ;BDF1=2 ;CN=3 ;BDF2=4
+time_ini = 0.0           !Starting time simulation
+time_fin = 2.0           !Ending time simulation
+max_time = 50            !Max time of simulation
+u0cond   = 0.0           !Value of initial condition
 
 # > > > > > > > Stabilization
 kstab    = 3             !Stabilization: 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG)
 ktaum    = 2             !Tau matrix: 0, 1, 2 
 patau    = 1.0           !Parameter to obtain tau
 hnatu    = 1.0           !Reference element length
-Cu       = 1.0          !Algorithmic constant
+Cu       = 0.01          !Algorithmic constant
 mu (µ)   = 1.0           !Magnetic permeability
 ell      = 1.0           !Constante de longitud  
-i_exp    = 2.0           !Exponent of characteristic mesh size 3,4,5 or 6
+i_exp    = 6.0           !Exponent of characteristic mesh size 3,4,5 or 6
+n_val    = 1.0           !n parameter in exact solution
 
 # > > > > > > > Physical Properties
-#DIFMA_11                        !Diffusion tensor
+#DIFMA_11                !Diffusion tensor
 -1.0  , 0.0  , 0.0
 0.0  , 1.0  , 0.0
 0.0  , 0.0  , -1.0
@@ -49,7 +50,7 @@ i_exp    = 2.0           !Exponent of characteristic mesh size 3,4,5 or 6
 1.0  , 0.0  , 0.0
 0.0  , -1  , 0.0
 0.0  , 0.0  , -1.0
-#COMAT_1                        !Convection tensor
+#COMAT_1                 !Convection tensor
 0.0 , 0.0 , 1.0
 0.0 , 0.0 , 0.0
 -1.0 , 0.0 , 0.0
@@ -57,11 +58,11 @@ i_exp    = 2.0           !Exponent of characteristic mesh size 3,4,5 or 6
 0.0 , 0.0 , 0.0
 0.0 , 0.0 , 1.0
 0.0 , -1.0 , 0.0
-#REAMA                          !Reaction tensor
+#REAMA                   !Reaction tensor
 0.0 , 0.0 , 0.0
 0.0 , 0.0 , 0.0
 0.0 , 0.0 , 0.0
-#FORCE                          !Force tensor
+#FORCE                   !Force tensor
 1.0 , 1.0 , 0.0
 
 # > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes
