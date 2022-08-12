@@ -624,7 +624,11 @@ module library
 
       source(1) = 1.0*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
       source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
-      source(3) = force(3)
+      if(ndofn.eq.3)then
+        source(3) = force(ndofn)
+      else
+        continue
+      end if
 
       ! print*, ' Se imprime el termino de fuente '
       ! do i =1,ndofn
@@ -1548,13 +1552,14 @@ module library
 
     end subroutine writeMatrix
 
-    subroutine Res_Matlab(solution, nameFile1)
+    subroutine Res_Matlab(solution)
 
       implicit none
     
       character(len=*), parameter    :: fileplace = "Res/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                :: nameFile1
+      character(len=12)                       :: extension
+      character(len=16)                       :: coord_name
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin
@@ -1563,30 +1568,46 @@ module library
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
     
-      open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
-    
-   
-      do ipoin = 1, nnodes
-        write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin), solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
-      end do
-      
-      close(555)
+      extension = "_matlab.txt"
+      coord_name = "coord_matlab.txt"
+      open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      open(unit=444, file= fileplace//coord_name, ACTION="write", STATUS="replace")
 
+        do ipoin = 1, nnodes
+          write(444,904) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+        end do
+
+      if(ndofn.eq.3)then  
+        do ipoin = 1, nnodes
+          write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+        end do
+      elseif(ndofn.eq.2)then
+        do ipoin = 1, nnodes
+          write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+        end do
+      end if
+
+      close(555)
+      close(444)
+
+      
       print*, ' '
       print*, '!====== Matlab file ======'
-      print"(A6,A22,A30)", ' File ',nameFile1, 'written succesfully in Res/ '
+      print"(A6,A22,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
     
-      906 format(I7,2(3x,f9.4), 2(3x,E15.5)) !format for msh
+      904 format(I7,2(3x,f9.4) ) !format for msh
+      906 format( E15.5,3x,E15.5 ) !format for msh
       
     end subroutine Res_Matlab
 
-    subroutine PosProcess(solution, nameFile1, activity)
+    subroutine PosProcess(solution, activity)
 
       implicit none
     
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                :: nameFile1, activity
+      character(*), intent(in)                :: activity
+      character(len=10)                       :: extension 
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin, ii
@@ -1594,11 +1615,13 @@ module library
       solution_T = transpose(solution)
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
-    
-      open(unit=555, file= fileplace//nameFile1, ACTION="write", STATUS="replace")
+      
+      
     
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-    
+        extension = ".post.msh"
+        open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+
         write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
         write(555,900) '#Element tipe: ', ElemType,'/',ElemType
@@ -1614,9 +1637,11 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
-        print"(A6,A26,A30)", ' File ',File_PostMsh,'written succesfully in Pos/ '
+        print"(A6,A26,A30)", ' File ',File_PostProcess//'.post.msh','written succesfully in Pos/ '
     
       elseif(activity == "res")then
+        extension = ".post.res"
+        open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
         write(555,"(A)") 'GiD Post Results File 1.0'
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
     
@@ -1669,7 +1694,7 @@ module library
               ii=ii+1
             end do
             write(555,"(A)") 'End Values'
-            print"(A6,A26,A30)", ' File ',File_PostRes, 'written succesfully in Pos/ '
+            print"(A6,A26,A30)", ' File ',File_PostProcess//'.post.res', 'written succesfully in Pos/ '
         end select
       
         close(555)
@@ -1691,13 +1716,13 @@ module library
     
     end subroutine PosProcess
     
-    subroutine GID_PostProcess(solution, Filename, activity, step_value, interval, time_final)
+    subroutine GID_PostProcess(solution, activity, step_value, interval, time_final)
       
       implicit none
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                :: Filename, activity
+      character(*), intent(in)                :: activity
       integer, intent(in)                     :: step_value
       real, intent(in)                        :: interval, time_final
       double precision, dimension(1, ntotv)   :: solution_T
@@ -1710,7 +1735,7 @@ module library
       
       
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-        open(unit=100, file= fileplace//Filename, ACTION="write", STATUS="replace")
+        open(unit=100, file= fileplace//File_PostProcess, ACTION="write", STATUS="replace")
         
         write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
         write(100,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -1727,18 +1752,18 @@ module library
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A19,A30)", ' Mesh file ',FileName, 'written succesfully in Pos/ '
+        print"(A11,A19,A30)", ' Mesh file ',File_PostProcess//'.post.msh', 'written succesfully in Pos/ '
       ! if(status.eq.0)then continue 
       elseif(activity == "res")then
        
         if(step_value == 0)then
-          open(unit=200, file= fileplace//Filename, ACTION="write", STATUS="replace")
+          open(unit=200, file= fileplace//File_PostProcess, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
           write(200,"(A)") '#2D Convection-Diffusion-Reaction'
         else
           continue
         endif
-        open(unit=200, file= fileplace//Filename, ACTION="write", STATUS="old", position="append")
+        open(unit=200, file= fileplace//File_PostProcess, ACTION="write", STATUS="old", position="append")
         
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
@@ -1799,7 +1824,7 @@ module library
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
       if(interval == time_final) then
         print*, ' '
-        print"(1x, A26,A30)", FileName, 'written succesfully in Pos/ '
+        print"(1x, A26,A30)", File_PostProcess//'.post.res', 'written succesfully in Pos/ '
       endif
       
       
