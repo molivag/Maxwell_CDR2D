@@ -89,10 +89,12 @@ implicit none
 
     
     !---------- Print and write results -----------!
-    call PosProcess(u_sol, File_PostMsh, 'msh') !se debe agregar el nt como dummyvariable
-    call PosProcess(u_sol, File_PostRes, 'res')
+    print*, 'Archivo de posproceso'
+    read(*,*) File_PostProcess 
+    call PosProcess(u_sol, 'msh') !se debe agregar el nt como dummyvariable
+    call PosProcess(u_sol, 'res')
 
-    call Res_Matlab(u_sol, 'Maxwell_Res_matlab.txt')
+    call Res_Matlab(u_sol)
 
     
     print*, ' '
