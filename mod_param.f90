@@ -18,8 +18,10 @@ module param
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
   double precision, allocatable, dimension(:)       :: force !Force vector 
   
-  character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
-  character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
+  !character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
+  !character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
+  character(len=13) :: File_PostProcess 
+  
   
   contains
     
@@ -146,8 +148,7 @@ module param
       print*, 'cte_param', cte_param
 
       !Paramter of stabilization
-
-
+     
       
 
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
