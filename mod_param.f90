@@ -20,7 +20,7 @@ module param
   
   !character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
   !character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
-  character(len=13) :: File_PostProcess 
+  character(len=10) :: File_PostProcess 
   
   
   contains
