@@ -17,8 +17,8 @@ module BoundVal
       implicit none
       
       character(len=*), parameter :: fileplace ="./"
-      integer :: ierror, a ,b, c, d, i
-      real    :: x, y, xmin, xmax, ymin, ymax, xhalf
+      integer :: ierror, a ,b, c, d, e, f, i,ii
+      real    :: x, y, xmin, xmax, ymin, ymax, xhalf, yhalf
       integer, intent(out) :: nBVs, nBVscol
       
       
@@ -28,6 +28,8 @@ module BoundVal
       b = 0
       c = 0
       d = 0
+      e = 0
+      f = 0
 
       !u(x) = u1/x1 - x0
       
@@ -35,8 +37,18 @@ module BoundVal
       xmax = maxval(coord(:,2)) !the greatest number in x column
       ymin = minval(coord(:,3)) !the smallest number in y column
       ymax = maxval(coord(:,3)) !the greatest number in y column
-      xhalf = xmax/2.0
+      xhalf = 0.0!xmax/2.0
+      yhalf = 0.0!ymax/2.0
       
+      print*, 'xmin = ', xmin
+      print*, 'xmax = ', xmax
+      print*, 'ymin = ', ymin
+      print*, 'ymax = ', ymax
+      print*, 'xhalf = ', xhalf
+      print*, 'yhalf = ', yhalf
+
+
+
       if(ndofn .eq. 1) then
         
         do i =1, nnodes
@@ -80,11 +92,11 @@ module BoundVal
           y=coord(i,3)
           if(y.eq.ymax) then 
             if(x.eq.xmax)then                         
-              write(100,60) i, 1,1, real(1), real(0)     !right top corner 
+              write(100,60) i, 1,1, real(0), real(0)     !right top corner 
             elseif(x.eq.xmin)then                     
-              write(100,60) i, 1,1, real(1), real(0)     !left top corner
+              write(100,60) i, 1,1, real(0), real(0)     !left top corner
             else
-              write(100,60) i, 1,1, real(1), real(0)     !top edge 
+              write(100,60) i, 1,1, real(0), real(0)     !top edge 
             end if
             a = a+2
           else if (y.eq.ymin)then
@@ -98,13 +110,44 @@ module BoundVal
             b = b+2
           else if(x.eq.xmax)then                      
               write(100,60) i, 1,1, real(0), real(0)    !right edge
-            d = d+2
+            c = c+2
           else if (x.eq.xmin)then                     
               write(100,60) i, 1,1, real(0), real(0)    !left edge
-            c = c+2
+            d = d+2
            
+          else if(x.eq.xhalf)then
+            !print*,'coordinate', coord(i,1)
+            !print*,' ' 
+            !print*, 'x  = ', x
+            !
+            !print*, 'y_ = ', y
+            !print*, ' ' 
+            
+            if(y .gt. ymin)then
+              !print*, 'y = ', y
+              write(100,60) i, 1,1, real(0), real(0)     !half top edge
+              e = e+2
+            end if
+            
+          else if(y.eq.yhalf)then
+            print*,'coordinate', coord(i,1)
+            print*,' ' 
+            print*, 'x  = ', x
+            
+            print*, 'y_ = ', y
+            print*, ' ' 
+            
+            if(x .lt. xmax)then
+              print*, 'y = ', y
+              write(100,60) i, 1,1, real(0), real(0)     !half top edge
+              e = e+2
+            end if
+        
           end if
-          nBVs = a+b+c+d
+
+
+          !end if
+          nBVs = a+b+c+d+e
          
         end do
         nBVs = nBVs/2
