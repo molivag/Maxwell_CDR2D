@@ -622,8 +622,8 @@ module library
       dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
       dey_dy2  =-bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
 
-      source(1) = 1.0*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
-      source(2) =-1.0*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
+      source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
+      source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
       if(ndofn.eq.3)then
         source(3) = force(ndofn)
       else
@@ -1560,30 +1560,86 @@ module library
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(len=12)                       :: extension
       character(len=16)                       :: coord_name
+      character(len=22)                       :: conec_name
       double precision, dimension(1, ntotv)   :: solution_T
-      double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin
-    
+      double precision, dimension(1,nnodes)   :: xcoor, ycoor
+      double precision, dimension(nnodes)     :: x, y
+      integer                                 :: i,j, ipoin
+      !declaracion de variables relacionadas con la solucion exacta
+      double precision, dimension(nnodes)     :: source_y, source_x
+      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
+      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, exp_1, exp_2
+      real             :: n
+
+
       solution_T = transpose(solution)
-      xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
-    
+      xcoor  = spread(coord(:,2),dim = 1, ncopies= 1)
+      ycoor = spread(coord(:,3),dim = 1, ncopies= 1)
+
+      x = xcoor(1,:)
+      y = ycoor(1,:)
+
+      !print('E15.5, 3X, E15,5'), x(:), y(:)
+      print'(2(3x, f10.5))', x(1), y(1)
+      
+      !stop
+      !terms for derivatives
+      n  = n_val
+      aa = (2.0*n**2)/27.0
+      bb = (2.0*n)/27.0
+      exp_1 = -(2.0 + n/6.0)
+      exp_2 = n/3.0 - 5.0/2.0
+      hh = (2.0*n**2 - 9.0*n + 9.0)
+      ii = (4.0*n**2 - 6.0*n + 9.0)
+
+      do i = 1, nnodes
+        cc = x(i)**2*(4.0*n + 3.0) - y(i)**2.0*(n+3.0)
+        dd = atan(x(i)/y(i))
+        ee = sin(2.0*n/3.0 * dd)
+        ff = cos(2.0*n/3.0 * dd)
+        gg = (x(i)**2 + y(i)**2)
+
+        !Derivatives in x-direction
+        dey_dydx = bb * gg**exp_2 *( x(i)*y(i)*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )  
+        dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x(i)*y(i)*(n+3.0) * ff )
+        dex_dx2  = aa * gg**exp_1 *( cc * ee - 4*x(i)*y(i)*(n+3.0) * ff )
+        dey_dxdy = bb * gg**exp_2 *( x(i)*y(i)*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )
+
+        !Derivatives in y-direction
+        dey_dx2  = bb * gg**exp_2 * ( (2.0*x(i)**2 * hh - y(i)**2 * ii)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee )
+        dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x(i)**2 - y(i)**2) *ff + x(i)*y(i)*(5*n + 6) * ee )
+        dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x(i)**2 - y(i)**2) *ff + x(i)*y(i)*(5*n + 6) * ee )
+        dey_dy2  =-bb * gg**exp_2 * ( (x(i)**2 * ii - 2.0*y(i)**2 * hh)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee ) 
+  
+        source_x(i) = mu*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
+        source_y(i) =-mu*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
+
+
+      end do
+
       extension = "_matlab.txt"
       coord_name = "coord_matlab.txt"
+      conec_name = "conectivity_matlab.txt"
       open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
       open(unit=444, file= fileplace//coord_name, ACTION="write", STATUS="replace")
+      open(unit=333, file= fileplace//conec_name, ACTION="write", STATUS="replace")
 
-        do ipoin = 1, nnodes
-          write(444,904) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-        end do
+      
+      do i=1,nelem
+        write(333,902) (lnods(i,j+1), j =1,nne)
+      end do
+      
+      do ipoin = 1, nnodes
+        write(444,904) ipoin, x(ipoin), y(ipoin)
+      end do
 
       if(ndofn.eq.3)then  
         do ipoin = 1, nnodes
-          write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+          write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), source_x(ipoin), source_y(ipoin)
         end do
       elseif(ndofn.eq.2)then
         do ipoin = 1, nnodes
-          write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+          write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin), source_x(ipoin), source_y(ipoin)
         end do
       end if
 
@@ -1595,10 +1651,12 @@ module library
       print*, '!====== Matlab file ======'
       print"(A6,A22,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
     
+      902 format(6(1x,I7) ) !format for msh
       904 format(I7,2(3x,f9.4) ) !format for msh
-      906 format( E15.5,3x,E15.5 ) !format for msh
+      906 format( E15.5, 3x, E15.5, 3x, E15.5, 3x, E15.5 ) !format for msh
       
     end subroutine Res_Matlab
+    
 
     subroutine PosProcess(solution, activity)
 
