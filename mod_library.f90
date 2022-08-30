@@ -367,9 +367,9 @@ module library
     end function elemsize
 
     subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
-
+      
       implicit none
-
+      
       double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
@@ -386,8 +386,8 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
-                  call param_stab(idofn, jdofn, i, j, cte)                   !conductivity tensor
-                  diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)                
+                  call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
+                  diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)         
                 end do
               end do
               convec=0.0
@@ -397,14 +397,14 @@ module library
               reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               cpcty = basis(inode) * basis(jnode)
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
-              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
+              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
           Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * source(idofn) * dvol
           !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
-
+      
     end subroutine Galerkin
 
     subroutine param_stab(idofn, jdofn, i, j, cte)       
@@ -412,48 +412,47 @@ module library
       !                                                           !
       ! Subroutine which check the dofn and x and y position in   !
       ! in the diffusion tensor and take the coefficient to       !
-      ! multiply the sistem of PDE to corresponding coefficient.  !
+      ! multiply the term of the PDE to its corresponding coeff.  !
       !                                                           !
       ! coeficients:                                              !
-      !               Cuλ(h^2/ell) and λ                          !
+      !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
       !                                                           !
       !  λ represents the magnetic permeability µ                 !
       !  (call it mu in the code)                                 !
       !                                                           !
       ! h = 2^-i ; computed as in the paper                       !
       !***********************************************************!
-    
+      
       implicit none
-
+      
       integer, intent(in) :: idofn, jdofn, i, j
-      !double precision, intent(in)  :: helem
       double precision, intent(out) :: cte
-
+      
       if(idofn.eq.1)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==1)then
             !difma(idofn,jdofn,i,j)
             !difma(1,1,1,1) k_11
-            cte = Cu*mu*(helem**2/ell)
+            cte = Cu*mu*(helem**2/ell**2)
           end if
-
+         
           if(i==2 .and. j==2)then
             !difma(1,1,2,2) k_22
             cte = mu
           endif
-        
+          
         elseif(jdofn==2)then
           if(i==1 .and. j==2)then
             !difma(1,2,1,2) k_12
-            cte = Cu*mu*(helem**2/ell)
+            cte = Cu*mu*(helem**2/ell**2)
           end if
-
+          
           if(i==2.and.j==1)then
             !difma(1,2,2,1) k_21
             cte = mu
           end if
         end if
-      
+        
       elseif(idofn==2)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==2)then
@@ -461,40 +460,38 @@ module library
             !difma(2,1,1,2) k_12
             cte = mu
           end if
-
+          
           if(i==2 .and. j==1)then
             !difma(2,1,2,1) k_21
-            cte = Cu*mu*(helem**2/ell)
+            cte = Cu*mu*(helem**2/ell**2)
           endif
-        
+         
         elseif(jdofn==2)then
           if(i==1 .and. j==1)then
             !difma(2,2,1,1) k_11
             cte = mu
           end if
-
+          
           if(i==2.and.j==2)then
             !difma(2,2,2,2) k_22
-            cte = Cu*mu*(helem**2/ell)
+            cte = Cu*mu*(helem**2/ell**2)
           end if
         end if
-
+        
       elseif(idofn==3 .and. jdofn==3)then
         if( i==j )then
           !difma(3,3,1,1) k_11
           !difma(3,3,2,2) k_22
           cte = ell**2/mu
         endif
-      
+        
       end if
       
       !Next lines are to taste the 
       !print*, 'hmaxi', h
-      !print*, 'Cu µ h^2/ell', Cu*mu*(h**2/ell)
+      !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
       !print*, 'ell^2/µ', ell**2/mu
-            
-
-
+      
     end subroutine param_stab
 
 
@@ -620,10 +617,10 @@ module library
       dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - 8.0*n*x*y*(n-3.0)* ee )
       dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
       dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
-      dey_dy2  =-bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
+      dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
 
-      source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
-      source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
+      source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
+      source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
       if(ndofn.eq.3)then
         source(3) = force(ndofn)
       else
@@ -1580,7 +1577,7 @@ module library
       y = ycoor(1,:)
 
       !print('E15.5, 3X, E15,5'), x(:), y(:)
-      print'(2(3x, f10.5))', x(1), y(1)
+      !print'(2(3x, f10.5))', x(1), y(1)
       
       !stop
       !terms for derivatives
@@ -1609,10 +1606,10 @@ module library
         dey_dx2  = bb * gg**exp_2 * ( (2.0*x(i)**2 * hh - y(i)**2 * ii)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee )
         dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x(i)**2 - y(i)**2) *ff + x(i)*y(i)*(5*n + 6) * ee )
         dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x(i)**2 - y(i)**2) *ff + x(i)*y(i)*(5*n + 6) * ee )
-        dey_dy2  =-bb * gg**exp_2 * ( (x(i)**2 * ii - 2.0*y(i)**2 * hh)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee ) 
+        dey_dy2  = bb * gg**exp_2 * ( (x(i)**2 * ii - 2.0*y(i)**2 * hh)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee ) 
   
-        source_x(i) = mu*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell) * (dex_dx2 + dey_dxdy )
-        source_y(i) =-mu*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell) * (dex_dydx + dey_dy2 )
+        source_x(i) = mu*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
+        source_y(i) =-mu*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
 
 
       end do
