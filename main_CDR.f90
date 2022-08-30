@@ -89,8 +89,9 @@ implicit none
 
     
     !---------- Print and write results -----------!
-    print*, 'Archivo de posproceso'
+    print*, '!====== Nombre archivo posproceso'
     read(*,*) File_PostProcess 
+    print*, ' '
     call PosProcess(u_sol, 'msh') !se debe agregar el nt como dummyvariable
     call PosProcess(u_sol, 'res')
 

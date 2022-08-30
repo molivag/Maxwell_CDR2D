@@ -30,7 +30,7 @@ module BoundVal
       d = 0
       e = 0
       f = 0
-
+      
       !u(x) = u1/x1 - x0
       
       xmin = minval(coord(:,2)) !the smallest number in x column
@@ -40,15 +40,15 @@ module BoundVal
       xhalf = 0.0!xmax/2.0
       yhalf = 0.0!ymax/2.0
       
-      print*, 'xmin = ', xmin
-      print*, 'xmax = ', xmax
-      print*, 'ymin = ', ymin
-      print*, 'ymax = ', ymax
-      print*, 'xhalf = ', xhalf
-      print*, 'yhalf = ', yhalf
-
-
-
+      !print*, 'xmin = ', xmin
+      !print*, 'xmax = ', xmax
+      !print*, 'ymin = ', ymin
+      !print*, 'ymax = ', ymax
+      !print*, 'xhalf = ', xhalf
+      !print*, 'yhalf = ', yhalf
+      
+      
+      
       if(ndofn .eq. 1) then
         
         do i =1, nnodes
@@ -130,22 +130,22 @@ module BoundVal
             end if
             
           else if(y.eq.yhalf)then
-            print*,'coordinate', coord(i,1)
-            print*,' ' 
-            print*, 'x  = ', x
-            
-            print*, 'y_ = ', y
-            print*, ' ' 
+            !print*,'coordinate', coord(i,1)
+            !print*,' ' 
+            !print*, 'x  = ', x
+            !
+            !print*, 'y_ = ', y
+            !print*, ' ' 
             
             if(x .lt. xmax)then
-              print*, 'y = ', y
+              !print*, 'y = ', y
               write(100,60) i, 1,1, real(0), real(0)     !half top edge
               e = e+2
             end if
-        
+            
           end if
-
-
+          
+          
           !end if
           nBVs = a+b+c+d+e
          

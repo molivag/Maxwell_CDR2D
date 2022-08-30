@@ -139,12 +139,13 @@ module param
       ntotv = ndofn*nnodes
       helem = 2**(-i_exp)
 
-      cte_param = Cu*mu*(helem**2/ell) 
+      cte_param = Cu*mu*(helem**2/ell**2) 
 
-      print*, 'Cu', Cu
-      print*, 'µ', mu
-      print*, 'ell', ell
-      print*, 'h^-i', helem
+      print*, 'Cu       ', Cu
+      print*, 'µ        ', mu
+      print*, 'ell      ', ell
+      print*, 'i        ', i_exp
+      print*, 'h^-i     ', helem
       print*, 'cte_param', cte_param
 
       !Paramter of stabilization
