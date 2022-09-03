@@ -427,68 +427,178 @@ module library
       
       integer, intent(in) :: idofn, jdofn, i, j
       double precision, intent(out) :: cte
+      real :: k_1_1_1_1, k_1_1_2_2, k_1_2_1_2, k_1_2_2_1, k_2_1_1_2, k_2_1_2_1
+      real :: k_2_2_1_1, k_2_2_2_2, k_3_3_1_1, k_3_3_2_2
+      !character(len=*), parameter    :: fileplace = "./"
+      !character(len=18)              :: File_check
+      
+      !File_check = "tensor_product.txt"
+      !open(unit=10, file= fileplace//File_check, ACTION="write", STATUS="old", position="append")
+      
+      !k_1_1_1_1 = -1.0
+      !k_2_2_1_1 = 1.0
+      !k_3_3_1_1 = -1.0
+      !
+      !k_1_2_1_2 = -1.0
+      !k_2_1_1_2 = -1.0
+      !
+      !k_1_2_2_1 = -1.0
+      !k_2_1_2_1 = -1.0
+      !
+      !k_1_1_2_2 = 1.0
+      !k_2_2_2_2 = -1.0
+      !k_3_3_2_2 = -1.0
+      !print*,'test;', idofn 
       
       if(idofn.eq.1)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==1)then
-            !difma(idofn,jdofn,i,j)
-            !difma(1,1,1,1) k_11
+            !!write(10,*)' '
+            !write(10,*)'Cuλ(h^2/ell^2)'  
+            !if(k_1_1_1_1 == difma(idofn,jdofn,i,j) )then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(1,1,1,1) k11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*) difma(1,1,1,1)
+            !end if          
+            !!write(10,*)' '
             cte = Cu*mu*(helem**2/ell**2)
           end if
          
           if(i==2 .and. j==2)then
-            !difma(1,1,2,2) k_22
+            !!write(10,*)' '
+            !write(10,*)'mu'  
+            !if(k_1_1_2_2 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(1,1,2,2) k_22 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*)difma(1,1,2,2)
+            !end if          
+            !!write(10,*)' '
             cte = mu
           endif
           
         elseif(jdofn==2)then
           if(i==1 .and. j==2)then
-            !difma(1,2,1,2) k_12
+            !!write(10,*)' '
+            !write(10,*)'Cuλ(h^2/ell^2)'  
+            !if(k_1_2_1_2 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(1,2,1,2) k_12 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*)difma(1,2,1,2)
+            !end if          
+            !!write(10,*)' '
             cte = Cu*mu*(helem**2/ell**2)
           end if
           
           if(i==2.and.j==1)then
-            !difma(1,2,2,1) k_21
+            !!write(10,*)' '
+            !write(10,*)'mu'  
+            !if(k_1_2_2_1 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(1,2,2,1) k_21 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*) difma(1,2,2,1)
+            !end if          
             cte = mu
+            !write(10,*)' '
           end if
         end if
         
       elseif(idofn==2)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==2)then
-            !difma(idofn,jdofn,i,j)
-            !difma(2,1,1,2) k_12
+            !!write(10,*)' '
+            !write(10,*)'mu'  
+            !if(k_2_1_1_2 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(2,1,1,2) k_12 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*)difma(2,1,1,2)
+            !end if          
+            !!write(10,*)' '
             cte = mu
           end if
           
           if(i==2 .and. j==1)then
-            !difma(2,1,2,1) k_21
+            !!write(10,*)' '
+            !write(10,*)'Cuλ(h^2/ell^2)'  
+            !if(k_2_1_2_1 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(2,1,2,1) k_21 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*)difma(2,1,2,1)
+            !end if          
+            !!write(10,*)' '
             cte = Cu*mu*(helem**2/ell**2)
           endif
          
         elseif(jdofn==2)then
           if(i==1 .and. j==1)then
-            !difma(2,2,1,1) k_11
+            !!write(10,*)' '
+            !write(10,*)'mu'  
+            !if(k_2_2_1_1 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(2,2,1,1) k_11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*) difma(2,2,1,1)
+            !end if          
+            !!write(10,*)' '
             cte = mu
           end if
           
           if(i==2.and.j==2)then
-            !difma(2,2,2,2) k_22
+            !!write(10,*)' '
+            !write(10,*)'Cuλ(h^2/ell^2)'  
+            !if(k_2_2_2_2 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(2,2,2,2) k_22 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*) difma(2,2,2,2)
+            !end if          
+            !!write(10,*)' '
             cte = Cu*mu*(helem**2/ell**2)
           end if
         end if
         
       elseif(idofn==3 .and. jdofn==3)then
         if( i==j )then
-          !difma(3,3,1,1) k_11
-          !difma(3,3,2,2) k_22
+            !!write(10,*)' '
+            !write(10,*)'ell**2/mu'
+            !if(k_3_3_1_1 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9)'difma(3,3,1,1) k_11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*) difma(3,3,1,1)
+            !end if          
+            !if(k_3_3_2_2 == difma(idofn,jdofn,i,j))then
+            !  write(10,*) 'TRUE'
+            !else
+            !  write(10,*) 'FALSE'
+            !  write(10,9) 'difma(3,3,2,2) k_11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
+            !  write(10,*) difma(3,3,2,2)
+            !end if          
+            !!write(10,*)' '
           cte = ell**2/mu
         endif
         
       end if
+      close(10)
       
+      
+      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
       !Next lines are to taste the 
-      !print*, 'hmaxi', h
+      !print*, 'hmaxi,', h
       !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
       !print*, 'ell^2/µ', ell**2/mu
       
@@ -575,7 +685,7 @@ module library
       !   f = Lu       ;   where L is the diferential operator    !
       !                                                           !
       !***********************************************************!
-    
+      
       !integer, intent(in) :: ievab
       integer, intent(in) :: igaus
       double precision, dimension(totGp) :: x_coor, y_coor
@@ -583,58 +693,64 @@ module library
       real    :: n
       !integer :: i
       double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
-      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, exp_1, exp_2
+      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2
       double precision, dimension(ndofn), intent(out)  :: source
-
-
+      
+      
       x_coor = ngaus(:,1)
       y_coor = ngaus(:,2)
-
-      x = x_coor(igaus)                      ! xi-coordinate of point j 
-      y = y_coor(igaus)                    ! eta-coordinate of point j 
-    
+      
+      x = x_coor(igaus)               ! xi-coordinate of point j 
+      y = y_coor(igaus)               ! eta-coordinate of point j 
+      
       !terms for derivatives
       n  = n_val
       aa = (2.0*n**2)/27.0
       bb = (2.0*n)/27.0
-      cc = x**2*(4.0*n + 3.0) - y**2.0*(n+3.0)
+      cc = x**2.0*(4.0*n + 3.0) - y**2.0*(n+3.0)
       dd = atan(x/y)
       ee = sin(2.0*n/3.0 * dd)
       ff = cos(2.0*n/3.0 * dd)
       gg = (x**2 + y**2)
       exp_1 = -(2.0 + n/6.0)
-      exp_2 = n/3.0 - 5.0/2.0
+      exp_2 = (n/3.0 - 5.0/2.0)
       hh = (2.0*n**2 - 9.0*n + 9.0)
       ii = (4.0*n**2 - 6.0*n + 9.0)
-
+      jj = (x**2 - y**2)
+      kk = x**2.0*(n+3.0) - y**2.0*(4.0*n+3.0)
+      ll = (8.0*n**2.0 - 24.0*n +27)
+      mm = 8.0*n*x*y*(n-3.0)
+      
       !Derivatives in x-direction
-      dey_dydx = bb * gg**exp_2 *( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )  
-      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff )
-      dex_dx2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff )
-      dey_dxdy = bb * gg**exp_2 *( x*y*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )
-
+      dey_dydx = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
+      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff)
+      dex_dx2  = aa * gg**exp_1 *( kk * ee - 4*x*y*(n+3.0) * ff)
+      dey_dxdy = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )
+      
       !Derivatives in y-direction
-      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - 8.0*n*x*y*(n-3.0)* ee )
-      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
-      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x**2 - y**2) *ff + x*y*(5*n + 6) * ee )
-      dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - 8.0*n*x*y*(n-3.0)* ee ) 
-
+      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
+      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x*y*(5*n+ 6) * ee )
+      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x*y*(5*n+ 6) * ee )
+      dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
+      
       source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
       source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
       if(ndofn.eq.3)then
         source(3) = force(ndofn)
-      else
+      elseif(ndofn.eq.2)then
         continue
+      else
+        print*, 'Source term is a bidimensional field, not enough DoF'
       end if
-
+      
       ! print*, ' Se imprime el termino de fuente '
       ! do i =1,ndofn
       !   print*, source(i)
       ! end do
-
+      
     end subroutine source_term
-
-
+    
+    
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
      
       !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
@@ -1565,7 +1681,7 @@ module library
       !declaracion de variables relacionadas con la solucion exacta
       double precision, dimension(nnodes)     :: source_y, source_x
       double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
-      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, exp_1, exp_2
+      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2
       real             :: n
 
 
@@ -1588,6 +1704,7 @@ module library
       exp_2 = n/3.0 - 5.0/2.0
       hh = (2.0*n**2 - 9.0*n + 9.0)
       ii = (4.0*n**2 - 6.0*n + 9.0)
+      ll = (8.0*n**2.0 - 24.0*n +27)
 
       do i = 1, nnodes
         cc = x(i)**2*(4.0*n + 3.0) - y(i)**2.0*(n+3.0)
@@ -1595,25 +1712,28 @@ module library
         ee = sin(2.0*n/3.0 * dd)
         ff = cos(2.0*n/3.0 * dd)
         gg = (x(i)**2 + y(i)**2)
-
+        jj = (x(i)**2 - y(i)**2)
+        kk = x(i)**2.0*(n+3.0) - y(i)**2.0*(4.0*n+3.0)
+        mm = 8.0*n*x(i)*y(i)*(n-3.0)
+        
         !Derivatives in x-direction
-        dey_dydx = bb * gg**exp_2 *( x(i)*y(i)*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )  
-        dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x(i)*y(i)*(n+3.0) * ff )
-        dex_dx2  = aa * gg**exp_1 *( cc * ee - 4*x(i)*y(i)*(n+3.0) * ff )
-        dey_dxdy = bb * gg**exp_2 *( x(i)*y(i)*(8.0*n - 24.0*n +27) * ff + 4.0*n*(n-3.0)*gg * ee )
-
+        dey_dydx = bb * gg**exp_2 *( x(i)*y(i)* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
+        dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x(i)*y(i)*(n+3.0) * ff)
+        dex_dx2  = aa * gg**exp_1 *( kk * ee - 4*x(i)*y(i)*(n+3.0) * ff)
+        dey_dxdy = bb * gg**exp_2 *( x(i)*y(i)* ll * ff + 4.0*n*(n-3.0)*jj * ee )
+        
         !Derivatives in y-direction
-        dey_dx2  = bb * gg**exp_2 * ( (2.0*x(i)**2 * hh - y(i)**2 * ii)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee )
-        dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* (x(i)**2 - y(i)**2) *ff + x(i)*y(i)*(5*n + 6) * ee )
-        dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* (x(i)**2 - y(i)**2) *ff + x(i)*y(i)*(5*n + 6) * ee )
-        dey_dy2  = bb * gg**exp_2 * ( (x(i)**2 * ii - 2.0*y(i)**2 * hh)*ff - 8.0*n*x(i)*y(i)*(n-3.0)* ee ) 
-  
+        dey_dx2  = bb * gg**exp_2 * ( (2.0*x(i)**2 * hh - y(i)**2 * ii)*ff - mm * ee )
+        dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x(i)*y(i)*(5*n+ 6) * ee )
+        dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x(i)*y(i)*(5*n+ 6) * ee )
+        dey_dy2  = bb * gg**exp_2 * ( (x(i)**2 * ii - 2.0*y(i)**2 * hh)*ff - mm * ee ) 
+        
+        
         source_x(i) = mu*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
         source_y(i) =-mu*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
-
-
+        
       end do
-
+      
       extension = "_matlab.txt"
       coord_name = "coord_matlab.txt"
       conec_name = "conectivity_matlab.txt"
