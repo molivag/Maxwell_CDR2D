@@ -708,7 +708,7 @@ module library
       aa = (2.0*n**2)/27.0
       bb = (2.0*n)/27.0
       cc = x**2.0*(4.0*n + 3.0) - y**2.0*(n+3.0)
-      dd = atan(x/y)
+      dd = atan(y/x)
       ee = sin(2.0*n/3.0 * dd)
       ff = cos(2.0*n/3.0 * dd)
       gg = (x**2 + y**2)
@@ -729,8 +729,8 @@ module library
       
       !Derivatives in y-direction
       dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
-      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x*y*(5*n+ 6) * ee )
-      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x*y*(5*n+ 6) * ee )
+      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
+      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
       dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
       
       source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
@@ -1679,58 +1679,31 @@ module library
       double precision, dimension(nnodes)     :: x, y
       integer                                 :: i,j, ipoin
       !declaracion de variables relacionadas con la solucion exacta
-      double precision, dimension(nnodes)     :: source_y, source_x
-      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
-      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2
+      double precision, dimension(nnodes)     ::exact_y,exact_x
+      double precision :: aa, bb, cc, dd, ee, exp1, exp2
       real             :: n
-
-
-      solution_T = transpose(solution)
-      xcoor  = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycoor = spread(coord(:,3),dim = 1, ncopies= 1)
-
-      x = xcoor(1,:)
-      y = ycoor(1,:)
-
-      !print('E15.5, 3X, E15,5'), x(:), y(:)
-      !print'(2(3x, f10.5))', x(1), y(1)
       
-      !stop
-      !terms for derivatives
-      n  = n_val
-      aa = (2.0*n**2)/27.0
-      bb = (2.0*n)/27.0
-      exp_1 = -(2.0 + n/6.0)
-      exp_2 = n/3.0 - 5.0/2.0
-      hh = (2.0*n**2 - 9.0*n + 9.0)
-      ii = (4.0*n**2 - 6.0*n + 9.0)
-      ll = (8.0*n**2.0 - 24.0*n +27)
-
+      
+      solution_T = transpose(solution)
+      xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
+      ycoor = spread(coord(:,3),dim = 1, ncopies= 1)
+      
+      x  = xcoor(1,:)
+      y  = ycoor(1,:)
+      
+      n    = n_val
+      aa   = (2.0*n)/3.0
+      exp1 = -(n/6.0)
+      exp2 = n/3.0 - 1.0/2.0
+      
       do i = 1, nnodes
-        cc = x(i)**2*(4.0*n + 3.0) - y(i)**2.0*(n+3.0)
-        dd = atan(x(i)/y(i))
-        ee = sin(2.0*n/3.0 * dd)
-        ff = cos(2.0*n/3.0 * dd)
-        gg = (x(i)**2 + y(i)**2)
-        jj = (x(i)**2 - y(i)**2)
-        kk = x(i)**2.0*(n+3.0) - y(i)**2.0*(4.0*n+3.0)
-        mm = 8.0*n*x(i)*y(i)*(n-3.0)
+        bb = atan(y(i)/x(i))
+        cc = sin(2.0*n/3.0 * bb)
+        dd = cos(2.0*n/3.0 * bb)
+        ee = (x(i)**2 + y(i)**2)
         
-        !Derivatives in x-direction
-        dey_dydx = bb * gg**exp_2 *( x(i)*y(i)* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
-        dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x(i)*y(i)*(n+3.0) * ff)
-        dex_dx2  = aa * gg**exp_1 *( kk * ee - 4*x(i)*y(i)*(n+3.0) * ff)
-        dey_dxdy = bb * gg**exp_2 *( x(i)*y(i)* ll * ff + 4.0*n*(n-3.0)*jj * ee )
-        
-        !Derivatives in y-direction
-        dey_dx2  = bb * gg**exp_2 * ( (2.0*x(i)**2 * hh - y(i)**2 * ii)*ff - mm * ee )
-        dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x(i)*y(i)*(5*n+ 6) * ee )
-        dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* jj * ff + x(i)*y(i)*(5*n+ 6) * ee )
-        dey_dy2  = bb * gg**exp_2 * ( (x(i)**2 * ii - 2.0*y(i)**2 * hh)*ff - mm * ee ) 
-        
-        
-        source_x(i) = mu*dey_dydx + 1.0*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
-        source_y(i) =-mu*dey_dx2 + 1.0*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
+        exact_x(i) = aa*ee**exp1*cc 
+        exact_y(i) = aa*ee**exp2*dd
         
       end do
       
@@ -1752,11 +1725,11 @@ module library
 
       if(ndofn.eq.3)then  
         do ipoin = 1, nnodes
-          write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), source_x(ipoin), source_y(ipoin)
+          write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), exact_x(ipoin), exact_y(ipoin)
         end do
       elseif(ndofn.eq.2)then
         do ipoin = 1, nnodes
-          write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin), source_x(ipoin), source_y(ipoin)
+          write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin)
         end do
       end if
 
