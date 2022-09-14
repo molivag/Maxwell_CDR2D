@@ -164,7 +164,7 @@ module timeInt
       
       write(*,*) ' '
       print'(A11,I3,A3,F8.3,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
-      call GID_PostProcess(Uprev, File_PostRes, 'res', time, 0.0, time_fin)
+      call GID_PostProcess(Uprev, 'res', time, 0.0, time_fin)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
 
@@ -205,7 +205,7 @@ module timeInt
         Uprev = Unext
         !---------- Printing and writing results -----------!
         print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-        call GID_PostProcess(Uprev, File_PostRes, 'res', time, nt, time_fin)
+        call GID_PostProcess(Uprev, 'res', time, nt, time_fin)
 
       end do
 
@@ -214,7 +214,7 @@ module timeInt
       print*, 'Shape of Global F: ',shape(rhs_time)
       print*, 'Shape of Solution: ',shape(Uprev)
       write(*,*)
-      call GID_PostProcess(Uprev, File_PostMsh, 'msh', time, 0.0, time_fin) 
+      call GID_PostProcess(Uprev,'msh', time, 0.0, time_fin) 
       DEALLOCATE( AK_time, rhs_time, Uprev, Unext)
 
     end subroutine TimeIntegration
