@@ -669,10 +669,63 @@ module library
     
     ! end subroutine source_term_orig
 
-    subroutine source_term(igaus, source)
-     !         source_term(idofn, source)
-      implicit none
+    !subroutine source_term(igaus, source)
+    ! !         source_term(idofn, source)
+    !  implicit none
 
+    !  !***********************************************************!
+    !  !The source term is given by:                               !
+    !  !                                                           !
+    !  !              u = (fi*psi', fi'*psi)                       !
+    !  !                                                           !
+    !  !                                                           !
+    !  !   f = Lu       ;   where L is the diferential operator    !
+    !  !                                                           !
+    !  !***********************************************************!
+    !  
+    !  !integer, intent(in) :: ievab
+    !  integer, intent(in) :: igaus
+    !  double precision, dimension(totGp) :: x_coor, y_coor
+    !  !double precision, dimension(totGp) :: x, y
+    !  real    :: n
+    !  !integer :: i
+    !  double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
+    !  double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2
+    !  double precision, dimension(ndofn), intent(out)  :: source
+    !  
+    !  
+    !  x_coor = ngaus(:,1)
+    !  y_coor = ngaus(:,2)
+    !  
+    !  x = x_coor(igaus)               ! xi-coordinate of point j 
+    !  y = y_coor(igaus)               ! eta-coordinate of point j 
+    !  
+    !  
+    !  !Derivatives in x-direction
+    !  dey_dydx = 4*y-2
+    !  dex_dy2  = 0.0
+    !  
+    !  !Derivatives in y-direction
+    !  dey_dx2  = 0.0
+    !  dex_dxdy = 4*x-2
+    !  
+    !  source(1) = dey_dydx - dex_dy2
+    !  source(2) = -dey_dx2  + dex_dxdy
+    !  if(ndofn.eq.3)then
+    !    source(3) = 0.0 !force(ndofn)
+    !  elseif(ndofn.eq.2)then
+    !    continue
+    !  else
+    !    print*, 'Source term is a bidimensional field, not enough DoF'
+    !  end if
+    !  
+      
+    !end subroutine source_term
+
+
+    subroutine source_term(igaus, source)
+      implicit none
+      
       !***********************************************************!
       !The source term is given by:                               !
       !                                                           !
@@ -1681,8 +1734,8 @@ module library
       !declaracion de variables relacionadas con la solucion exacta
       double precision, dimension(nnodes)     ::exact_y,exact_x
       double precision :: aa, bb, cc, dd, ee, exp1, exp2
+      double precision :: fi, der_fi, psi, der_psi
       real             :: n
-      
       
       solution_T = transpose(solution)
       xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
@@ -1696,6 +1749,7 @@ module library
       exp1 = -(n/6.0)
       exp2 = n/3.0 - 1.0/2.0
       
+      
       do i = 1, nnodes
         bb = atan(y(i)/x(i))
         cc = sin(2.0*n/3.0 * bb)
@@ -1707,13 +1761,25 @@ module library
         
       end do
       
+      
+      !do i = 1, nnodes  !simple Function
+      !  fi  = x(i)*(1.0-x(i)) 
+      !  psi = y(i)*(y(i)-1.0)
+      !  der_fi = 1.0-x(i)
+      !  der_psi = 1.0-y(i)
+      !  
+      !  exact_x(i) = fi * der_psi 
+      !  exact_y(i) = der_fi * psi 
+      !  
+      !end do
+      
       extension = "_matlab.txt"
       coord_name = "coord_matlab.txt"
       conec_name = "conectivity_matlab.txt"
       open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
       open(unit=444, file= fileplace//coord_name, ACTION="write", STATUS="replace")
       open(unit=333, file= fileplace//conec_name, ACTION="write", STATUS="replace")
-
+      
       
       do i=1,nelem
         write(333,902) (lnods(i,j+1), j =1,nne)
@@ -1722,7 +1788,7 @@ module library
       do ipoin = 1, nnodes
         write(444,904) ipoin, x(ipoin), y(ipoin)
       end do
-
+      
       if(ndofn.eq.3)then  
         do ipoin = 1, nnodes
           write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), exact_x(ipoin), exact_y(ipoin)
@@ -1732,10 +1798,9 @@ module library
           write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin)
         end do
       end if
-
+      
       close(555)
       close(444)
-
       
       print*, ' '
       print*, '!====== Matlab file ======'
