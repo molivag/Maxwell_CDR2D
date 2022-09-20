@@ -427,27 +427,27 @@ module library
       
       integer, intent(in) :: idofn, jdofn, i, j
       double precision, intent(out) :: cte
-      real :: k_1_1_1_1, k_1_1_2_2, k_1_2_1_2, k_1_2_2_1, k_2_1_1_2, k_2_1_2_1
-      real :: k_2_2_1_1, k_2_2_2_2, k_3_3_1_1, k_3_3_2_2
+      !real :: k_1_1_1_1, k_1_1_2_2, k_1_2_1_2, k_1_2_2_1, k_2_1_1_2, k_2_1_2_1
+      !real :: k_2_2_1_1, k_2_2_2_2, k_3_3_1_1, k_3_3_2_2
       !character(len=*), parameter    :: fileplace = "./"
       !character(len=18)              :: File_check
       
       !File_check = "tensor_product.txt"
       !open(unit=10, file= fileplace//File_check, ACTION="write", STATUS="old", position="append")
       
-      !k_1_1_1_1 = -1.0
-      !k_2_2_1_1 = 1.0
-      !k_3_3_1_1 = -1.0
+      !k_1_1_1_1 = 1.0
+      !k_2_2_1_1 = -1.0
+      !k_3_3_1_1 = 1.0
       !
-      !k_1_2_1_2 = -1.0
-      !k_2_1_1_2 = -1.0
+      !k_1_2_1_2 = 1.0
+      !k_2_1_1_2 = 1.0
       !
-      !k_1_2_2_1 = -1.0
-      !k_2_1_2_1 = -1.0
+      !k_1_2_2_1 = 1.0
+      !k_2_1_2_1 = 1.0
       !
-      !k_1_1_2_2 = 1.0
-      !k_2_2_2_2 = -1.0
-      !k_3_3_2_2 = -1.0
+      !k_1_1_2_2 = -1.0
+      !k_2_2_2_2 = 1.0
+      !k_3_3_2_2 = 1.0
       !print*,'test;', idofn 
       
       if(idofn.eq.1)then
@@ -669,15 +669,61 @@ module library
     
     ! end subroutine source_term_orig
 
+    subroutine source_term(igaus, source)
+      
+      implicit none
+      
+      !***********************************************************!
+      !The source term is given by:                               !
+      !                                                           !
+      !              u = (fi*psi',-fi'*psi)                       !
+      !                                                           !
+      !                                                           !
+      !   f = Lu       ;   where L is the diferential operator    !
+      !                                                           !
+      !***********************************************************!
+      
+      integer, intent(in) :: igaus
+      double precision, dimension(totGp) :: x_coor, y_coor
+      real    :: n
+      double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
+      double precision :: x, y, aa, bb
+      double precision, dimension(ndofn), intent(out)  :: source
+      
+      
+      x_coor = ngaus(:,1)
+      y_coor = ngaus(:,2)
+      
+      x = x_coor(igaus)               ! xi-coordinate of point j 
+      y = y_coor(igaus)               ! eta-coordinate of point j 
+      
+      
+      !Derivatives in x-direction
+      dey_dydx = 2-4*y
+      dex_dy2  = 0.0
+      
+      !Derivatives in y-direction
+      dey_dx2  = 0.0
+      dex_dxdy = 4*x-2
+      
+      source(1) = mu*(dey_dydx - dex_dy2)
+      source(2) = -mu*(dey_dx2  + dex_dxdy)
+      source(3) = 0.0 !force(ndofn)
+      
+    end subroutine source_term
+    
+    
     !subroutine source_term(igaus, source)
-    ! !         source_term(idofn, source)
     !  implicit none
-
+    !  
     !  !***********************************************************!
     !  !The source term is given by:                               !
     !  !                                                           !
-    !  !              u = (fi*psi', fi'*psi)                       !
+    !  !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+    !  ! where:                                                    !
+    !  ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
     !  !                                                           !
+    !  ! and                                                       !
     !  !                                                           !
     !  !   f = Lu       ;   where L is the diferential operator    !
     !  !                                                           !
@@ -700,108 +746,52 @@ module library
     !  x = x_coor(igaus)               ! xi-coordinate of point j 
     !  y = y_coor(igaus)               ! eta-coordinate of point j 
     !  
+    !  !terms for derivatives
+    !  n  = n_val
+    !  aa = (2.0*n**2)/27.0
+    !  bb = (2.0*n)/27.0
+    !  cc = x**2.0*(4.0*n + 3.0) - y**2.0*(n+3.0)
+    !  dd = atan(y/x)
+    !  ee = sin(2.0*n/3.0 * dd)
+    !  ff = cos(2.0*n/3.0 * dd)
+    !  gg = (x**2 + y**2)
+    !  exp_1 = -(2.0 + n/6.0)
+    !  exp_2 = (n/3.0 - 5.0/2.0)
+    !  hh = (2.0*n**2 - 9.0*n + 9.0)
+    !  ii = (4.0*n**2 - 6.0*n + 9.0)
+    !  jj = (x**2 - y**2)
+    !  kk = x**2.0*(n+3.0) - y**2.0*(4.0*n+3.0)
+    !  ll = (8.0*n**2.0 - 24.0*n +27)
+    !  mm = 8.0*n*x*y*(n-3.0)
     !  
     !  !Derivatives in x-direction
-    !  dey_dydx = 4*y-2
-    !  dex_dy2  = 0.0
+    !  dey_dydx = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
+    !  dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff)
+    !  dex_dx2  = aa * gg**exp_1 *( kk * ee - 4*x*y*(n+3.0) * ff)
+    !  dey_dxdy = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )
     !  
     !  !Derivatives in y-direction
-    !  dey_dx2  = 0.0
-    !  dex_dxdy = 4*x-2
+    !  dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
+    !  dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
+    !  dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
+    !  dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
     !  
-    !  source(1) = dey_dydx - dex_dy2
-    !  source(2) = -dey_dx2  + dex_dxdy
+    !  source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
+    !  source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
     !  if(ndofn.eq.3)then
-    !    source(3) = 0.0 !force(ndofn)
+    !    source(3) = force(ndofn)
     !  elseif(ndofn.eq.2)then
     !    continue
     !  else
     !    print*, 'Source term is a bidimensional field, not enough DoF'
     !  end if
     !  
-      
+    !  ! print*, ' Se imprime el termino de fuente '
+    !  ! do i =1,ndofn
+    !  !   print*, source(i)
+    !  ! end do
+    !  
     !end subroutine source_term
-
-
-    subroutine source_term(igaus, source)
-      implicit none
-      
-      !***********************************************************!
-      !The source term is given by:                               !
-      !                                                           !
-      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
-      ! where:                                                    !
-      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
-      !                                                           !
-      ! and                                                       !
-      !                                                           !
-      !   f = Lu       ;   where L is the diferential operator    !
-      !                                                           !
-      !***********************************************************!
-      
-      !integer, intent(in) :: ievab
-      integer, intent(in) :: igaus
-      double precision, dimension(totGp) :: x_coor, y_coor
-      !double precision, dimension(totGp) :: x, y
-      real    :: n
-      !integer :: i
-      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
-      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2
-      double precision, dimension(ndofn), intent(out)  :: source
-      
-      
-      x_coor = ngaus(:,1)
-      y_coor = ngaus(:,2)
-      
-      x = x_coor(igaus)               ! xi-coordinate of point j 
-      y = y_coor(igaus)               ! eta-coordinate of point j 
-      
-      !terms for derivatives
-      n  = n_val
-      aa = (2.0*n**2)/27.0
-      bb = (2.0*n)/27.0
-      cc = x**2.0*(4.0*n + 3.0) - y**2.0*(n+3.0)
-      dd = atan(y/x)
-      ee = sin(2.0*n/3.0 * dd)
-      ff = cos(2.0*n/3.0 * dd)
-      gg = (x**2 + y**2)
-      exp_1 = -(2.0 + n/6.0)
-      exp_2 = (n/3.0 - 5.0/2.0)
-      hh = (2.0*n**2 - 9.0*n + 9.0)
-      ii = (4.0*n**2 - 6.0*n + 9.0)
-      jj = (x**2 - y**2)
-      kk = x**2.0*(n+3.0) - y**2.0*(4.0*n+3.0)
-      ll = (8.0*n**2.0 - 24.0*n +27)
-      mm = 8.0*n*x*y*(n-3.0)
-      
-      !Derivatives in x-direction
-      dey_dydx = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
-      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff)
-      dex_dx2  = aa * gg**exp_1 *( kk * ee - 4*x*y*(n+3.0) * ff)
-      dey_dxdy = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )
-      
-      !Derivatives in y-direction
-      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
-      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
-      dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
-      dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
-      
-      source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
-      source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
-      if(ndofn.eq.3)then
-        source(3) = force(ndofn)
-      elseif(ndofn.eq.2)then
-        continue
-      else
-        print*, 'Source term is a bidimensional field, not enough DoF'
-      end if
-      
-      ! print*, ' Se imprime el termino de fuente '
-      ! do i =1,ndofn
-      !   print*, source(i)
-      ! end do
-      
-    end subroutine source_term
     
     
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
@@ -1750,28 +1740,28 @@ module library
       exp2 = n/3.0 - 1.0/2.0
       
       
-      do i = 1, nnodes
-        bb = atan(y(i)/x(i))
-        cc = sin(2.0*n/3.0 * bb)
-        dd = cos(2.0*n/3.0 * bb)
-        ee = (x(i)**2 + y(i)**2)
-        
-        exact_x(i) = aa*ee**exp1*cc 
-        exact_y(i) = aa*ee**exp2*dd
-        
-      end do
-      
-      
-      !do i = 1, nnodes  !simple Function
-      !  fi  = x(i)*(1.0-x(i)) 
-      !  psi = y(i)*(y(i)-1.0)
-      !  der_fi = 1.0-x(i)
-      !  der_psi = 1.0-y(i)
+      !do i = 1, nnodes
+      !  bb = atan(y(i)/x(i))
+      !  cc = sin(2.0*n/3.0 * bb)
+      !  dd = cos(2.0*n/3.0 * bb)
+      !  ee = (x(i)**2 + y(i)**2)
       !  
-      !  exact_x(i) = fi * der_psi 
-      !  exact_y(i) = der_fi * psi 
+      !  exact_x(i) = aa*ee**exp1*cc 
+      !  exact_y(i) = aa*ee**exp2*dd
       !  
       !end do
+      
+      
+      do i = 1, nnodes  !simple Function
+        fi  = x(i)*(1.0-x(i)) 
+        psi = y(i)*(1.0-y(i))
+        der_fi = (1.0-2*x(i))
+        der_psi = (1.0-2*y(i))
+        
+        exact_x(i) = (fi * der_psi)
+        exact_y(i) = -(der_fi * psi)
+        
+      end do
       
       extension = "_matlab.txt"
       coord_name = "coord_matlab.txt"
@@ -1789,15 +1779,10 @@ module library
         write(444,904) ipoin, x(ipoin), y(ipoin)
       end do
       
-      if(ndofn.eq.3)then  
-        do ipoin = 1, nnodes
-          write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), exact_x(ipoin), exact_y(ipoin)
-        end do
-      elseif(ndofn.eq.2)then
-        do ipoin = 1, nnodes
-          write(555,906) solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin)
-        end do
-      end if
+      do ipoin = 1, nnodes
+        write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
+        &              exact_x(ipoin), exact_y(ipoin)
+      end do
       
       close(555)
       close(444)
