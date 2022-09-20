@@ -17,8 +17,8 @@ module BoundVal
       implicit none
       
       character(len=*), parameter :: fileplace ="./"
-      integer :: ierror, a ,b, c, d, e, f, i,ii
-      real    :: x, y, xmin, xmax, ymin, ymax, xhalf, yhalf
+      integer :: ierror, a ,b, c, d, e, f,i 
+      real    :: x, y, xmin, xmax, ymin, ymax, xhalf, yhalf, ux, uy
       integer, intent(out) :: nBVs, nBVscol
       
       
@@ -160,34 +160,49 @@ module BoundVal
           
           if(y.eq.ymax) then 
             if(x.eq.xmax)then!            ux       uy        p 
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !right top corner
+              ux = -90.0*(1-2*y)
+              uy = 19.0*(y-y**2)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right top corner
             elseif(x.eq.xmin)then                               
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !left top corner
+              ux = 0.0 
+              uy = -(y-y**2)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left top corner
             else
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !top edge 
+              ux = -19.0*(x-x**2)
+              uy = 90.0*(1-2*x)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !top edge 
             end if
             
-            if(x.eq.xhalf)then
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !half top edge
-            end if
+            !if(x.eq.xhalf)then
+            !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !half top edge
+            !end if
             a = a+3
             
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !left bottom corner
+              ux = 0.0 
+              uy = -(y-y**2)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left bottom corner
             elseif(x.eq.xmax)then                              
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !right bottom corner  
+              ux = -90.0*(1-2*y)
+              uy = 19.0*(y-y**2)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right bottom corner  
             else
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !botomm edge 
+              ux = x-x**2
+              write(100,50) i, 1, 1, 1, real(ux), real(0), real(0)       !botomm edge 
             end if
             b = b+3
             
           else if(x.eq.xmax)then                                 
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !right edge
+              ux = -90.0*(1-2*y)
+              uy = 19.0*(y-y**2)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right edge
             d = d+3
             
           else if (x.eq.xmin)then                                
-              write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !left edge 
+              ux = 0.0 
+              uy = -(y-y**2)
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left edge 
             c = c+3
            
           end if
