@@ -16,8 +16,7 @@ implicit none
   !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
   integer, allocatable,          dimension(:)   :: S_ipiv!, S_iwork
   character(len=1) :: S_trans
-  integer          :: S_m, S_n, S_nrhs, info, S_ldSol!, workdim
-  
+  integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ans!, workdim
   
 
   !---------- Input Data -----------!
@@ -33,13 +32,15 @@ implicit none
   call BandWidth( )
   
   !---------- Global Matrix and Vector ------!
-  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F) !the allocate of A_K and A_F are inside of GlobalSystem
+  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F)
+  !the allocate of A_K and A_F are inside of GlobalSystem
 
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
   allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
-  call ReadIntegerFile(30,"BVs.dat", nBVs, nBVscol, BVs)!Reading the boundary values file and it will store at BVs
-  allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) ) !memoria para el numero de nodo, si esta preescrito y su valor
+  call ReadFile("BVs.dat", nBVs, nBVscol, BVs)!Reading the boundary values file and store it at BVs
+  !memoria para el numero de nodo, si esta preescrito o no y su valor correspondiente
+  allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
   call VinculBVs(  BVs, nofix, ifpre, presc )
 
   !----- Setting MKL-Solver Parammeters -----!
@@ -55,7 +56,7 @@ implicit none
   if(ProbType .eq. 'trans')then
     
     call TimeIntegration(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, &
-    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)!, workdim )
+    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
    
     !---------- Memory Relase -----------!
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
@@ -86,17 +87,14 @@ implicit none
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
     print*, ' '
-
     
     !---------- Print and write results -----------!
-    print*, '!====== Nombre archivo posproceso'
+    print*, '!====== Name of Postprocess file'
     read(*,*) File_PostProcess 
-    print*, ' '
     call PosProcess(u_sol, 'msh') !se debe agregar el nt como dummyvariable
     call PosProcess(u_sol, 'res')
-
-    call Res_Matlab(u_sol)
-
+    write(*,*)'Matlab File?. Y=1, N=2'; read(*,*) ans
+    if(ans.eq.1)call Res_Matlab(u_sol)
     
     print*, ' '
     print*, 'Shape of Global K: ',shape(A_K)
