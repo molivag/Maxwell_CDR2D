@@ -20,7 +20,7 @@ module param
   
   !character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
   !character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
-  character(len=10) :: File_PostProcess 
+  character(len=13) :: File_PostProcess 
   
   
   contains
@@ -34,7 +34,7 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      integer :: i,j, stat, k, l
+      integer :: i,j, stat
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
       double precision :: cte_param
@@ -141,15 +141,6 @@ module param
 
       cte_param = Cu*mu*(helem**2/ell**2) 
 
-      print*, 'Cu       ', Cu
-      print*, 'µ        ', mu
-      print*, 'ell      ', ell
-      print*, 'i        ', i_exp
-      print*, 'h^-i     ', helem
-      print*, 'cte_param', cte_param
-
-      !Paramter of stabilization
-     
       
 
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
@@ -161,36 +152,6 @@ module param
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,e15.5,e15.5,e15.5,2/) 
       
-      print*, ' '
-      print*, 'Diffusion matrix'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(F10.5,1x,F10.5, 1x, F10.5)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection matrix'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-        print*,' '
-      end do
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
-      end do
-        print*,' '
-      print*,'force'
-      do i =1, ndofn
-        print"(f10.5)", force(i)
-      end do
-      print*, ' '
       
     end subroutine inputData
     
