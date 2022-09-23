@@ -3,10 +3,26 @@ module library
   use biunit
 
   contains
-
+    
     subroutine GeneralInfo( )
       external :: fdate
       character(len=24) :: date
+      character(len=4) :: aaaa 
+      
+      integer :: i,j, k, l
+     
+      
+      if(kstab.eq.3 .or. kstab.eq.5)then
+        aaaa = 'SGS'
+      elseif(kstab.eq.2)then
+        aaaa = 'GLS'
+      elseif(kstab.eq.4)then
+        aaaa = 'CG'
+      else
+        aaaa = 'SUPG'
+      endif
+      
+      
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convetion-Diffusion-Reaction Simulation - - - - '
@@ -23,43 +39,89 @@ module library
       write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', nevab,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', ntotv,'   '
-
+      
+      print*, ' '
+      print*,'!========== STABILIZATION PARAMETERS ==========!'
+      write(*,"(A26,3x,a3,3X,A1)") ' - Stabilization method:   ', aaaa,''
+      write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Lenght ref. element:    ', hnatu,'   '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
+      write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of lenght:   ', ell, '    '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Mesh size 2^-i:         ', i_exp,'   '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - n-value in exact sol:   ', n_val,'   '
+      
+      print*, ' '
+      print*,'!============ TENSOR COEFFICIENTS  ============!'
+      print*, 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(F10.3,1x,F10.3, 1x, F10.3)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+        print*,' '
+      end do
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
+      end do
+        print*,' '
+      print*,'External Forces'
+      do i =1, ndofn
+        print"(f10.3)", force(i)
+      end do
+      print*, ' '
+      
+      
     endsubroutine GeneralInfo
-
-    subroutine ReadIntegerFile(UnitNum, FileName, NumRows, NumCols, IntegerArray)
-
+    
+    subroutine ReadFile(FileName, NumRows, NumCols, IntegerArray)
+      
       integer :: i, j, status
-      integer, intent(in)            :: UnitNum, NumRows, NumCols
+      integer, intent(in)            :: NumRows, NumCols
       character(len=*), parameter    :: fileplace = "./"
       character (len=*), intent (in) :: FileName
       integer, dimension (1:NumRows, 1:NumCols), intent (out) :: IntegerArray
-
-
-      open (unit = UnitNum, file =fileplace//FileName, status='old', action='read' , iostat = status)
-
-      read(UnitNum,*) ((IntegerArray(i,j), j=1,NumCols), i=1,NumRows)
+      
+      
+      open (unit=99, file=fileplace//FileName, status='old', action='read' , iostat = status)
+      
+      read(99,*) ((IntegerArray(i,j), j=1,NumCols), i=1,NumRows)
       if (status.ne.0) then
-        print *, "Status_Int_File  ", status
+        print *, "Status while reading BVs file is:", status
       else
         continue
       end if
-      close (UnitNum)
-
-    end subroutine ReadIntegerFile
-
+      close (99)
+      
+    end subroutine ReadFile
+    
+    
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap)
-
+      
       implicit none
-
-      integer,intent(in)                      :: elm_num ! number of element for each elemental integral in do of K global
+      
+      integer,intent(in)   :: elm_num ! number of element for each elem integral in loop of K global
       real,dimension(nne,DimPr), intent(out)  :: element_nodes
       integer,dimension(nne), intent(out)     :: nodeIDmap
       integer                                 :: i,j,global_node_id
-
-
+      
+      
       element_nodes = 0.0
       nodeIDmap = 0
-
+      
       do i = 1, nne
         global_node_id = lnods(elm_num,i+1)
         do j=1 ,DimPr
@@ -67,13 +129,13 @@ module library
         end do
         nodeIDmap(i) = global_node_id
       end do
-
+      
     end subroutine SetElementNodes
-
+    
     function J2D( element_nodes, dN_dxi, dN_deta, Gp)
       implicit none
-
-      integer, intent(in)                      :: Gp !esta variable se usara en el lazo principal con el punto de Gauss
+      
+      integer, intent(in)      :: Gp ! se usara en el lazo principal con el punto de Gauss
       real, dimension(nne,DimPr), intent(in)  :: element_nodes
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
       double precision, dimension(DimPr,nne)  :: Basis2D
@@ -1178,7 +1240,6 @@ module library
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1   
       
-      write(*,*) ''
       print*,'!================ Bandwidth Info ==============!'
       
       write(*,"(A15,9X,I6,1X,A9)")' - UpBand:      ', upban,'   '
@@ -1715,16 +1776,15 @@ module library
       character(len=*), parameter    :: fileplace = "Res/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(len=12)                       :: extension
-      character(len=16)                       :: coord_name
-      character(len=22)                       :: conec_name
+      character(len=7)                        :: coord_name, conec_name
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcoor, ycoor
       double precision, dimension(nnodes)     :: x, y
       integer                                 :: i,j, ipoin
       !declaracion de variables relacionadas con la solucion exacta
-      double precision, dimension(nnodes)     ::exact_y,exact_x
+      double precision, dimension(nnodes)     ::exact_y,exact_x, FEM_magn, exac_magn
       double precision :: aa, bb, cc, dd, ee, exp1, exp2
-      double precision :: fi, der_fi, psi, der_psi
+      double precision :: fi, der_fi, psi, der_psi, x_FEM, y_FEM
       real             :: n
       
       solution_T = transpose(solution)
@@ -1763,12 +1823,23 @@ module library
         
       end do
       
+      do i = 1, nnodes
+        exac_magn(i) = sqrt(exact_x(i)**2 + exact_y(i)**2)
+        x_FEM = solution_T(1,ndofn*i-2)
+        y_FEM = solution_T(1,ndofn*i-1)
+        FEM_magn(i) = sqrt(x_FEM**2 + y_FEM**2)
+      end do
+      
+      
+      write(*,*) '!====== Name of coordinates file'
+      read(*,*) coord_name
+      write(*,*) '!====== Name of connectivity file'
+      read(*,*) conec_name
+      
       extension = "_matlab.txt"
-      coord_name = "coord_matlab.txt"
-      conec_name = "conectivity_matlab.txt"
       open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
-      open(unit=444, file= fileplace//coord_name, ACTION="write", STATUS="replace")
-      open(unit=333, file= fileplace//conec_name, ACTION="write", STATUS="replace")
+      open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
+      open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
       
       
       do i=1,nelem
@@ -1781,7 +1852,7 @@ module library
       
       do ipoin = 1, nnodes
         write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
-        &              exact_x(ipoin), exact_y(ipoin)
+        &              exact_x(ipoin), exact_y(ipoin), exac_magn(ipoin), FEM_magn(ipoin)
       end do
       
       close(555)
@@ -1793,7 +1864,7 @@ module library
     
       902 format(6(1x,I7) ) !format for msh
       904 format(I7,2(3x,f9.4) ) !format for msh
-      906 format( E15.5, 3x, E15.5, 3x, E15.5, 3x, E15.5 ) !format for msh
+      906 format(F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10)!format for msh
       
     end subroutine Res_Matlab
     
@@ -1902,7 +1973,7 @@ module library
         stop
       end if
     
-    
+      
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
       906 format(I7,2(3x,f9.4)) !format for msh
@@ -1910,7 +1981,8 @@ module library
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
       918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
-      919 format(I7,3(3x,E15.5)) !format for res velocity
+      919 format(I7,3(4x,F20.10)) !format for res velocity
+      !919 format(I7,3(3x,E15.5)) !format for res velocity
     
     end subroutine PosProcess
     
@@ -2031,9 +2103,9 @@ module library
       906 format(I7,2(3x,f9.4)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
-      916 format(I7,2x,E12.5)  !format for scalar case
+      916 format(I7,2x,F12.5)  !format for scalar case
       918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
-      919 format(I7,3(3x,E15.5)) !format for res velocity
+      919 format(I7,3(4x,F20.10)) !format for res velocity
       
     end subroutine GID_PostProcess
    
