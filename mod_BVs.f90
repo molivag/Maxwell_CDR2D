@@ -37,9 +37,8 @@ module BoundVal
       xmax = maxval(coord(:,2)) !the greatest number in x column
       ymin = minval(coord(:,3)) !the smallest number in y column
       ymax = maxval(coord(:,3)) !the greatest number in y column
-      xhalf = 0.0!xmax/2.0
-      yhalf = 0.0!ymax/2.0
-      
+      xhalf = xmax/2.0 !0.0
+      yhalf = ymax/2.0 !0.0
       !print*, 'xmin = ', xmin
       !print*, 'xmax = ', xmax
       !print*, 'ymin = ', ymin
@@ -197,13 +196,13 @@ module BoundVal
               ux = -90.0*(1-2*y)
               uy = 19.0*(y-y**2)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right edge
-            d = d+3
+            c = c+3
             
           else if (x.eq.xmin)then                                
-              ux = 0.0 
+              ux = 0.0
               uy = -(y-y**2)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left edge 
-            c = c+3
+            d = d+3
            
           end if
           nBVs = a+b+c+d
@@ -218,9 +217,9 @@ module BoundVal
       close(100)
       
       
-      50 format(I5,2x,3I2,2x,3f12.5)
-      60 format(I5,2x,2I2,2x,2f12.5)
-      70 format(I5,2x,1I2,2x,f12.5)
+      50 format(I6,2x,3I3,2x,3(f12.5,2x))
+      60 format(I6,2x,2I2,2x,2f12.5)
+      70 format(I6,2x,1I2,2x,f12.5)
       
     end subroutine SetBoundVal 
    
