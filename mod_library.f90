@@ -1776,7 +1776,7 @@ module library
       character(len=*), parameter    :: fileplace = "Res/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(len=12)                       :: extension
-      character(len=7)                        :: coord_name, conec_name
+      character(len=8)                        :: coord_name, conec_name
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcoor, ycoor
       double precision, dimension(nnodes)     :: x, y

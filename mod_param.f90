@@ -45,13 +45,15 @@ module param
       ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
       Cu, mu, ell, i_exp, n_val
 
-      allocate(lnods(nelem,nne+1))
-      allocate(coord(nnodes,Dimpr+1))
+      allocate( lnods(nelem,nne+1))
+      allocate( coord(nnodes,Dimpr+1))
       allocate( difma(ndofn,ndofn,DimPr,DimPr) )
       allocate( conma(ndofn,ndofn,DimPr) )
       allocate( reama(ndofn,ndofn) )
       allocate( force(ndofn) )
       
+      lnods = 0.0
+      coord = 0.0
       difma = 0.0
       conma = 0.0
       reama = 0.0

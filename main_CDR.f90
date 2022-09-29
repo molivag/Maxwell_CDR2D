@@ -82,7 +82,7 @@ implicit none
     !---------- Solving System of Equations by retpla solver -----------!
     print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
     call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
-    call MKLfactoResult('dgbtrf',info)  !Aqui agregar el paso del tiempo para en cada tiempo indicar el info de ejecucion
+    call MKLfactoResult('dgbtrf',info) 
     print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
@@ -91,15 +91,15 @@ implicit none
     !---------- Print and write results -----------!
     print*, '!====== Name of Postprocess file'
     read(*,*) File_PostProcess 
-    call PosProcess(u_sol, 'msh') !se debe agregar el nt como dummyvariable
+    call PosProcess(u_sol, 'msh') 
     call PosProcess(u_sol, 'res')
     write(*,*)'Matlab File?. Y=1, N=2'; read(*,*) ans
     if(ans.eq.1)call Res_Matlab(u_sol)
     
-    print*, ' '
-    print*, 'Shape of Global K: ',shape(A_K)
-    print*, 'Shape of Global F: ',shape(A_F)
-    print*, 'Shape of Solution: ',shape(u_sol)
+    !print*, ' '
+    !print*, 'Shape of Global K: ',shape(A_K)
+    !print*, 'Shape of Global F: ',shape(A_F)
+    !print*, 'Shape of Solution: ',shape(u_sol)
     write(*,*)
     !---------- Memory Relase -----------!
     DEALLOCATE( A_F, A_K, AK_LU, u_sol)
