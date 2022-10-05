@@ -124,15 +124,15 @@ module timeInt
     end subroutine initialCondition
     
     
-    subroutine TimeIntegration(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time,&
-      &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)!, workdim)
-
+    subroutine TimeIntegration(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
+    &                    time_ini, time_fin, max_time, nofix, ifpre, presc, &
+    &                    S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
       implicit none
 
       external :: dgbtrf, dgbtrs, dgbrfs
 
       double precision, dimension(nne,TotGp), intent(in)     :: N, dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)         :: Hesxieta
+      double precision, dimension(nne,TotGp), intent(in)     :: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn,nBVs), intent(in)    :: presc
       integer, dimension(ndofn,nBVs), intent(in)             :: ifpre
       integer, dimension(nBVs), intent(in)                   :: nofix
@@ -169,7 +169,7 @@ module timeInt
       write(*,*) ' '
 
       !the allocate of A_K and A_F are inside of GlobalSystem
-      call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F) 
+      call GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       select case(theta)
         case(2)!--- LHS BDF1
           AK_time  = (1.0/delta_t)*A_C + A_K 
@@ -182,7 +182,7 @@ module timeInt
       do time = 1, max_time +1
         nt = nt + delta_t!,time_fin,delta_t
 
-        call TimeContribution(N, dN_dxi, dN_deta, Hesxieta, delta_t, Uprev, Ftime)
+        call TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, Uprev, Ftime)
         !--- LHS
         rhs_time = Ftime  
         call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
