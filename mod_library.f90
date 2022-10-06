@@ -150,90 +150,105 @@ module library
       !Las siguientes tres lineas realizan de forma implicita el calculo de las derivadas
       !espaciales es decir dN/dx and dN/dy (eq. 5.114 - 5.117). Las derivadas espaciales
       !no se calcula explicitamente, en su lugar se usa:
-
+      
       !            d/dy = (d/deta)J^-1      (ver eq. 5.77 y 5.109)
-
+      
       Basis2D(1,:) = Nxi(1,:)
       Basis2D(2,:) = Neta(1,:)
       J2D = matmul(Basis2D,element_nodes)
-
+      
       return
-
+      
     end function J2D
-
-    subroutine DerivativesXY(Gp, InvJaco, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
-
+    
+    subroutine DerivativesXY(Gp, InvJaco, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+      
       implicit none
       
-      double precision, dimension(DimPr,DimPr),intent(in):: InvJaco
-      double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)     :: Hesxieta
-      integer, intent(in)                                :: Gp !esta variable se usara en el lazo principal
-      double precision, dimension(1,nne)                 :: Nxi, Neta
-      double precision, dimension(2,nne)                 :: derst
-      integer                                            :: idime, inode, jdime
-      double precision, dimension(2,nne), intent(out)    :: dN_dxy
-      double precision, dimension(3,nne), intent(out)    :: HesXY
+      double precision, dimension(DimPr,DimPr),intent(in)    :: InvJaco
+      double precision, dimension(nne,totGp), intent(in)     :: dN_dxi, dN_deta
+      double precision, dimension(nne,totGp), intent(in)     :: Hes_xixi, Hes_xieta, Hes_etaeta 
+      integer, intent(in)                                    :: Gp !esta variable se usara en el lazo principal
+      
+      double precision, dimension(3,nne)                     :: Hesxieta
+      double precision, dimension(2,nne)                     :: derst
+      double precision, dimension(1,nne)                     :: Nxi, Neta
+      double precision, dimension(1,nne)                     :: Hes_1, Hes_2, Hes_3 
+      integer                                                :: idime, inode, jdime
+      double precision, dimension(DimPr,nne), intent(out)    :: dN_dxy
+      double precision, dimension(DimPr+1,nne), intent(out)  :: HesXY
+      
       
       
       Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
       Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
-
-
+      
+      Hes_1 = spread(Hes_xixi(:,Gp),dim = 1, ncopies= 1)
+      Hes_2 = spread(Hes_xieta(:,Gp),dim = 1, ncopies= 1)
+      Hes_3 = spread(Hes_etaeta(:,Gp),dim = 1, ncopies= 1)
+     
+      do inode = 1, nne
+        Hesxieta(1,inode) = Hes_1(1,inode)
+        Hesxieta(2,inode) = Hes_2(1,inode)
+        Hesxieta(3,inode) = Hes_3(1,inode)
+      end do
+      
+      
       do idime=1,DimPr
         do inode=1,nne
           dN_dxy(idime,inode) = 0.0
           derst(1,inode) = Nxi(1,inode)
           derst(2,inode) = Neta(1,inode)
           do jdime=1,2
-            dN_dxy(idime,inode)  = dN_dxy(idime,inode) + InvJaco(idime,jdime) * derst(jdime,inode)
+            dN_dxy(idime,inode) = dN_dxy(idime,inode) + InvJaco(idime,jdime) * derst(jdime,inode)
           end do
         end do
       end do
-
+      
+      
       !The Hessian matrix
       HesXY = 0.0
       do inode=1,nne
         HesXY(1,inode) = InvJaco(1,1)*InvJaco(1,1)*Hesxieta(1,inode)+&
           2.0*InvJaco(1,1)*InvJaco(2,1)*Hesxieta(2,inode)+InvJaco(2,1)*InvJaco(2,1)*Hesxieta(3,inode)
-
+        
         HesXY(2,inode) = InvJaco(1,1)*InvJaco(1,2)*Hesxieta(1,inode) + (InvJaco(1,1)*InvJaco(2,2)+&
           InvJaco(2,1)*InvJaco(1,2)) * Hesxieta(2,inode) + InvJaco(2,1)*InvJaco(2,2)*Hesxieta(3,inode)
-
+        
         HesXY(3,inode) = InvJaco(2,2)*InvJaco(2,2)*Hesxieta(3,inode)+&
           2.0*InvJaco(2,2)*InvJaco(1,2)*Hesxieta(2,inode)+InvJaco(1,2)*InvJaco(1,2)*Hesxieta(1,inode)
       end do
-
-
+      
+      
+      
     end subroutine DerivativesXY
-
+    
     function inv2x2(A)
-
+      
       implicit none
-
+      
       double precision, dimension(DimPr, DimPr), intent(in) :: A
       double precision, dimension(DimPr, DimPr)             :: inv2x2
       double precision, dimension(DimPr,DimPr)              :: cofactor
       double precision, parameter :: EPS = 1.0E-10
       double precision            :: det
-
-
+      
+      
       det = A(1,1)*A(2,2) - A(1,2)*A(2,1)
-
+      
       if (abs(det) .le. EPS) then
         inv2x2 = 0.0D0
         return
       end if
-
+      
       cofactor(1,1) = +A(2,2)
       cofactor(1,2) = -A(2,1)
       cofactor(2,1) = -A(1,2)
       cofactor(2,2) = +A(1,1)
-
+      
       inv2x2 = transpose(cofactor) / det
-
       return
-
+      
     end function inv2x2
 
     subroutine invmtx(a,deter,b)
@@ -747,9 +762,8 @@ module library
       
       integer, intent(in) :: igaus
       double precision, dimension(totGp) :: x_coor, y_coor
-      real    :: n
       double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
-      double precision :: x, y, aa, bb
+      double precision :: x, y
       double precision, dimension(ndofn), intent(out)  :: source
       
       
@@ -1078,14 +1092,18 @@ module library
 
     end subroutine TauMat
 
-    subroutine Stabilization(dvolu, basis, derxy,hesxy,source, tauma, Ke,Fe)
-      !subroutine Stabilization(dvolu, basis, derxy,hesxy,tauma,Ke,Fe,pertu,workm,resid)
+
+
+
+
+    subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
+      !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
 
       ! Contribution to the system matrix and RHS from the stabilization term
       
       implicit none
 
-      double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), hesxy(3,nne), tauma(3,3)
+      double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
       double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
       double precision              :: prod1, prod2, prod3, cte
@@ -1103,9 +1121,9 @@ module library
       pertu =  0.0
 
       do inode=1,nne
-        workm(1,1)=hesxy(1,inode)
-        workm(2,2)=hesxy(3,inode)
-        workm(1,2)=hesxy(2,inode)
+        workm(1,1)=HesXY(1,inode)
+        workm(2,2)=HesXY(3,inode)
+        workm(1,2)=HesXY(2,inode)
         workm(2,1)=workm(1,2)
         do idofn=1,ndofn
 
@@ -1250,12 +1268,12 @@ module library
       
     end subroutine BandWidth
     
-    subroutine TimeContribution(N, dN_dxi, dN_deta, Hesxieta, delta_t, ugl_pre, A_F)
+    subroutine TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, ugl_pre, A_F)
       
       implicit none
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)    :: Hesxieta
+      double precision, dimension(nne,TotGp), intent(in):: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn)        :: source
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
@@ -1285,7 +1303,7 @@ module library
           detJ = m22det(Jaco)
           Jinv = inv2x2(Jaco)
           dvol = detJ *  weigp(igaus,1)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
@@ -1313,12 +1331,12 @@ module library
     end subroutine TimeContribution
     
     
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F)
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
       implicit none
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
-      double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn)        :: source
       double precision, dimension(nne)          :: basis
       double precision, dimension(DimPr,nne)    :: dN_dxy
@@ -1336,7 +1354,9 @@ module library
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
       
-      !duda Fe se declara como a(n) y en la rutina assembleF como a(n,1), pero compila y ejecuta bien. ¿Poooor?
+      !duda: Fe se declaró como a(n) y en la rutina assembleF como a(n,1)
+      !      pero compila y ejecuta bien. ¿Poooor?
+      
       A_K = 0.0
       A_F = 0.0
       do ielem = 1, nelem 
@@ -1351,7 +1371,7 @@ module library
           detJ = m22det(Jaco)
           Jinv = inv2x2(Jaco)
           dvol = detJ *  weigp(igaus,1)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
@@ -1359,7 +1379,6 @@ module library
           call TauMat(hmaxi,tauma)
           call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
-          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
         end do
@@ -1367,15 +1386,12 @@ module library
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
-
-
       end do
       
       ! print*,'!=============== Output Files ================!'
       ! call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
       ! call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
       
-
       
     end subroutine GlobalSystem
     
@@ -1768,37 +1784,31 @@ module library
       write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
 
     end subroutine writeMatrix
-
-    subroutine Res_Matlab(solution)
-
-      implicit none
     
-      character(len=*), parameter    :: fileplace = "Res/"
-      double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(len=12)                       :: extension
-      character(len=8)                        :: coord_name, conec_name
-      double precision, dimension(1, ntotv)   :: solution_T
-      double precision, dimension(1,nnodes)   :: xcoor, ycoor
-      double precision, dimension(nnodes)     :: x, y
-      integer                                 :: i,j, ipoin
+    subroutine Convergence(solution, x, y, exact_y, exact_x, FEM_magn, exac_magn, error)
+      implicit none
+      
+      double precision, dimension(ntotv,1), intent(in) :: solution
+      double precision, dimension(nnodes), intent(in)  :: x, y
       !declaracion de variables relacionadas con la solucion exacta
-      double precision, dimension(nnodes)     ::exact_y,exact_x, FEM_magn, exac_magn
-      double precision :: aa, bb, cc, dd, ee, exp1, exp2
-      double precision :: fi, der_fi, psi, der_psi, x_FEM, y_FEM
-      real             :: n
+      double precision                                 :: aa, bb, cc, dd, ee, exp1, exp2, a3
+      double precision                                 :: fi, psi, der_fi, der_psi 
+      integer                                          :: i,j, ipoin
+      real                                             :: n
+      !end variables for exact solution
+      double precision, dimension(1, ntotv)            :: solution_T
+      double precision, dimension(nnodes)              :: x_FEM, y_FEM, a1, a2 
+      double precision, dimension(nnodes), intent(out) :: exact_y, exact_x, exac_magn, FEM_magn
+      double precision, intent(out)                    :: error
       
       solution_T = transpose(solution)
-      xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycoor = spread(coord(:,3),dim = 1, ncopies= 1)
       
-      x  = xcoor(1,:)
-      y  = ycoor(1,:)
-      
+      !! * * * * * * * * * Exact solution * * * * * * * * * * * * *
+      ! L- domain w/singular solution 
       n    = n_val
       aa   = (2.0*n)/3.0
       exp1 = -(n/6.0)
       exp2 = n/3.0 - 1.0/2.0
-      
       
       !do i = 1, nnodes
       !  bb = atan(y(i)/x(i))
@@ -1811,7 +1821,7 @@ module library
       !  
       !end do
       
-      
+      !A simple test u(fi*psi',fi'*psi) 
       do i = 1, nnodes  !simple Function
         fi  = x(i)*(1.0-x(i)) 
         psi = y(i)*(1.0-y(i))
@@ -1822,14 +1832,57 @@ module library
         exact_y(i) = -(der_fi * psi)
         
       end do
+      !! * * * * * * * * * (end) Exact solution * * * * * * * * * * 
       
+     !Magnitud of exact and FE solution
       do i = 1, nnodes
-        exac_magn(i) = sqrt(exact_x(i)**2 + exact_y(i)**2)
-        x_FEM = solution_T(1,ndofn*i-2)
-        y_FEM = solution_T(1,ndofn*i-1)
-        FEM_magn(i) = sqrt(x_FEM**2 + y_FEM**2)
+        !exac_magn(i) = sqrt(exact_x(i)**2 + exact_y(i)**2)
+        exac_magn(i) = exact_x(i)**2 + exact_y(i)**2
+        
+        x_FEM(i) = solution_T(1,ndofn*i-2)
+        y_FEM(i) = solution_T(1,ndofn*i-1)
+        FEM_magn(i) = x_FEM(i)**2 + y_FEM(i)**2
       end do
+      !do i =1, nnodes
+      !end do
       
+      !Error estimation (page 46 from bitacora)  
+      do i =1, nnodes
+        a1(i) = abs(FEM_magn(i) - exac_magn(i) )**2
+        a2(i) = abs(exac_magn(i))**2
+      end do 
+      a3    = sum(a1)/sum(a2)
+      error = sqrt(a3)
+      
+      
+    end subroutine Convergence
+    
+    
+    subroutine Res_Matlab(solution)
+      
+      implicit none
+      
+      character(len=*), parameter    :: fileplace = "Res/"
+      double precision, dimension(ntotv, 1), intent(in) :: solution
+      
+      double precision, dimension(1, ntotv)   :: solution_T
+      double precision, dimension(1,nnodes)   :: xcoor, ycoor
+      double precision, dimension(nnodes)     :: exact_y, exact_x, FEM_magn, exac_magn
+      double precision, dimension(nnodes)     :: x, y
+      character(len=12)                       :: extension
+      character(len=8)                        :: coord_name, conec_name
+      integer                                 :: i,j, ipoin
+      double precision                        :: error
+      
+      
+      solution_T = transpose(solution)
+      xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
+      ycoor = spread(coord(:,3),dim = 1, ncopies= 1)
+      
+      x  = xcoor(1,:)
+      y  = ycoor(1,:)
+      
+      call Convergence(solution, x, y, exact_y, exact_x, FEM_magn, exac_magn, error)
       
       write(*,*) '!====== Name of coordinates file'
       read(*,*) coord_name
@@ -1850,7 +1903,7 @@ module library
         write(444,904) ipoin, x(ipoin), y(ipoin)
       end do
       
-      do ipoin = 1, nnodes
+      do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y   Uex     Uh
         write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
         &              exact_x(ipoin), exact_y(ipoin), exac_magn(ipoin), FEM_magn(ipoin)
       end do
@@ -1861,18 +1914,21 @@ module library
       print*, ' '
       print*, '!====== Matlab file ======'
       print"(A6,A22,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
-    
-      902 format(6(1x,I7) ) !format for msh
+      print*, ' '
+      write(*,"(A9,f7.3,A25,E11.5)")' For h = ', 10*2**(-i_exp), 'the error estimation is ', error 
+      print*, ' '
+     
+      902 format(10(1x,I7) ) !format for msh
       904 format(I7,2(3x,f9.4) ) !format for msh
       906 format(F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10)!format for msh
       
     end subroutine Res_Matlab
     
-
-    subroutine PosProcess(solution, activity)
-
-      implicit none
     
+    subroutine PosProcess(solution, activity)
+      
+      implicit none
+      
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(*), intent(in)                :: activity
@@ -1880,17 +1936,16 @@ module library
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin, ii
-    
+      
       solution_T = transpose(solution)
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
       
       
-    
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
         extension = ".post.msh"
         open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
-
+        
         write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
         write(555,900) '#Element tipe: ', ElemType,'/',ElemType
@@ -1907,13 +1962,13 @@ module library
         write(555,"(A)") 'End Elements'
         close(555)
         print"(A6,A26,A30)", ' File ',File_PostProcess//'.post.msh','written succesfully in Pos/ '
-    
+       
       elseif(activity == "res")then
         extension = ".post.res"
         open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
         write(555,"(A)") 'GiD Post Results File 1.0'
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
-    
+        
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
@@ -1926,7 +1981,8 @@ module library
             do ipoin = 1, nnodes
               write(555,916) ipoin, solution(ipoin, 1)
             end do
-            !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
+            !An alternative work around is by explicitly designate the 
+            !elements to be read using an io-implied-do
             !Something like
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(555,"(A)") 'End Values'
@@ -1977,7 +2033,7 @@ module library
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
       906 format(I7,2(3x,f9.4)) !format for msh
-      908 format(9(2x,I7) )
+      908 format(10(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
       918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
