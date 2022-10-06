@@ -6,7 +6,8 @@ implicit none
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, presc
   double precision, allocatable, dimension(:,:) :: N, dN_dxi, dN_deta
-  double precision,              dimension(3,4) :: Hesxieta
+  double precision, allocatable, dimension(:,:) :: hes_xixi, hes_xieta, hes_etaeta
+  !double precision,              dimension(3,4) :: Hesxieta
   integer, allocatable, dimension(:,:)          :: BVs, ifpre
   integer, allocatable, dimension(:)            :: nofix
   real                                          :: start, finish
@@ -26,13 +27,13 @@ implicit none
 
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)
-  call ShapeFunctions(ngaus, nne, N, dN_dxi, dN_deta, Hesxieta)
+  call ShapeFunctions(ngaus, N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta)
 
   !------- Computing half bandwidth  --------!
   call BandWidth( )
   
   !---------- Global Matrix and Vector ------!
-  call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_C, A_K, A_F)
+  call GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
   !the allocate of A_K and A_F are inside of GlobalSystem
 
   !------- Setting Boundary Conditions ------!
@@ -55,18 +56,22 @@ implicit none
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'trans')then
     
-    call TimeIntegration(N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, &
-    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
+    call TimeIntegration(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
+    &                    time_ini, time_fin, max_time, nofix, ifpre, presc, &
+    &                    S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
    
     !---------- Memory Relase -----------!
-    DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
-    
+    DEALLOCATE( N, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+    DEALLOCATE(hes_xixi, hes_xieta, hes_etaeta) 
+  
   else
-
+    
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !---------- Memory Relase -----------!
     DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
+    DEALLOCATE(hes_xixi, hes_xieta, hes_etaeta) 
+    
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
