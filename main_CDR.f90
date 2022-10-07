@@ -17,7 +17,7 @@ implicit none
   !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
   integer, allocatable,          dimension(:)   :: S_ipiv!, S_iwork
   character(len=1) :: S_trans
-  integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ans!, workdim
+  integer          :: S_m, S_n, S_nrhs, info, S_ldSol!, workdim
   
 
   !---------- Input Data -----------!
@@ -98,9 +98,7 @@ implicit none
     read(*,*) File_PostProcess 
     call PosProcess(u_sol, 'msh') 
     call PosProcess(u_sol, 'res')
-    write(*,*)'Matlab File?. Y=1, N=2'; read(*,*) ans
-    if(ans.eq.1)call Res_Matlab(u_sol)
-    
+    call Res_Matlab(u_sol)
     !print*, ' '
     !print*, 'Shape of Global K: ',shape(A_K)
     !print*, 'Shape of Global F: ',shape(A_F)
