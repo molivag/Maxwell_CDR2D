@@ -65,7 +65,7 @@ module biunit
             weigp(8,1)= 40.0/81.0
             weigp(9,1)= 64.0/81.0
           else
-            write(*,*) 'Invalid number of Gauss poooints for this element'   
+            write(*,*) 'Invalid number of Gauss points for this element (Q1)'   
             stop
           end if
         case("Triangle") 
@@ -124,7 +124,7 @@ module biunit
             weigp(5,1) = b
             weigp(6,1) = b
           else
-            write(*,*) 'Invalid number of Gauss poooints for this element'   
+            write(*,*) 'Invalid number of Gauss poooints for this element (P1)'   
             stop
           end if
         case DEFAULT
