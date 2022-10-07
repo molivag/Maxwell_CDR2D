@@ -1871,9 +1871,13 @@ module library
       double precision, dimension(nnodes)     :: x, y
       character(len=12)                       :: extension
       character(len=8)                        :: coord_name, conec_name
-      integer                                 :: i,j, ipoin
+      character(len=6)                        :: error_name
+      character(len=2)                        :: identy
+      integer                                 :: i,j, ipoin, ans
       double precision                        :: error
       
+      
+      extension = "_matlab.txt"
       
       solution_T = transpose(solution)
       xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
@@ -1884,36 +1888,56 @@ module library
       
       call Convergence(solution, x, y, exact_y, exact_x, FEM_magn, exac_magn, error)
       
-      write(*,*) '!====== Name of coordinates file'
-      read(*,*) coord_name
-      write(*,*) '!====== Name of connectivity file'
-      read(*,*) conec_name
-      
-      extension = "_matlab.txt"
       open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
-      open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
-      open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
-      
-      
-      do i=1,nelem
-        write(333,902) (lnods(i,j+1), j =1,nne)
-      end do
-      
-      do ipoin = 1, nnodes
-        write(444,904) ipoin, x(ipoin), y(ipoin)
-      end do
       
       do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y   Uex     Uh
         write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
         &              exact_x(ipoin), exact_y(ipoin), exac_magn(ipoin), FEM_magn(ipoin)
       end do
+      !print*, ' '
+      !print*, '!====== Matlab file ======'
+      print"(A6,A24,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
+      print*, ' '
       
       close(555)
-      close(444)
       
-      print*, ' '
-      print*, '!====== Matlab file ======'
-      print"(A6,A22,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
+      write(*,*) '!====== Element size'
+      read(*,*) identy
+      
+      write(*,*)'Mesh File?. Y=1, N=2'; read(*,*) ans
+      if(ans.eq.1)then
+        
+        write(*,*) '!====== Name of coordinates file'
+        read(*,*) coord_name
+        write(*,*) '!====== Name of connectivity file'
+        read(*,*) conec_name
+        
+        open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
+        open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
+        
+        
+        do i=1,nelem
+          write(333,902) (lnods(i,j+1), j =1,nne)
+        end do
+        
+        do ipoin = 1, nnodes
+          write(444,904) ipoin, x(ipoin), y(ipoin)
+        end do
+        print*, ' '
+        print*, '!====== Mesh file ======'
+        print"(A6,A8,A3,A8,A30)", ' File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
+        print*, ' '
+        
+        close(444)
+      else
+        continue
+      end if
+      
+      error_name = 'err_'//identy
+      open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
+      write(777,"(1x,E15.5)") error
+      close(777)
+
       print*, ' '
       write(*,"(A9,f7.3,A25,E11.5)")' For h = ', 10*2**(-i_exp), 'the error estimation is ', error 
       print*, ' '
@@ -1961,7 +1985,7 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
-        print"(A6,A26,A30)", ' File ',File_PostProcess//'.post.msh','written succesfully in Pos/ '
+        print"(A6,A24,A30)", ' File ',File_PostProcess//'.post.msh','written succesfully in Pos/ '
        
       elseif(activity == "res")then
         extension = ".post.res"
@@ -2019,7 +2043,7 @@ module library
               ii=ii+1
             end do
             write(555,"(A)") 'End Values'
-            print"(A6,A26,A30)", ' File ',File_PostProcess//'.post.res', 'written succesfully in Pos/ '
+            print"(A6,A24,A30)", ' File ',File_PostProcess//'.post.res', 'written succesfully in Pos/ '
         end select
       
         close(555)
