@@ -14,8 +14,8 @@ module biunit
       allocate(ngaus(totGp,2))
       allocate(weigp(totGp,1))
       
-      ngaus = 0
-      weigp = 0
+      ngaus = 0.0
+      weigp = 0.0
       
       Select case(ElemType) 
         case('Quadrilateral')
@@ -171,8 +171,8 @@ module biunit
           if(nne.eq.4) then
             
             do j=1,totGp                      ! columns for point 1,2 ...
-              s=xi_vector(j);                 ! xi-coordinate of point j 
-              t=eta_vector(j);                ! eta-coordinate of point j 
+              s=xi_vector(j)                  ! xi-coordinate of point j 
+              t=eta_vector(j)                 ! eta-coordinate of point j 
               
               N(1,j)=(1.-t-s+s*t)*0.25
               N(2,j)=(1.-t+s-s*t)*0.25
@@ -197,8 +197,8 @@ module biunit
             
           else if(nne.eq.9) then
             do j = 1, totGP
-              s=xi_vector(j);                     ! xi-coordinate of point j 
-              t=eta_vector(j);                    ! eta-coordinate of point j 
+              s=xi_vector(j)                     ! xi-coordinate of point j 
+              t=eta_vector(j)                    ! eta-coordinate of point j 
               
               ss=s*s
               st=s*t
@@ -216,7 +216,7 @@ module biunit
               N(7,j)=0.5*(1.0-ss)*t*t1
               N(8,j)=0.5*s*s9*(1.0-tt)
               N(9,j)=(1.0-ss)*(1.0-tt)
-
+              
               dN_dxi(1,j)=0.25*t*t9*(-1.0+2)
               dN_dxi(2,j)=0.25*(1.0+2.0*s)*t*t9
               dN_dxi(3,j)=0.25*(1.0+2.0*s)*t*t1
@@ -274,8 +274,8 @@ module biunit
         case('Triangle')
           if(nne.eq.3) then
             do j = 1, totGP
-              s=xi_vector(j);                      ! xi-coordinate of point j 
-              t=eta_vector(j);                    ! eta-coordinate of point j 
+              s=xi_vector(j)                      ! xi-coordinate of point j 
+              t=eta_vector(j)                     ! eta-coordinate of point j 
               
               N(1,j)=1.0-s-t
               N(2,j)=s
@@ -292,8 +292,9 @@ module biunit
           else if(nne.eq.6) then
             do j = 1, totGP
               
-              s=xi_vector(j);                      ! xi-coordinate of point j 
-              t=eta_vector(j);                    ! eta-coordinate of point j 
+              s=xi_vector(j)                      ! xi-coordinate of point j 
+              t=eta_vector(j)                     ! eta-coordinate of point j 
+              
               a1=1.0-s-t
               a2=s
               a3=t
@@ -317,7 +318,7 @@ module biunit
               dN_deta(4,j)=-4.0*a2
               dN_deta(5,j)=4.0*a2
               dN_deta(6,j)=4.0*(a1-a3)
-
+              
               hes_ss(1,1)= 4.0
               hes_ss(1,2)= 4.0
               hes_ss(1,4)=-8.0
