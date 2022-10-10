@@ -461,11 +461,11 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
-                  write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ' ,difma(idofn,jdofn,i,j)
+                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ' ,difma(idofn,jdofn,i,j)
                   call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
                   diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
-                  print"(A8, f10.5)",'Product ', cte * difma(idofn,jdofn,i,j)
-                  print*, '- - - - - - - - - - - - - - - - - - -'
+                  !print"(A8, f10.5)",'Product ', cte * difma(idofn,jdofn,i,j)
+                  !print*, '- - - - - - - - - - - - - - - - - - -'
                 end do
               end do
               convec=0.0
@@ -559,7 +559,7 @@ module library
             !  write(10,*)difma(1,1,2,2)
             !end if          
             !!write(10,*)' '
-            print*, 'Esto es Mu'
+            !print*, 'Esto es Mu'
             !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           endif
@@ -589,7 +589,7 @@ module library
             !  write(10,9)'difma(1,2,2,1) k_21 ','difma(',idofn,',',jdofn,',',i,',',j,')'
             !  write(10,*) difma(1,2,2,1)
             !end if          
-            print*, 'Esto es Mu'
+            !print*, 'Esto es Mu'
             !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
             !write(10,*)' '
@@ -609,7 +609,7 @@ module library
             !  write(10,*)difma(2,1,1,2)
             !end if          
             !!write(10,*)' '
-            print*, 'Esto es Mu'
+            !print*, 'Esto es Mu'
             !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           end if
@@ -640,7 +640,7 @@ module library
             !  write(10,*) difma(2,2,1,1)
             !end if          
             !!write(10,*)' '
-            print*, 'Esto es Mu'
+            !print*, 'Esto es Mu'
             !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           end if
@@ -679,7 +679,7 @@ module library
             !  write(10,*) difma(3,3,2,2)
             !end if          
             !!write(10,*)' '
-            print*, 'Esto es ell**2/mu'
+            !print*, 'Esto es ell**2/mu'
             !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             
           cte = ell**2/mu
