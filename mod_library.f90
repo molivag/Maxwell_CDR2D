@@ -52,36 +52,36 @@ module library
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Mesh size 2^-i:         ', i_exp,'   '
       write(*,"(A26,3X,f3.1,1X,A10)") ' - n-value in exact sol:   ', n_val,'   '
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(F10.3,1x,F10.3, 1x, F10.3)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-        print*,' '
-      end do
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      end do
-        print*,' '
-      print*,'External Forces'
-      do i =1, ndofn
-        print"(f10.3)", force(i)
-      end do
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(F10.3,1x,F10.3, 1x, F10.3)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !  print*,' '
+      !end do
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !  print*,' '
+      !print*,'External Forces'
+      !do i =1, ndofn
+      !  print"(f10.3)", force(i)
+      !end do
       print*, ' '
       
       
@@ -113,10 +113,11 @@ module library
       
       implicit none
       
-      integer,intent(in)   :: elm_num ! number of element for each elem integral in loop of K global
-      real,dimension(nne,DimPr), intent(out)  :: element_nodes
-      integer,dimension(nne), intent(out)     :: nodeIDmap
-      integer                                 :: i,j,global_node_id
+      ! number of element for each elem integral in loop of K global
+      integer,intent(in)                                   :: elm_num 
+      integer                                              :: i,j,global_node_id
+      double precision, dimension(nne,DimPr), intent(out)  :: element_nodes
+      integer,dimension(nne), intent(out)                  :: nodeIDmap
       
       
       element_nodes = 0.0
@@ -136,17 +137,19 @@ module library
       implicit none
       
       integer, intent(in)      :: Gp ! se usara en el lazo principal con el punto de Gauss
-      real, dimension(nne,DimPr), intent(in)  :: element_nodes
+      double precision, dimension(nne,DimPr), intent(in) :: element_nodes
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
       double precision, dimension(DimPr,nne)  :: Basis2D
       double precision, dimension(1,nne)      :: Nxi, Neta
       double precision, dimension(DimPr,DimPr) :: J2D
-
+      
       !con estas instrucciones extraigo la columna de Nx como renglon y lo guardo en Nxi, Gp se
-      !ira moviendo conforme la funcion J2D sea llamada en el lazo principal para cada elemento lo mismo para Neta con dN_deta
+      !ira moviendo conforme la funcion J2D sea llamada en el lazo principal para 
+      !cada elemento lo mismo para Neta con dN_deta
+      
       Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
       Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
-
+      
       !Las siguientes tres lineas realizan de forma implicita el calculo de las derivadas
       !espaciales es decir dN/dx and dN/dy (eq. 5.114 - 5.117). Las derivadas espaciales
       !no se calcula explicitamente, en su lugar se usa:
@@ -161,15 +164,14 @@ module library
       
     end function J2D
     
-    subroutine DerivativesXY(Gp, InvJaco, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+    subroutine DerivativesXY(Gp,InvJaco,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy, HesXY)
       
       implicit none
       
       double precision, dimension(DimPr,DimPr),intent(in)    :: InvJaco
       double precision, dimension(nne,totGp), intent(in)     :: dN_dxi, dN_deta
       double precision, dimension(nne,totGp), intent(in)     :: Hes_xixi, Hes_xieta, Hes_etaeta 
-      integer, intent(in)                                    :: Gp !esta variable se usara en el lazo principal
-      
+      integer, intent(in)                                    :: Gp !Variable en el lazo principal
       double precision, dimension(3,nne)                     :: Hesxieta
       double precision, dimension(2,nne)                     :: derst
       double precision, dimension(1,nne)                     :: Nxi, Neta
@@ -219,22 +221,20 @@ module library
           2.0*InvJaco(2,2)*InvJaco(1,2)*Hesxieta(2,inode)+InvJaco(1,2)*InvJaco(1,2)*Hesxieta(1,inode)
       end do
       
-      
-      
     end subroutine DerivativesXY
     
     function inv2x2(A)
       
       implicit none
       
+      double precision, parameter :: EPS = 1.0E-10
       double precision, dimension(DimPr, DimPr), intent(in) :: A
       double precision, dimension(DimPr, DimPr)             :: inv2x2
       double precision, dimension(DimPr,DimPr)              :: cofactor
-      double precision, parameter :: EPS = 1.0E-10
       double precision            :: det
       
       
-      det = A(1,1)*A(2,2) - A(1,2)*A(2,1)
+      det = A(1,1)*A(2,2) - A(2,1)*A(1,2)
       
       if (abs(det) .le. EPS) then
         inv2x2 = 0.0D0
@@ -250,29 +250,29 @@ module library
       return
       
     end function inv2x2
-
+    
     subroutine invmtx(a,deter,b)
-
+      
       ! This routine inverts a square matrix A -> Mat(ndofn,ndofn). The
       ! inverse is stored in B. Its determinant is DETER
-
+      
       implicit none
-
+      
       double precision, intent(in) :: a(3,3)
       double precision :: deter, t1, t2, t3, denom
       double precision, intent(out) :: b(3,3)
-
+      
       !nvers of a 1*1 matrix
-
+      
       if(ndofn.eq.1) then
         deter=a(1,1)
         if(deter.eq.0.0) return
         b(1,1) = 1.0/a(1,1)
         return
       endif
-
+      
       !invers of a 2*2 matrix
-
+      
       if(ndofn.eq.2) then
         deter=a(1,1)*a(2,2)-a(2,1)*a(1,2)
         if(deter.eq.0.) return
@@ -283,9 +283,9 @@ module library
         b(1,2) =-a(1,2)*denom
         return
       endif
-
+      
       !inverse of a 3*3 matrix
-
+      
       if(ndofn.eq.3) then
         t1  = a(2,2)*a(3,3) - a(3,2)*a(2,3)
         t2  =-a(2,1)*a(3,3) + a(3,1)*a(2,3)
@@ -304,41 +304,41 @@ module library
         b(2,3) = (-a(1,1)*a(2,3) + a(2,1)*a(1,3))*denom
         return
       endif
-
+      
     end subroutine invmtx
-
+    
     subroutine sqrtma(mainp,maout)
-
+      
       ! Square root of matrix. In the case NDOFN = 3, it is assumed that this
       ! matrix has the form diag(A,a), where A is a 2 x 2 matrix.
-
+      
       implicit none
-
+      
       double precision, intent(inout) :: mainp(3,3)
       integer :: i
       double precision, intent(out) :: maout(3,3)
-
+      
       do i = 1,2
         mainp(i,i) = abs(mainp(i,i))
       end do
-
+      
       call sqrtm2(mainp,maout)
-
+      
       if(ndofn.eq.3)then
         maout(3,3) = sqrt(abs(mainp(3,3)))
       endif
-
+      
     end subroutine sqrtma
-
+    
     subroutine sqrtm2(mainp,maout)
-
+      
       ! Square root of a 2 x 2 matrix (from a 3 x 3 matrix)
-
+      
       implicit none
       double precision, intent(in) :: mainp(3,3)
       double precision :: a, b, c, d, aux1, aux2, vap1, vap2, det, sq1, sq2
       double precision, intent(out) :: maout(3,3)
-
+      
       a = mainp(1,1)
       b = mainp(1,2)
       c = mainp(2,1)
@@ -377,24 +377,22 @@ module library
         maout(2,1) =  c*vap1*( sq1-sq2)/det
         maout(2,2) =(-vap1*vap2*sq1+b*c*sq2)/det
       end if
-
+      
     end subroutine sqrtm2
-
+    
     function m22det(A)
-
+      
       implicit none
+      
       double precision :: m22det
       double precision, dimension(2,2), intent(in)  :: A
-
-
-
+      
       m22det =   A(1,1)*A(2,2) - A(1,2)*A(2,1)
-
+      
       return
-
+      
     end function m22det
-
-
+    
     subroutine gather(lnods, vecgl, veclo)
       !        gather(vecgl,veclo,lnods,ndofn,nnode)
       !   call gather(coord,elcod,lnods(1,ielem),2,nnode)
@@ -424,23 +422,23 @@ module library
       end do
       
     end subroutine gather
-
-
+    
     function elemSize(InvJacobian)
+      
       implicit none
-
+     
       double precision, dimension(DimPr,DimPr), intent(in) :: InvJacobian
       double precision :: hx, hy, elemSize
      ! hx    = sqrt(xjaci(1,1)**2+xjaci(2,1)**2)
      ! hy    = sqrt(xjaci(1,2)**2+xjaci(2,2)**2)
-
+      
       hx    = sqrt(InvJacobian(1,1)**2+InvJacobian(2,1)**2)
       hy    = sqrt(InvJacobian(1,2)**2+InvJacobian(2,2)**2)
-
+      
       elemSize = hnatu/(min(hx,hy))     !hnatu = Reference element length en mod_param
-
+      
       return
-
+      
     end function elemsize
 
     subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
@@ -463,12 +461,16 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
+                  write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ' ,difma(idofn,jdofn,i,j)
                   call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
-                  diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)         
+                  diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  print"(A8, f10.5)",'Product ', cte * difma(idofn,jdofn,i,j)
+                  print*, '- - - - - - - - - - - - - - - - - - -'
                 end do
               end do
               convec=0.0
               do i=1,2
+                !print*,conma(idofn,jdofn,i)
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
@@ -487,9 +489,9 @@ module library
     subroutine param_stab(idofn, jdofn, i, j, cte)       
       !***********************************************************!
       !                                                           !
-      ! Subroutine which check the dofn and x and y position in   !
-      ! in the diffusion tensor and take the coefficient to       !
-      ! multiply the term of the PDE to its corresponding coeff.  !
+      ! Subroutine which check the dofn, x and y position in the  !
+      ! diffusion tensor and take the coefficient to multiply     !
+      ! the term of the PDE to its corresponding coeff.           !
       !                                                           !
       ! coeficients:                                              !
       !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
@@ -527,6 +529,9 @@ module library
       !k_3_3_2_2 = 1.0
       !print*,'test;', idofn 
       
+      
+      cte = 0.0 
+      
       if(idofn.eq.1)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==1)then
@@ -554,6 +559,8 @@ module library
             !  write(10,*)difma(1,1,2,2)
             !end if          
             !!write(10,*)' '
+            print*, 'Esto es Mu'
+            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           endif
           
@@ -582,6 +589,8 @@ module library
             !  write(10,9)'difma(1,2,2,1) k_21 ','difma(',idofn,',',jdofn,',',i,',',j,')'
             !  write(10,*) difma(1,2,2,1)
             !end if          
+            print*, 'Esto es Mu'
+            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
             !write(10,*)' '
           end if
@@ -600,6 +609,8 @@ module library
             !  write(10,*)difma(2,1,1,2)
             !end if          
             !!write(10,*)' '
+            print*, 'Esto es Mu'
+            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           end if
           
@@ -629,6 +640,8 @@ module library
             !  write(10,*) difma(2,2,1,1)
             !end if          
             !!write(10,*)' '
+            print*, 'Esto es Mu'
+            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           end if
           
@@ -666,11 +679,18 @@ module library
             !  write(10,*) difma(3,3,2,2)
             !end if          
             !!write(10,*)' '
+            print*, 'Esto es ell**2/mu'
+            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
+            
           cte = ell**2/mu
         endif
         
+        
+      else
+        cte = 0.0
+        
       end if
-      close(10)
+      !close(10)
       
       
       !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
@@ -1282,7 +1302,7 @@ module library
       double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
       double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
       double precision, dimension(3,3)          :: tauma
-      real, dimension(nne,DimPr)                :: element_nodes
+      double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ, delta_t
       integer                                   :: igaus, ibase, ielem
@@ -1345,7 +1365,7 @@ module library
       double precision, dimension(nevab, nevab) :: Ke, Ce
       double precision, dimension(nevab)        :: Fe
       double precision, dimension(3,3)          :: tauma
-      real, dimension(nne,DimPr)                :: element_nodes
+      double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
       
