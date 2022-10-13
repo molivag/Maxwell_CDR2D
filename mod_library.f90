@@ -920,7 +920,6 @@ module library
       end do
       
     end subroutine Galerkin_Init_Cond
-
     
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
@@ -995,19 +994,21 @@ module library
       end if
       
     end subroutine pertur
-        
+    
+    
     subroutine TauMat(hmaxi,tauma)
-      !
-      !     Matrix of intrinsic time scales, computed as
-      !     TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
-
+      
+      !Matrix of intrinsic time scales, computed as
+      ! TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
+     
+     
       implicit none
-
+      
       double precision, intent(in) :: hmaxi
       integer :: i, j, k
-      !double precision :: difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3) !Declaradas en parameters
       double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-      double precision :: a, b, c, tau, det            !hnatu -> declarado en parameters
+      double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
+      double precision :: cte_param1, cte_param2 
       double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
 
       !v_ini = 0.0
@@ -1017,7 +1018,25 @@ module library
       tauin = 0.0
       chaco = 0.0
       chadi = 0.0
-
+      
+      cte_param1 = Cu*mu*(helem**2/ell**2) 
+      cte_param2 = ell**2 / mu
+      
+      difma(2,2,1,1) = mu
+      difma(1,1,1,1) = cte_param1
+      difma(3,3,1,1) = cte_param2 
+      
+      difma(1,2,1,2) = cte_param1
+      difma(2,1,1,2) = mu
+      
+      difma(1,2,2,1) = mu
+      difma(2,1,2,1) = cte_param1
+      
+      difma(1,1,2,2) = mu
+      difma(2,2,2,2) = cte_param1
+      difma(3,3,2,2) = cte_param2 
+      
+      
       !  Characteristic convection matrix: A = sqrt | A_i A_i |
       do i=1,ndofn
         do j=1,ndofn
@@ -1034,7 +1053,8 @@ module library
           chadi(i,j)=0.0
           do k=1,ndofn
             chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
-              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,2)*difma(k,j,2,2)
+              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,1)*difma(k,j,2,1)*2.0 + &
+              &difma(i,k,2,2)*difma(k,j,2,2)
           end do
         end do
       end do
@@ -1054,16 +1074,16 @@ module library
       
       ! Invers of the matrix of characteristic times
       do i=1,ndofn
-        do j=1,ndofn
+        o j=1,ndofn
           tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
         end do
       end do
-
-      !  Matrix tau, corresponding to:
-      !     KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-      !           = 1: T = diag(t1,t2,t3), where ti is the minimum of the admissible tau's for the i-th row (equation)
-      !           = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
-
+      
+      ! Matrix tau, corresponding to:
+      ! KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !       = 1: T = diag(t1,t2,t3), ti is the minimum of the admissible tau's for the i-th row (equation)
+      !       = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
+      
       if(ktaum.eq.0) then
         tau = 0.0
         do i=1,ndofn
@@ -1075,7 +1095,7 @@ module library
         do i=1,ndofn
           tauma(i,i) = tau
         end do
-
+      
       else if(ktaum.eq.1) then
         a = 0.0
         b = 0.0
@@ -1091,7 +1111,7 @@ module library
         tauma(    1,    1) = a
         tauma(    2,    2) = b
         tauma(ndofn,ndofn) = c
-
+        
       else if(ktaum.eq.2) then
         call invmtx(tauin,det,tauma)
         do i = 1,ndofn
@@ -1100,53 +1120,51 @@ module library
           end do
         end do
         tauma(ndofn,ndofn) = 0.0
-
+       
       else if(ktaum.eq.3) then
-        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        call param_stab(1,1,1,1,cte)
+        a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         tauma(1,1) = a
         tauma(2,2) = a
         a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
         a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
         tauma(3,3) = a
       end if
-
+      
     end subroutine TauMat
-
-
-
-
-
+    
+    
     subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
-
+      
       ! Contribution to the system matrix and RHS from the stabilization term
       
       implicit none
-
+      
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
       double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
       double precision              :: prod1, prod2, prod3, cte
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
-
+      
       ! integer :: nnode,ndofn,nevab,kstab,n_ini
       !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
       !common/proper/difma,conma,reama,force
-
+      
       ievab = 0
       ! n_ini = ndofn*nevab
       ! v_ini = 0.0
       ! call initia(pertu,n_ini,v_ini)
       pertu =  0.0
-
+      
       do inode=1,nne
         workm(1,1)=HesXY(1,inode)
         workm(2,2)=HesXY(3,inode)
         workm(1,2)=HesXY(2,inode)
         workm(2,1)=workm(1,2)
         do idofn=1,ndofn
-
+          
           ievab=ievab+1
           do jdofn=1,ndofn
             prod1 = reama(jdofn,idofn)*basis(inode)
@@ -1161,13 +1179,13 @@ module library
                 prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
               end do
             end do
-
+            
             resid(jdofn,ievab) = prod1 + prod2 - prod3
             call pertur( idofn, jdofn, workm, derxy(1,inode), basis(inode), pertu(ievab,jdofn) )
           end do
         end do
       end do
-
+      
       ievab=0
       do inode=1,nne
         do idofn=1,ndofn
@@ -1185,7 +1203,7 @@ module library
               Ke(ievab,jevab) = Ke(ievab,jevab) + prod1 * dvolu
             end do
           end do
-
+          
           prod1=0.0
           do k=1,ndofn
             do l=1,ndofn
@@ -1195,25 +1213,22 @@ module library
           Fe(ievab) = Fe(ievab) + prod1 * dvolu
         end do
       end do
-
+      
     end subroutine Stabilization
-
-
-
-  
-
+    
+    
     subroutine VinculBVs(  BVs, nofix, ifpre, presc )
-
+      
       implicit none
-
-      !integer, intent(in)              :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
+      
+      !integer, intent(in)      :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
       integer, intent(in) :: BVs( nBvs, nBVscol)
       integer             :: i, j
       double precision, intent(out) :: presc(ndofn,nBVs)
       integer, intent(out)          :: ifpre(ndofn,nBVs)
       integer, intent(out)          :: nofix(nBVs)
-
-
+      
+      
       select case(ndofn)
         case(1)
           do i =1,ndofn
@@ -1223,7 +1238,7 @@ module library
               presc(i,j) = Bvs(j,3)
             end do
           end do
-
+          
         case(2)
           do i =1,ndofn
             do j=1,nBVs
@@ -1232,7 +1247,7 @@ module library
               presc(i,j) = Bvs(j,i+3)
             end do
           end do
-
+         
         case(3)
           do i =1,ndofn
             do j=1,nBVs
@@ -1241,19 +1256,20 @@ module library
               presc(i,j) = Bvs(j,i+4)
             end do
           end do
-
+          
         case DEFAULT
           write(*,*) 'Exceeded DoF'
         end select
     end subroutine VinculBVs
-
+    
+    
     subroutine BandWidth( )
       !use stdlib_linalg, only: diag
-
+      
       implicit none
-
+      
       integer :: iband, ielem, inode, ipoin, jnode, jpoin, nband       ! , C, D
-
+      
       iband=0
       do ielem =1, nelem
         do inode = 1, nne
@@ -1285,12 +1301,12 @@ module library
       write(*,"(A15,9X,I6,1X,A9)")' - TotBand:     ', totban,'  '
       write(*,"(A15,9X,I6,1X,A9)")' - ledimAK:     ', ldAKban,' '
       
-      
     end subroutine BandWidth
     
     subroutine TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, ugl_pre, A_F)
       
       implicit none
+      
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in):: hes_xixi, hes_xieta, hes_etaeta
@@ -1314,7 +1330,7 @@ module library
       do ielem = 1, nelem 
         Ke = 0.0; Fe = 0.0; Ce = 0.0
         call SetElementNodes(ielem, element_nodes, nodeIDmap)
-
+        
         call gather(nodeIDmap, ugl_pre, ue_pre)
         time_cont = ue_pre * 1.0/delta_t
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
