@@ -120,6 +120,23 @@ module param
        
       end if
       
+      cte_param1 = Cu*mu*(helem**2/ell**2) 
+      cte_param2 = ell**2 / mu
+      
+      !difma(2,2,1,1) = mu
+      !difma(1,1,1,1) = cte_param1
+      !difma(3,3,1,1) = cte_param2 
+      !
+      !difma(1,2,1,2) = cte_param1
+      !difma(2,1,1,2) = mu
+      !
+      !difma(1,2,2,1) = mu
+      !difma(2,1,2,1) = cte_param1
+      !
+      !difma(1,1,2,2) = mu
+      !difma(2,2,2,2) = cte_param1
+      !difma(3,3,2,2) = cte_param2 
+      
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) (lnods(i,j), j =1,nne+1)
         IF ( stat /= 0 )then
@@ -141,7 +158,6 @@ module param
       ntotv = ndofn*nnodes
       helem = 2**(-i_exp)
 
-      cte_param = Cu*mu*(helem**2/ell**2) 
 
       
 
