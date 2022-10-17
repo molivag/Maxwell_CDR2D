@@ -37,7 +37,7 @@ module param
       integer :: i,j, stat
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
-      double precision :: cte_param
+      double precision :: cte_param1, cte_param2
             
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
