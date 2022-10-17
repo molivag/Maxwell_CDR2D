@@ -108,7 +108,6 @@ module library
       
     end subroutine ReadFile
     
-    
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap)
       
       implicit none
@@ -139,10 +138,11 @@ module library
       integer, intent(in)      :: Gp ! se usara en el lazo principal con el punto de Gauss
       double precision, dimension(nne,DimPr), intent(in) :: element_nodes
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
-      double precision, dimension(DimPr,nne)  :: Basis2D
+      double precision, dimension(DimPr,nne)  :: Basis2D, derst
+      double precision, dimension(DimPr,nne)  :: elcod
       double precision, dimension(1,nne)      :: Nxi, Neta
-      double precision, dimension(DimPr,DimPr) :: J2D
-      
+      double precision, dimension(DimPr,DimPr):: J2D, xjacm
+      integer                                 :: ideime, jdime 
       !con estas instrucciones extraigo la columna de Nx como renglon y lo guardo en Nxi, Gp se
       !ira moviendo conforme la funcion J2D sea llamada en el lazo principal para 
       !cada elemento lo mismo para Neta con dN_deta
@@ -158,11 +158,88 @@ module library
       
       Basis2D(1,:) = Nxi(1,:)
       Basis2D(2,:) = Neta(1,:)
+      
       J2D = matmul(Basis2D,element_nodes)
+      
+     
+      !do inode = 1,nne
+      !  derst(1,inode) = dN_dxi(i,Gp) 
+      !  derst(2,inode) = dN_deta(i,Gp) 
+      !end do
+      !
+      !do jdime = 1,2
+      !  do inode = 1,nne
+      !   elcod(jdime,inode) = element_nodes(inode, jdime)
+      !  end do
+      !end do
+     
+      !
+      !do idime=1,2
+      !  do jdime=1,2
+      !    xjacm(idime,jdime)=0.0
+      !    do inode=1,nnode
+      !      xjacm(idime,jdime) = xjacm(idime,jdime) + derst(idime,inode)*elcod(jdime,inode)
+      !    end do
+      !  end do
+      !end do
       
       return
       
     end function J2D
+    
+    function m22det(A)
+      
+      implicit none
+      
+      double precision :: m22det
+      double precision, dimension(2,2), intent(in)  :: A
+      
+      m22det =   A(1,1)*A(2,2) - A(1,2)*A(2,1)
+      
+      !djacb  = xjacm(1,1)*xjacm(2,2) - xjacm(1,2)*xjacm(2,1)
+      
+      if(m22det.lt.1.e-8)then
+        write(*,*)'Element with non-positive Jacobian'
+      end if
+     
+      return
+      
+    end function m22det
+    
+    function inv2x2(A)
+      
+      implicit none
+      
+      double precision, parameter :: EPS = 1.0E-10
+      double precision, dimension(DimPr, DimPr), intent(in) :: A
+      double precision, dimension(DimPr, DimPr)             :: inv2x2
+      double precision, dimension(DimPr,DimPr)              :: cofactor
+      double precision            :: det
+      
+      
+      det = A(1,1)*A(2,2) - A(2,1)*A(1,2)
+      
+      if (abs(det) .le. EPS) then
+        inv2x2 = 0.0D0
+        return
+      end if
+      
+      cofactor(1,1) = +A(2,2)
+      cofactor(1,2) = -A(2,1)
+      cofactor(2,1) = -A(1,2)
+      cofactor(2,2) = +A(1,1)
+      
+      inv2x2 = transpose(cofactor) / det
+      
+      
+      !xjaci(1,1)= xjacm(2,2)/djacb
+      !xjaci(2,2)= xjacm(1,1)/djacb
+      !xjaci(1,2)=-xjacm(1,2)/djacb
+      !xjaci(2,1)=-xjacm(2,1)/djacb
+      
+      return
+      
+    end function inv2x2
     
     subroutine DerivativesXY(Gp,InvJaco,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy, HesXY)
       
@@ -179,7 +256,6 @@ module library
       integer                                                :: idime, inode, jdime
       double precision, dimension(DimPr,nne), intent(out)    :: dN_dxy
       double precision, dimension(DimPr+1,nne), intent(out)  :: HesXY
-      
       
       
       Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
@@ -222,34 +298,6 @@ module library
       end do
       
     end subroutine DerivativesXY
-    
-    function inv2x2(A)
-      
-      implicit none
-      
-      double precision, parameter :: EPS = 1.0E-10
-      double precision, dimension(DimPr, DimPr), intent(in) :: A
-      double precision, dimension(DimPr, DimPr)             :: inv2x2
-      double precision, dimension(DimPr,DimPr)              :: cofactor
-      double precision            :: det
-      
-      
-      det = A(1,1)*A(2,2) - A(2,1)*A(1,2)
-      
-      if (abs(det) .le. EPS) then
-        inv2x2 = 0.0D0
-        return
-      end if
-      
-      cofactor(1,1) = +A(2,2)
-      cofactor(1,2) = -A(2,1)
-      cofactor(2,1) = -A(1,2)
-      cofactor(2,2) = +A(1,1)
-      
-      inv2x2 = transpose(cofactor) / det
-      return
-      
-    end function inv2x2
     
     subroutine invmtx(a,deter,b)
       
@@ -379,19 +427,6 @@ module library
       end if
       
     end subroutine sqrtm2
-    
-    function m22det(A)
-      
-      implicit none
-      
-      double precision :: m22det
-      double precision, dimension(2,2), intent(in)  :: A
-      
-      m22det =   A(1,1)*A(2,2) - A(1,2)*A(2,1)
-      
-      return
-      
-    end function m22det
     
     subroutine gather(lnods, vecgl, veclo)
       !        gather(vecgl,veclo,lnods,ndofn,nnode)
@@ -935,13 +970,10 @@ module library
       
       implicit none
       
-      
       double precision, intent(in)     :: workm(2,2),derxy(2),basis
       integer                          :: idofn, jdofn, k, l
-      double precision                 :: prod1, prod2, prod3
+      double precision                 :: prod1, prod2, prod3, cte1, cte2
       double precision, intent(in out) :: pertu
-      
-      !common/proper/difma,conma,reama,force
       
       
       ! SUPG
@@ -961,7 +993,8 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
+            call param_stab(jdofn,idofn,k,l,cte1)
+            prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
           end do
         end do
         prod3=reama(jdofn,idofn)*basis
@@ -976,7 +1009,8 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
+            call param_stab(idofn,jdofn,k,l,cte2)
+            prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
           end do
         end do
         prod3=reama(idofn,jdofn)*basis
@@ -1008,7 +1042,7 @@ module library
       integer :: i, j, k
       double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
       double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
-      double precision :: cte_param1, cte_param2 
+      double precision :: cte_param1, cte_param2, cte
       double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
 
       !v_ini = 0.0
@@ -1074,7 +1108,7 @@ module library
       
       ! Invers of the matrix of characteristic times
       do i=1,ndofn
-        o j=1,ndofn
+        do j=1,ndofn
           tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
         end do
       end do
@@ -1409,6 +1443,7 @@ module library
           dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
+          print*, hmaxi
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
@@ -1907,8 +1942,8 @@ module library
       double precision, dimension(nnodes)     :: x, y
       character(len=12)                       :: extension
       character(len=8)                        :: coord_name, conec_name
-      character(len=6)                        :: error_name
-      character(len=2)                        :: identy
+      character(len=9)                        :: error_name
+      character(len=4)                        :: identy
       integer                                 :: i,j, ipoin, ans
       double precision                        :: error
       
