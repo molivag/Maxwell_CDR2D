@@ -96,8 +96,8 @@ implicit none
     !---------- Print and write results -----------!
     print*, '!====== Name of Postprocess file'
     read(*,*) File_PostProcess 
-    call PosProcess(u_sol, 'msh') 
-    call PosProcess(u_sol, 'res')
+    call PostProcess(u_sol, 'msh') 
+    call PostProcess(u_sol, 'res')
     call Res_Matlab(u_sol)
     !print*, ' '
     !print*, 'Shape of Global K: ',shape(A_K)
