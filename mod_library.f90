@@ -18,8 +18,12 @@ module library
         aaaa = 'GLS'
       elseif(kstab.eq.4)then
         aaaa = 'CG'
-      else
+      elseif(kstab.eq.1)then
         aaaa = 'SUPG'
+      elseif(kstab.eq.0)then
+        aaaa = 'NONE'
+      else
+        write(*,'(A)') '> > >Error in stabilization method'
       endif
       
       
@@ -42,7 +46,7 @@ module library
       
       print*, ' '
       print*,'!========== STABILIZATION PARAMETERS ==========!'
-      write(*,"(A26,3x,a3,3X,A1)") ' - Stabilization method:   ', aaaa,''
+      write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
       write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Lenght ref. element:    ', hnatu,'   '
@@ -138,11 +142,11 @@ module library
       integer, intent(in)      :: Gp ! se usara en el lazo principal con el punto de Gauss
       double precision, dimension(nne,DimPr), intent(in) :: element_nodes
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
-      double precision, dimension(DimPr,nne)  :: Basis2D, derst
-      double precision, dimension(DimPr,nne)  :: elcod
+      double precision, dimension(DimPr,nne)  :: Basis2D!, derst
+      !double precision, dimension(DimPr,nne)  :: elcod
       double precision, dimension(1,nne)      :: Nxi, Neta
-      double precision, dimension(DimPr,DimPr):: J2D, xjacm
-      integer                                 :: ideime, jdime 
+      double precision, dimension(DimPr,DimPr):: J2D!, xjacm
+      !integer                                 :: ideime, jdime 
       !con estas instrucciones extraigo la columna de Nx como renglon y lo guardo en Nxi, Gp se
       !ira moviendo conforme la funcion J2D sea llamada en el lazo principal para 
       !cada elemento lo mismo para Neta con dN_deta
@@ -514,6 +518,7 @@ module library
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
+          !Fe(ievab) = Fe(ievab) + basis(inode) * source(idofn) * dvol
           Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * source(idofn) * dvol
           !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
@@ -565,7 +570,7 @@ module library
       !print*,'test;', idofn 
       
       
-      cte = 0.0 
+      !cte = 0.0 
       
       if(idofn.eq.1)then
         if(jdofn.eq.1)then
@@ -580,7 +585,7 @@ module library
             !  write(10,*) difma(1,1,1,1)
             !end if          
             !!write(10,*)' '
-            cte = Cu*mu*(helem**2/ell**2)
+            !cte = Cu*mu*(helem**2/ell**2)
           end if
          
           if(i==2 .and. j==2)then
@@ -611,7 +616,7 @@ module library
             !  write(10,*)difma(1,2,1,2)
             !end if          
             !!write(10,*)' '
-            cte = Cu*mu*(helem**2/ell**2)
+            !cte = Cu*mu*(helem**2/ell**2)
           end if
           
           if(i==2.and.j==1)then
@@ -660,7 +665,7 @@ module library
             !  write(10,*)difma(2,1,2,1)
             !end if          
             !!write(10,*)' '
-            cte = Cu*mu*(helem**2/ell**2)
+            !cte = Cu*mu*(helem**2/ell**2)
           endif
          
         elseif(jdofn==2)then
@@ -691,7 +696,7 @@ module library
             !  write(10,*) difma(2,2,2,2)
             !end if          
             !!write(10,*)' '
-            cte = Cu*mu*(helem**2/ell**2)
+            !cte = Cu*mu*(helem**2/ell**2)
           end if
         end if
         
@@ -838,7 +843,7 @@ module library
       dex_dxdy = 4*x-2
       
       source(1) = mu*(dey_dydx - dex_dy2)
-      source(2) = -mu*(dey_dx2  + dex_dxdy)
+      source(2) = mu*(-dey_dx2  + dex_dxdy)
       source(3) = 0.0 !force(ndofn)
       
     end subroutine source_term
@@ -1056,18 +1061,18 @@ module library
       cte_param1 = Cu*mu*(helem**2/ell**2) 
       cte_param2 = ell**2 / mu
       
+      !difma(1,1,1,1) = cte_param1
       difma(2,2,1,1) = mu
-      difma(1,1,1,1) = cte_param1
       difma(3,3,1,1) = cte_param2 
       
-      difma(1,2,1,2) = cte_param1
+      !difma(1,2,1,2) = cte_param1
       difma(2,1,1,2) = mu
       
       difma(1,2,2,1) = mu
-      difma(2,1,2,1) = cte_param1
+      !difma(2,1,2,1) = cte_param1
       
       difma(1,1,2,2) = mu
-      difma(2,2,2,2) = cte_param1
+      !difma(2,2,2,2) = cte_param1
       difma(3,3,2,2) = cte_param2 
       
       
@@ -1161,7 +1166,7 @@ module library
         tauma(1,1) = a
         tauma(2,2) = a
         a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
-        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1)))
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
         tauma(3,3) = a
       end if
       
@@ -1187,9 +1192,7 @@ module library
       !common/proper/difma,conma,reama,force
       
       ievab = 0
-      ! n_ini = ndofn*nevab
-      ! v_ini = 0.0
-      ! call initia(pertu,n_ini,v_ini)
+      print*, 'in'
       pertu =  0.0
       
       do inode=1,nne
@@ -1381,7 +1384,7 @@ module library
           call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
 
           select case(theta)
             case(2)
@@ -1417,7 +1420,7 @@ module library
       double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ
+      double precision                          :: dvol, hmaxi, detJ, aaa
       
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
@@ -1443,7 +1446,6 @@ module library
           dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
-          print*, hmaxi
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
@@ -1451,7 +1453,8 @@ module library
           call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
+          if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
         end do
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
@@ -1459,10 +1462,8 @@ module library
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
       end do
       
-      ! print*,'!=============== Output Files ================!'
-      ! call writeMatrix(A_K, 10, 'A_K.dat', A_F, 20, 'A_F.dat')
-      ! call writeMatrix(AKbLU,60,'-', Sols, 70, 'SolMKL_LU.dat')
-      
+      aaa = maxval(coord(:,2))*2**(-i_exp) 
+      if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
       
     end subroutine GlobalSystem
     
@@ -1856,30 +1857,33 @@ module library
 
     end subroutine writeMatrix
     
-    subroutine Convergence(solution, x, y, exact_y, exact_x, FEM_magn, exac_magn, error)
+    subroutine Convergence(solution, x, y, exact_x, exact_y, error)
       implicit none
       
       double precision, dimension(ntotv,1), intent(in) :: solution
       double precision, dimension(nnodes), intent(in)  :: x, y
       !declaracion de variables relacionadas con la solucion exacta
-      double precision                                 :: aa, bb, cc, dd, ee, exp1, exp2, a3
+      !double precision                                 :: aa, bb, cc, dd, ee, exp1, exp2
       double precision                                 :: fi, psi, der_fi, der_psi 
-      integer                                          :: i,j, ipoin
-      real                                             :: n
+      integer                                          :: i
+      !real                                             :: n
       !end variables for exact solution
-      double precision, dimension(1, ntotv)            :: solution_T
-      double precision, dimension(nnodes)              :: x_FEM, y_FEM, a1, a2 
-      double precision, dimension(nnodes), intent(out) :: exact_y, exact_x, exac_magn, FEM_magn
+      
+      
+      double precision, dimension(1, ntotv)   :: solution_T
+      double precision                        :: x_FEM, y_FEM, ex_x, ex_y
+      
+      double precision, dimension(nnodes), intent(out) :: exact_y, exact_x
       double precision, intent(out)                    :: error
       
       solution_T = transpose(solution)
-      
+      error = 0.0 
       !! * * * * * * * * * Exact solution * * * * * * * * * * * * *
       ! L- domain w/singular solution 
-      n    = n_val
-      aa   = (2.0*n)/3.0
-      exp1 = -(n/6.0)
-      exp2 = n/3.0 - 1.0/2.0
+      !n    = n_val
+      !aa   = (2.0*n)/3.0
+      !exp1 = -(n/6.0)
+      !exp2 = n/3.0 - 1.0/2.0
       
       !do i = 1, nnodes
       !  bb = atan(y(i)/x(i))
@@ -1893,37 +1897,26 @@ module library
       !end do
       
       !A simple test u(fi*psi',fi'*psi) 
+      !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       do i = 1, nnodes  !simple Function
         fi  = x(i)*(1.0-x(i)) 
         psi = y(i)*(1.0-y(i))
         der_fi = (1.0-2*x(i))
         der_psi = (1.0-2*y(i))
         
+        ex_x = (fi * der_psi)
+        ex_y = -(der_fi * psi)
+        x_FEM = solution_T(1,ndofn*i-2)
+        y_FEM = solution_T(1,ndofn*i-1)
+        !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
+        error = error + (x_FEM - ex_x)**2 + (y_FEM - ex_y)**2 
+        
         exact_x(i) = (fi * der_psi)
         exact_y(i) = -(der_fi * psi)
         
       end do
+      error = sqrt(error/float(nnodes))
       !! * * * * * * * * * (end) Exact solution * * * * * * * * * * 
-      
-     !Magnitud of exact and FE solution
-      do i = 1, nnodes
-        !exac_magn(i) = sqrt(exact_x(i)**2 + exact_y(i)**2)
-        exac_magn(i) = exact_x(i)**2 + exact_y(i)**2
-        
-        x_FEM(i) = solution_T(1,ndofn*i-2)
-        y_FEM(i) = solution_T(1,ndofn*i-1)
-        FEM_magn(i) = x_FEM(i)**2 + y_FEM(i)**2
-      end do
-      !do i =1, nnodes
-      !end do
-      
-      !Error estimation (page 46 from bitacora)  
-      do i =1, nnodes
-        a1(i) = abs(FEM_magn(i) - exac_magn(i) )**2
-        a2(i) = abs(exac_magn(i))**2
-      end do 
-      a3    = sum(a1)/sum(a2)
-      error = sqrt(a3)
       
       
     end subroutine Convergence
@@ -1938,14 +1931,14 @@ module library
       
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcoor, ycoor
-      double precision, dimension(nnodes)     :: exact_y, exact_x, FEM_magn, exac_magn
+      double precision, dimension(nnodes)     :: exact_y, exact_x
       double precision, dimension(nnodes)     :: x, y
       character(len=12)                       :: extension
-      character(len=8)                        :: coord_name, conec_name
-      character(len=9)                        :: error_name
-      character(len=4)                        :: identy
+      character(len=12)                        :: coord_name, conec_name
+      character(len=10)                        :: error_name
+      character(len=10)                        :: identy
       integer                                 :: i,j, ipoin, ans
-      double precision                        :: error
+      double precision                        :: error, xmax
       
       
       extension = "_matlab.txt"
@@ -1957,20 +1950,23 @@ module library
       x  = xcoor(1,:)
       y  = ycoor(1,:)
       
-      call Convergence(solution, x, y, exact_y, exact_x, FEM_magn, exac_magn, error)
+      call Convergence(solution, x, y, exact_x, exact_y,  error)
       
-      open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       
-      do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y   Uex     Uh
-        write(555,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
-        &              exact_x(ipoin), exact_y(ipoin), exac_magn(ipoin), FEM_magn(ipoin)
+      open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+        write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
+        &              exact_x(ipoin), exact_y(ipoin)
+        !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
+        !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
       end do
       !print*, ' '
       !print*, '!====== Matlab file ======'
       print"(A6,A24,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
       print*, ' '
       
-      close(555)
+      close(111)
       
       write(*,*) '!====== Element size'
       read(*,*) identy
@@ -1996,7 +1992,7 @@ module library
         end do
         print*, ' '
         print*, '!====== Mesh file ======'
-        print"(A6,A8,A3,A8,A30)", ' File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
+        print"(A6,A12,A3,A12,A30)", ' File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
         print*, ' '
         
         close(444)
@@ -2009,18 +2005,18 @@ module library
       write(777,"(1x,E15.5)") error
       close(777)
 
+      xmax = maxval(coord(:,2)) !the greatest number in x column
       print*, ' '
-      write(*,"(A9,f7.3,A25,E11.5)")' For h = ', 10*2**(-i_exp), 'the error estimation is ', error 
+      write(*,"(A9,f7.3,A25,E15.5)")' For h = ', xmax*2**(-i_exp), 'the error estimation is ', error 
       print*, ' '
      
       902 format(10(1x,I7) ) !format for msh
       904 format(I7,2(3x,f9.4) ) !format for msh
-      906 format(F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10, 3x, F20.10)!format for msh
+      906 format(4(F25.10, 3x))
       
     end subroutine Res_Matlab
     
-    
-    subroutine PosProcess(solution, activity)
+    subroutine PostProcess(solution, activity)
       
       implicit none
       
@@ -2095,9 +2091,6 @@ module library
             write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
             write(555,"(A)") 'Values'
             write(555,*) '#',   'No    ','             ux ','               uy'
-           ! do ipoin = 1, nnodes
-           !   write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-           ! end do
             do ipoin = 1, nnodes
               write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
             end do
@@ -2116,7 +2109,7 @@ module library
             write(555,"(A)") 'End Values'
             print"(A6,A24,A30)", ' File ',File_PostProcess//'.post.res', 'written succesfully in Pos/ '
         end select
-      
+        
         close(555)
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
@@ -2132,10 +2125,9 @@ module library
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
       918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
-      919 format(I7,3(4x,F20.10)) !format for res velocity
-      !919 format(I7,3(3x,E15.5)) !format for res velocity
+      919 format(I7,3(4x,F25.10)) !format for res velocity
     
-    end subroutine PosProcess
+    end subroutine PostProcess
     
     subroutine GID_PostProcess(solution, activity, step_value, interval, time_final)
       
