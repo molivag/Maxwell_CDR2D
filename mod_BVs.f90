@@ -154,53 +154,54 @@ module BoundVal
         
       elseif(ndofn .eq. 3)then           !setted boundary cond. from left to right 
         do i =1, nnodes
-          x=coord(i,2)
+          x=coord(i,2)                  !p.43 in bitacora
           y=coord(i,3)
           
           if(y.eq.ymax) then 
             if(x.eq.xmax)then!            ux       uy        p 
-              ux = -90.0*(1-2*y)
-              uy = 19.0*(y-y**2)
+              ux = 0.0 
+              uy = (y - y**2)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right top corner
             elseif(x.eq.xmin)then                               
               ux = 0.0 
-              uy = -(y-y**2)
+              uy = (y**2 - y)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left top corner
             else
-              ux = -19.0*(x-x**2)
-              uy = 90.0*(1-2*x)
+              ux = (x**2 - x)
+              uy = 0.0
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !top edge 
             end if
             
             !if(x.eq.xhalf)then
-            !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)       !half top edge
+            !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)        !half top edge
             !end if
             a = a+3
             
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    
               ux = 0.0 
-              uy = -(y-y**2)
+              uy = (y**2 - y)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left bottom corner
             elseif(x.eq.xmax)then                              
-              ux = -90.0*(1-2*y)
-              uy = 19.0*(y-y**2)
+              ux = 0.0 
+              uy = (y - y**2)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right bottom corner  
             else
-              ux = x-x**2
-              write(100,50) i, 1, 1, 1, real(ux), real(0), real(0)       !botomm edge 
+              ux = (x-x**2)
+              uy = 0.0
+              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)        !botomm edge 
             end if
             b = b+3
             
           else if(x.eq.xmax)then                                 
-              ux = -90.0*(1-2*y)
-              uy = 19.0*(y-y**2)
+              ux = 0.0 
+              uy = (y-y**2)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right edge
             c = c+3
             
           else if (x.eq.xmin)then                                
               ux = 0.0
-              uy = -(y-y**2)
+              uy = (y**2 - y)
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left edge 
             d = d+3
            
