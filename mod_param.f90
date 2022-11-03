@@ -20,7 +20,7 @@ module param
   
   !character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
   !character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
-  character(len=13) :: File_PostProcess 
+  character(len=8) :: File_PostProcess 
   
   
   contains
@@ -37,7 +37,7 @@ module param
       integer :: i,j, stat
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
-      double precision :: cte_param1, cte_param2
+      double precision :: param_stab1, param_stab2 
             
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
@@ -120,22 +120,32 @@ module param
        
       end if
       
-      cte_param1 = Cu*mu*(helem**2/ell**2) 
-      cte_param2 = ell**2 / mu
       
-      !difma(2,2,1,1) = mu
+      nevab = ndofn*nne
+      ntotv = ndofn*nnodes
+      helem = 2**(-i_exp)
+      
+      param_stab1 = Cu*mu*(helem**2/ell**2)
+      param_stab2 = difma(3,3,2,2)*ell**2 / mu
+     
+      print*, helem
+      print*, param_stab1
+      print*, param_stab2
+      
       !difma(1,1,1,1) = cte_param1
-      !difma(3,3,1,1) = cte_param2 
-      !
+      difma(2,2,1,1) = difma(2,2,1,1)*mu
+      difma(3,3,1,1) = difma(3,3,1,1)*ell**2 / mu
+      
       !difma(1,2,1,2) = cte_param1
-      !difma(2,1,1,2) = mu
-      !
-      !difma(1,2,2,1) = mu
+      difma(2,1,1,2) = difma(2,1,1,2)*mu
+      
+      difma(1,2,2,1) = difma(1,2,2,1)*mu
       !difma(2,1,2,1) = cte_param1
-      !
-      !difma(1,1,2,2) = mu
+      
+      difma(1,1,2,2) = difma(1,1,2,2)*mu
       !difma(2,2,2,2) = cte_param1
-      !difma(3,3,2,2) = cte_param2 
+      difma(3,3,2,2) = difma(3,3,2,2)*ell**2 / mu 
+      
       
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) (lnods(i,j), j =1,nne+1)
@@ -154,10 +164,6 @@ module param
       
       close(5)
      
-      nevab = ndofn*nne   
-      ntotv = ndofn*nnodes
-      helem = 2**(-i_exp)
-      
       
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
       &         2/, 2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/),/)
