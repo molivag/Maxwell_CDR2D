@@ -157,12 +157,11 @@ module param
       nevab = ndofn*nne   
       ntotv = ndofn*nnodes
       helem = 2**(-i_exp)
-
-
       
-
+      
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
-      &         2/, 2(11x,I5,/),7(11x,F7.2,/),/)    !esta linea es de input: stabilization
+      &         2/, 2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/),/)
+     
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))

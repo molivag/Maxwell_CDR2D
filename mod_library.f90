@@ -50,42 +50,44 @@ module library
       write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Lenght ref. element:    ', hnatu,'   '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
+      write(*,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
+      write(*,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
       write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of lenght:   ', ell, '    '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Mesh size 2^-i:         ', i_exp,'   '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - n-value in exact sol:   ', n_val,'   '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
+      write(*,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 10*2**(-i_exp),'   '
+      write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
+      write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
       
-      !print*, ' '
-      !print*,'!============ TENSOR COEFFICIENTS  ============!'
-      !print*, 'Diffusion'
-      !do i = 1,dimPr
-      !  do j = 1,DimPr
-      !    print"(A,2I1)", 'k_',i,j
-      !    do k = 1,ndofn
-      !      print"(F10.3,1x,F10.3, 1x, F10.3)",( difma(k,l,i,j), l=1,ndofn)
-      !    end do
-      !    !print*,' '
-      !  end do
-      !end do
-      !print*, ' '  
-      !print*, 'Convection'
-      !do k = 1, DimPr
-      !  print"(A,2I1)",'A_',k
-      !  do i = 1, ndofn
-      !    write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-      !  end do
-      !  print*,' '
-      !end do
-      !print*,'Reaction'
-      !do i=1,ndofn
-      !  write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      !end do
-      !  print*,' '
-      !print*,'External Forces'
-      !do i =1, ndofn
-      !  print"(f10.3)", force(i)
-      !end do
+      print*, ' '
+      print*,'!============ TENSOR COEFFICIENTS  ============!'
+      print*, 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+        print*,' '
+      end do
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
+      end do
+        print*,' '
+      print*,'External Forces'
+      do i =1, ndofn
+        print"(f10.3)", force(i)
+      end do
       print*, ' '
       
       
