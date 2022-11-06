@@ -489,7 +489,7 @@ module library
       double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
-      double precision ::  diff, convec, reac, cpcty, cte
+      double precision ::  diff, convec, reac, cpcty
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       ievab=0
       do inode=1,nne
@@ -503,8 +503,9 @@ module library
               do i=1,2
                 do j=1,2   
                   !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ' ,difma(idofn,jdofn,i,j)
-                  call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
-                  diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  !call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
+                  !diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, f10.5)",'Product ', cte * difma(idofn,jdofn,i,j)
                   !print*, '- - - - - - - - - - - - - - - - - - -'
                 end do
@@ -527,88 +528,88 @@ module library
       end do
       
     end subroutine Galerkin
-
-    subroutine param_stab(idofn, jdofn, i, j, cte)       
-      !***********************************************************!
-      !                                                           !
-      ! Subroutine which check the dofn, x and y position in the  !
-      ! diffusion tensor and take the coefficient to multiply     !
-      ! the term of the PDE to its corresponding coeff.           !
-      !                                                           !
-      ! coeficients:                                              !
-      !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
-      !                                                           !
-      !  λ represents the magnetic permeability µ                 !
-      !  (call it mu in the code)                                 !
-      !                                                           !
-      ! h = 2^-i ; computed as in the paper                       !
-      !***********************************************************!
-      
-      implicit none
-      
-      integer, intent(in) :: idofn, jdofn, i, j
-      double precision, intent(out) :: cte
-      
-      cte = 0.0 
-      
-      if(idofn.eq.1)then
-        if(jdofn.eq.1)then
-          if(i==1 .and. j==1)then
-            !cte = Cu*mu*(helem**2/ell**2)
-          end if
-         
-          if(i==2 .and. j==2)then
-            cte = mu
-          endif
-          
-        elseif(jdofn==2)then
-          if(i==1 .and. j==2)then
-            !cte = Cu*mu*(helem**2/ell**2)
-          end if
-          
-          if(i==2.and.j==1)then
-            cte = mu
-          end if
-        end if
-        
-      elseif(idofn==2)then
-        if(jdofn.eq.1)then
-          if(i==1 .and. j==2)then
-            cte = mu
-          end if
-          
-          if(i==2 .and. j==1)then
-            !cte = Cu*mu*(helem**2/ell**2)
-          endif
-         
-        elseif(jdofn==2)then
-          if(i==1 .and. j==1)then
-            cte = mu
-          end if
-          
-          if(i==2.and.j==2)then
-            !cte = Cu*mu*(helem**2/ell**2)
-          end if
-        end if
-        
-      elseif(idofn==3 .and. jdofn==3)then
-        if( i==j )then
-          cte = ell**2/mu
-        endif
-        
-      else
-        continue
-      end if
-      !close(10)
-      
-      
-      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-      !Next lines are to taste the 
-      !print*, 'hmaxi,', h
-      !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
-      !print*, 'ell^2/µ', ell**2/mu
-      
-    end subroutine param_stab
+   
+    !subroutine param_stab(idofn, jdofn, i, j, cte)       
+    !  !***********************************************************!
+    !  !                                                           !
+    !  ! Subroutine which check the dofn, x and y position in the  !
+    !  ! diffusion tensor and take the coefficient to multiply     !
+    !  ! the term of the PDE to its corresponding coeff.           !
+    !  !                                                           !
+    !  ! coeficients:                                              !
+    !  !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
+    !  !                                                           !
+    !  !  λ represents the magnetic permeability µ                 !
+    !  !  (call it mu in the code)                                 !
+    !  !                                                           !
+    !  ! h = 2^-i ; computed as in the paper                       !
+    !  !***********************************************************!
+    !  
+    !  implicit none
+    !  
+    !  integer, intent(in) :: idofn, jdofn, i, j
+    !  double precision, intent(out) :: cte
+    !  
+    !  cte = 0.0 
+    !  
+    !  if(idofn.eq.1)then
+    !    if(jdofn.eq.1)then
+    !      if(i==1 .and. j==1)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      end if
+    !     
+    !      if(i==2 .and. j==2)then
+    !        cte = mu
+    !      endif
+    !      
+    !    elseif(jdofn==2)then
+    !      if(i==1 .and. j==2)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      end if
+    !      
+    !      if(i==2.and.j==1)then
+    !        cte = mu
+    !      end if
+    !    end if
+    !    
+    !  elseif(idofn==2)then
+    !    if(jdofn.eq.1)then
+    !      if(i==1 .and. j==2)then
+    !        cte = mu
+    !      end if
+    !      
+    !      if(i==2 .and. j==1)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      endif
+    !     
+    !    elseif(jdofn==2)then
+    !      if(i==1 .and. j==1)then
+    !        cte = mu
+    !      end if
+    !      
+    !      if(i==2.and.j==2)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      end if
+    !    end if
+    !    
+    !  elseif(idofn==3 .and. jdofn==3)then
+    !    if( i==j )then
+    !      cte = ell**2/mu
+    !    endif
+    !    
+    !  else
+    !    continue
+    !  end if
+    !  !close(10)
+    !  
+    !  
+    !  !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
+    !  !Next lines are to taste the 
+    !  !print*, 'hmaxi,', h
+    !  !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
+    !  !print*, 'ell^2/µ', ell**2/mu
+    !  
+    !end subroutine param_stab
     
     
     ! subroutine source_term_orig(element_nodes, source)
@@ -669,12 +670,11 @@ module library
     !   !     source(i+2,1) = A_F(j*3,1)
     !   !     i=i+3
     !   ! end do
-
-
+    
     !   101 continue
     
     ! end subroutine source_term_orig
-
+    
     subroutine source_term(igaus, source)
       
       implicit none
@@ -716,7 +716,6 @@ module library
       source(3) = 0.0 !force(ndofn)
       
     end subroutine source_term
-    
     
     !subroutine source_term(igaus, source)
     !  implicit none
@@ -846,7 +845,7 @@ module library
       
       double precision, intent(in)     :: workm(2,2),derxy(2),basis
       integer                          :: idofn, jdofn, k, l
-      double precision                 :: prod1, prod2, prod3, cte1, cte2
+      double precision                 :: prod1, prod2, prod3
       double precision, intent(in out) :: pertu
       
       
@@ -867,8 +866,9 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            call param_stab(jdofn,idofn,k,l,cte1)
-            prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
+            !call param_stab(jdofn,idofn,k,l,cte1)
+            !prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
+            prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
           end do
         end do
         prod3=reama(jdofn,idofn)*basis
@@ -883,8 +883,9 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            call param_stab(idofn,jdofn,k,l,cte2)
-            prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
+            !call param_stab(idofn,jdofn,k,l,cte2)
+            !prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
+            prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
           end do
         end do
         prod3=reama(idofn,jdofn)*basis
@@ -909,41 +910,19 @@ module library
       !Matrix of intrinsic time scales, computed as
       ! TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
      
-     
       implicit none
       
       double precision, intent(in) :: hmaxi
       integer :: i, j, k
       double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
       double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
-      double precision :: cte_param1, cte_param2, cte
       double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
-
-      !v_ini = 0.0
-      !call initia(tauma,9,v_ini)
+      
       tauma = 0.0
       if(kstab.eq.0) return
       tauin = 0.0
       chaco = 0.0
       chadi = 0.0
-      
-      cte_param1 = Cu*mu*(helem**2/ell**2) 
-      cte_param2 = ell**2 / mu
-      
-      !difma(1,1,1,1) = cte_param1
-      difma(2,2,1,1) = mu
-      difma(3,3,1,1) = cte_param2 
-      
-      !difma(1,2,1,2) = cte_param1
-      difma(2,1,1,2) = mu
-      
-      difma(1,2,2,1) = mu
-      !difma(2,1,2,1) = cte_param1
-      
-      difma(1,1,2,2) = mu
-      !difma(2,2,2,2) = cte_param1
-      difma(3,3,2,2) = cte_param2 
-      
       
       !  Characteristic convection matrix: A = sqrt | A_i A_i |
       do i=1,ndofn
@@ -1030,8 +1009,9 @@ module library
         tauma(ndofn,ndofn) = 0.0
        
       else if(ktaum.eq.3) then
-        call param_stab(1,1,1,1,cte)
-        a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        !call param_stab(1,1,1,1,cte)
+        !a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         tauma(1,1) = a
         tauma(2,2) = a
         a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
@@ -1052,7 +1032,7 @@ module library
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
       double precision, intent(in)  :: dvolu, source(ndofn)
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
-      double precision              :: prod1, prod2, prod3, cte
+      double precision              :: prod1, prod2, prod3
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
       
@@ -1081,8 +1061,9 @@ module library
             prod3=0.0
             do k=1,2
               do l=1,2
-                call param_stab(jdofn,idofn,k,l,cte)
-                prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
+                !call param_stab(jdofn,idofn,k,l,cte)
+                !prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
+                prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
               end do
             end do
             
