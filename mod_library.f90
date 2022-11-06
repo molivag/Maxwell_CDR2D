@@ -548,189 +548,56 @@ module library
       
       integer, intent(in) :: idofn, jdofn, i, j
       double precision, intent(out) :: cte
-      !real :: k_1_1_1_1, k_1_1_2_2, k_1_2_1_2, k_1_2_2_1, k_2_1_1_2, k_2_1_2_1
-      !real :: k_2_2_1_1, k_2_2_2_2, k_3_3_1_1, k_3_3_2_2
-      !character(len=*), parameter    :: fileplace = "./"
-      !character(len=18)              :: File_check
       
-      !File_check = "tensor_product.txt"
-      !open(unit=10, file= fileplace//File_check, ACTION="write", STATUS="old", position="append")
-      
-      !k_1_1_1_1 = 1.0
-      !k_2_2_1_1 = -1.0
-      !k_3_3_1_1 = 1.0
-      !
-      !k_1_2_1_2 = 1.0
-      !k_2_1_1_2 = 1.0
-      !
-      !k_1_2_2_1 = 1.0
-      !k_2_1_2_1 = 1.0
-      !
-      !k_1_1_2_2 = -1.0
-      !k_2_2_2_2 = 1.0
-      !k_3_3_2_2 = 1.0
-      !print*,'test;', idofn 
-      
-      
-      !cte = 0.0 
+      cte = 0.0 
       
       if(idofn.eq.1)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==1)then
-            !!write(10,*)' '
-            !write(10,*)'Cuλ(h^2/ell^2)'  
-            !if(k_1_1_1_1 == difma(idofn,jdofn,i,j) )then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(1,1,1,1) k11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*) difma(1,1,1,1)
-            !end if          
-            !!write(10,*)' '
             !cte = Cu*mu*(helem**2/ell**2)
           end if
          
           if(i==2 .and. j==2)then
-            !!write(10,*)' '
-            !write(10,*)'mu'  
-            !if(k_1_1_2_2 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(1,1,2,2) k_22 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*)difma(1,1,2,2)
-            !end if          
-            !!write(10,*)' '
-            !print*, 'Esto es Mu'
-            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           endif
           
         elseif(jdofn==2)then
           if(i==1 .and. j==2)then
-            !!write(10,*)' '
-            !write(10,*)'Cuλ(h^2/ell^2)'  
-            !if(k_1_2_1_2 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(1,2,1,2) k_12 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*)difma(1,2,1,2)
-            !end if          
-            !!write(10,*)' '
             !cte = Cu*mu*(helem**2/ell**2)
           end if
           
           if(i==2.and.j==1)then
-            !!write(10,*)' '
-            !write(10,*)'mu'  
-            !if(k_1_2_2_1 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(1,2,2,1) k_21 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*) difma(1,2,2,1)
-            !end if          
-            !print*, 'Esto es Mu'
-            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
-            !write(10,*)' '
           end if
         end if
         
       elseif(idofn==2)then
         if(jdofn.eq.1)then
           if(i==1 .and. j==2)then
-            !!write(10,*)' '
-            !write(10,*)'mu'  
-            !if(k_2_1_1_2 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(2,1,1,2) k_12 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*)difma(2,1,1,2)
-            !end if          
-            !!write(10,*)' '
-            !print*, 'Esto es Mu'
-            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           end if
           
           if(i==2 .and. j==1)then
-            !!write(10,*)' '
-            !write(10,*)'Cuλ(h^2/ell^2)'  
-            !if(k_2_1_2_1 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(2,1,2,1) k_21 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*)difma(2,1,2,1)
-            !end if          
-            !!write(10,*)' '
             !cte = Cu*mu*(helem**2/ell**2)
           endif
          
         elseif(jdofn==2)then
           if(i==1 .and. j==1)then
-            !!write(10,*)' '
-            !write(10,*)'mu'  
-            !if(k_2_2_1_1 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(2,2,1,1) k_11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*) difma(2,2,1,1)
-            !end if          
-            !!write(10,*)' '
-            !print*, 'Esto es Mu'
-            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
             cte = mu
           end if
           
           if(i==2.and.j==2)then
-            !!write(10,*)' '
-            !write(10,*)'Cuλ(h^2/ell^2)'  
-            !if(k_2_2_2_2 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(2,2,2,2) k_22 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*) difma(2,2,2,2)
-            !end if          
-            !!write(10,*)' '
             !cte = Cu*mu*(helem**2/ell**2)
           end if
         end if
         
       elseif(idofn==3 .and. jdofn==3)then
         if( i==j )then
-            !!write(10,*)' '
-            !write(10,*)'ell**2/mu'
-            !if(k_3_3_1_1 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9)'difma(3,3,1,1) k_11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*) difma(3,3,1,1)
-            !end if          
-            !if(k_3_3_2_2 == difma(idofn,jdofn,i,j))then
-            !  write(10,*) 'TRUE'
-            !else
-            !  write(10,*) 'FALSE'
-            !  write(10,9) 'difma(3,3,2,2) k_11 ','difma(',idofn,',',jdofn,',',i,',',j,')'
-            !  write(10,*) difma(3,3,2,2)
-            !end if          
-            !!write(10,*)' '
-            !print*, 'Esto es ell**2/mu'
-            !write(*,"(A6,I2,A,I2,A,I2,A,I2,A)") 'difma(',idofn,',',jdofn,',',i,',',j,')'
-            
           cte = ell**2/mu
         endif
         
-        
       else
-        cte = 0.0
-        
+        continue
       end if
       !close(10)
       
@@ -742,12 +609,12 @@ module library
       !print*, 'ell^2/µ', ell**2/mu
       
     end subroutine param_stab
-
-
+    
+    
     ! subroutine source_term_orig(element_nodes, source)
     !  !         source_term(idofn, source)
     !   implicit none
-
+    !
     !   !***********************************************************!
     !   !The source term is given by:                               !
     !   !                                                           !
@@ -1655,208 +1522,35 @@ module library
       103 format (A30, I3, A)
       print*,' '
     end subroutine MKLsolverResult
-
-
- ! subroutine solution_write ( node_num, u, solution_file_name, time )
- ! 
- ! !*****************************************************************************80
- ! !
- ! !! SOLUTION_WRITE writes the solution to a file.
- ! !
- ! !  Licensing:
- ! !
- ! !    This code is distributed under the GNU LGPL license.
- ! !
- ! !  Modified:
- ! !
- ! !    28 August 2006
- ! !
- ! !  Author:
- ! !
- ! !    John Burkardt
- ! !
- ! !  Parameters:
- ! !
- ! !    Input, integer ( kind = 4 ) NODE_NUM, the number of nodes.
- ! !
- ! !    Input, real ( kind = 8 ) U(NODE_NUM), the coefficients of
- ! !    the solution.
- ! !
- ! !    Input, character ( len = * ) SOLUTION_FILE_NAME, the name of the file
- ! !    in which the data should be stored.
- ! !
- ! !    Input, real ( kind = 8 ) TIME, the current time.
- ! !
- !   implicit none
- ! 
- !   integer ( kind = 4 ) node_num
- ! 
- !   logical, parameter :: debug = .true.
- !   integer ( kind = 4 ) node
- !   real ( kind = 8 ), dimension(node_num) :: u
- !   character ( len = * ) :: solution_file_name
- !   integer ( kind = 4 ) solution_file_status
- !   integer ( kind = 4 ) solution_file_unit
- !   real ( kind = 8 ) time
- ! 
- !   call get_unit ( solution_file_unit )
- ! 
- !   open ( unit = solution_file_unit, file = solution_file_name, &
- !     status = 'replace', iostat = solution_file_status )
- ! 
- !   if ( solution_file_status /= 0 ) then
- !     write ( *, '(a)' ) ' '
- !     write ( *, '(a)' ) 'SOLUTION_WRITE - Warning!'
- !     write ( *, '(a)' ) '  Could not write solution file "' &
- !       // trim ( solution_file_name ) // '" for time T = ', time
- !     return
- !   end if
- ! 
- !   do node = 1, node_num
- ! 
- !     write ( solution_file_unit, '(g14.6)' ) u(node)
- ! 
- !   end do
- ! 
- !   close ( unit = solution_file_unit )
- ! 
- !   if ( debug ) then
- !     write ( *, '(a,g14.6)' ) '  Wrote solution file "' &
- !       // trim ( solution_file_name ) // '" for time T = ', time
- !   end if
- ! 
- !   return
- ! end
-
-
-  subroutine file_name_inc ( file_name )
-  
-  !*****************************************************************************80
-  !
-  !! FILE_NAME_INC increments a partially numeric filename.
-  !
-  !  Discussion:
-  !
-  !    It is assumed that the digits in the name, whether scattered or
-  !    connected, represent a number that is to be increased by 1 on
-  !    each call.  If this number is all 9's on input, the output number
-  !    is all 0's.  Non-numeric letters of the name are unaffected.
-  !
-  !    If the name is empty, then the routine stops.
-  !
-  !    If the name contains no digits, the empty string is returned.
-  !
-  !  Example:
-  !
-  !      Input            Output
-  !      -----            ------
-  !      'a7to11.txt'     'a7to12.txt'
-  !      'a7to99.txt'     'a8to00.txt'
-  !      'a9to99.txt'     'a0to00.txt'
-  !      'cat.txt'        ' '
-  !      ' '              STOP!
-  !
-  !  Licensing:
-  !
-  !    This code is distributed under the GNU LGPL license.
-  !
-  !  Modified:
-  !
-  !    14 September 2005
-  !
-  !  Author:
-  !
-  !    John Burkardt
-  !
-  !  Parameters:
-  !
-  !    Input/output, character ( len = * ) FILE_NAME.
-  !    On input, a character string to be incremented.
-  !    On output, the incremented string.
-  !
-    implicit none
-  
-    character c
-    integer ( kind = 4 ) change
-    integer ( kind = 4 ) digit
-    character ( len = * ) file_name
-    integer ( kind = 4 ) i
-    integer ( kind = 4 ) lens
-  
-    lens = len_trim ( file_name )
-  
-    if ( lens <= 0 ) then
-      write ( *, '(a)' ) ' '
-      write ( *, '(a)' ) 'FILE_NAME_INC - Fatal error!'
-      write ( *, '(a)' ) '  The input string is empty.'
-      stop
-    end if
-  
-    change = 0
-  
-    do i = lens, 1, -1
-  
-      c = file_name(i:i)
-  
-      if ( lge ( c, '0' ) .and. lle ( c, '9' ) ) then
-  
-        change = change + 1
-  
-        digit = ichar ( c ) - 48
-        digit = digit + 1
-  
-        if ( digit == 10 ) then
-          digit = 0
-        end if
-  
-        c = char ( digit + 48 )
-  
-        file_name(i:i) = c
-  
-        if ( c /= '0' ) then
-          return
-        end if
-  
-      end if
-  
-    end do
-  
-    if ( change == 0 ) then
-      file_name = ' '
-      return
-    end if
-  
-    return
-  end subroutine file_name_inc
-
-
+    
+    
     subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
       implicit none
-
+      
       character(len=*), parameter    :: fileplace = "Res/"
       character(*) :: name1, name2
       integer :: i, j, mrow, ncol, unit1, unit2
       double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
       double precision, dimension(ntotv ,1), intent(in) :: Vector
-
+     
       100 format (900E15.5)
-
+     
       mrow = size(Matrix,1)
       ncol = size(Matrix,2)
       open(unit=unit1, file= fileplace//name1, ACTION="write", STATUS="replace")
-
+     
       do i=1,mrow
         write(unit1, 100)( Matrix(i,j) ,j=1,ncol)
       end do
       close(unit1)
-
+     
       open(unit=unit2, file= fileplace//name2, ACTION="write", STATUS="replace")
       do i=1,ncol
         write(unit2, 100) Vector(i,1)
       end do
       close(unit2)
       write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
-
+      
     end subroutine writeMatrix
     
     subroutine Convergence(solution, x, y, exact_x, exact_y, error)
