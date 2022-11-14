@@ -152,24 +152,86 @@ module BoundVal
         nBVs = nBVs/2
         nBVscol = 5
         
-      elseif(ndofn .eq. 3)then           !setted boundary cond. from left to right 
+      !elseif(ndofn .eq. 3)then           !setted boundary cond. from left to right 
+      !  do i =1, nnodes
+      !    x=coord(i,2)                  !p.43 in bitacora
+      !    y=coord(i,3)
+      !    
+      !    if(y.eq.ymax) then 
+      !      if(x.eq.xmax)then!            ux       uy        p 
+      !        ux = 0.0 
+      !        uy = (y - y**2)
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right top corner
+      !      elseif(x.eq.xmin)then                               
+      !        ux = 0.0 
+      !        uy = (y**2 - y)
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left top corner
+      !      else
+      !        ux = -(x - x**2)
+      !        uy = 0.0
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !top edge 
+      !      end if
+      !      
+      !      !if(x.eq.xhalf)then
+      !      !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)        !half top edge
+      !      !end if
+      !      a = a+3
+      !      
+      !    else if (y.eq.ymin)then
+      !      if(x.eq.xmin)then                                    
+      !        ux = 0.0 
+      !        uy = (y**2 - y)
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left bottom corner
+      !      elseif(x.eq.xmax)then                              
+      !        ux = 0.0 
+      !        uy = (y - y**2)
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right bottom corner  
+      !      else
+      !        ux = (x - x**2)
+      !        uy = 0.0
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)        !botomm edge 
+      !      end if
+      !      b = b+3
+      !      
+      !    else if(x.eq.xmax)then                                 
+      !        ux = 0.0 
+      !        uy = (y - y**2)
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right edge
+      !      c = c+3
+      !      
+      !    else if (x.eq.xmin)then                                
+      !        ux = 0.0
+      !        uy = -(y - y**2)
+      !        write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left edge 
+      !      d = d+3
+      !     
+      !    end if
+      !    nBVs = a+b+c+d
+      !   
+      !  end do
+      !  nBVs = nBVs/3
+      !  nBVscol = 7 
+      !  
+      !end if
+        
+      elseif(ndofn .eq. 3)then           !Lineal
         do i =1, nnodes
           x=coord(i,2)                  !p.43 in bitacora
           y=coord(i,3)
           
           if(y.eq.ymax) then 
             if(x.eq.xmax)then!            ux       uy        p 
-              ux = 0.0 
-              uy = (y - y**2)
+              ux = 1.0 + y 
+              uy = 1.0 
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right top corner
-            elseif(x.eq.xmin)then                               
-              ux = 0.0 
-              uy = (y**2 - y)
+            elseif(x.eq.xmin)then       
+              ux = 1.0 + y
+              uy = 2.0 
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left top corner
             else
-              ux = (x**2 - x)
-              uy = 0.0
-              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !top edge 
+              ux = 2.0 
+              uy = 2.0 - x
+              write(100,50) i, 1, 0, 1, real(ux), real(uy), real(0)       !top edge 
             end if
             
             !if(x.eq.xhalf)then
@@ -179,37 +241,36 @@ module BoundVal
             
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                                    
-              ux = 0.0 
-              uy = (y**2 - y)
+              ux = 1.0 + y
+              uy = 2.0 
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left bottom corner
             elseif(x.eq.xmax)then                              
-              ux = 0.0 
-              uy = (y - y**2)
+              ux = 1.0 + y 
+              uy = 1.0 
               write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right bottom corner  
             else
-              ux = (x-x**2)
-              uy = 0.0
-              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)        !botomm edge 
+              ux = 1.0 
+              uy = 2.0 - x
+              write(100,50) i, 1, 0, 1, real(ux), real(uy), real(0)        !botomm edge 
             end if
             b = b+3
             
           else if(x.eq.xmax)then                                 
-              ux = 0.0 
-              uy = (y-y**2)
-              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !right edge
+              ux = 1.0 + y 
+              uy = 1.0 
+              write(100,50) i, 0, 1, 1, real(ux), real(uy), real(0)       !right edge
             c = c+3
             
           else if (x.eq.xmin)then                                
-              ux = 0.0
-              uy = (y**2 - y)
-              write(100,50) i, 1, 1, 1, real(ux), real(uy), real(0)       !left edge 
+              ux = 1.0 + y
+              uy = 2.0 
+              write(100,50) i, 0, 1, 1, real(ux), real(uy), real(0)       !left edge 
             d = d+3
            
           end if
           nBVs = a+b+c+d
          
         end do
-        
         nBVs = nBVs/3
         nBVscol = 7 
         
@@ -218,7 +279,7 @@ module BoundVal
       close(100)
       
       
-      50 format(I6,2x,3I3,2x,3(f12.5,2x))
+      50 format(I6,2x,3(1x,I2),3(f12.5,2x))
       60 format(I6,2x,2I2,2x,2f12.5)
       70 format(I6,2x,1I2,2x,f12.5)
       
