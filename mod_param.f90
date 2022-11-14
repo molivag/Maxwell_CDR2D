@@ -20,7 +20,7 @@ module param
   
   !character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
   !character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
-  character(len=8) :: File_PostProcess 
+  character(len=9) :: File_PostProcess 
   
   
   contains
@@ -128,18 +128,18 @@ module param
       param_stab1 = Cu*mu*(helem**2/ell**2)
       param_stab2 = difma(3,3,2,2)*ell**2 / mu
      
-      print*, helem
-      print*, param_stab1
-      print*, param_stab2
+      !print*, helem
+      !print*, param_stab1
+      !print*, param_stab2
       
       !difma(1,1,1,1) = cte_param1
       difma(2,2,1,1) = difma(2,2,1,1)*mu
       difma(3,3,1,1) = difma(3,3,1,1)*ell**2 / mu
       
       !difma(1,2,1,2) = cte_param1
-      difma(2,1,1,2) = difma(2,1,1,2)*mu
+      difma(1,2,1,2) = difma(1,2,1,2)*mu
       
-      difma(1,2,2,1) = difma(1,2,2,1)*mu
+      difma(2,1,2,1) = difma(2,1,2,1)*mu
       !difma(2,1,2,1) = cte_param1
       
       difma(1,1,2,2) = difma(1,1,2,2)*mu
