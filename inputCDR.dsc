@@ -8,8 +8,8 @@
 ElemType = Quadrilateral    !Triangle 
 ProbType = tran2s           !Problem type transient or static
 DimPr    = 2                !Dimension del problema
-nelem    = 64               !Number of nodes
-nnodes   = 81               !Total number of nodal points
+nelem    = 9               !Number of nodes
+nnodes   = 16               !Total number of nodal points
 nne      = 4                !Nodes per element Q:4-9; P:3-6
 ndofn    = 3                !Degrees of freedom
 totGp    = 4                !1,4,9 for Q, 1,3,4,6 for P
@@ -30,7 +30,7 @@ hnatu    = 2.0              !Reference element length
 Cu       = 0.0              !Algorithmic constant
 mu (µ)   = 1.0e+0           !Magnetic permeability
 ell      = 1.0              !Constante de longitud  
-i_exp    = 3.0              !Exponent of characteristic mesh size 3,4,5 or 6
+i_exp    = 0.0              !Exponent of characteristic mesh size 3,4,5 or 6
 n_val    = 0.0              !n parameter in exact solution
 
 # > > > > > > > Physical Properties
@@ -66,6 +66,32 @@ n_val    = 0.0              !n parameter in exact solution
 1.0 , 1.0 , 0.0
 
 # > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes
+1 13 8 5 10	#Q1--> h=1_3
+2 14 9 8 13
+3 16 15 9 14
+4 8 4 2 5
+5 9 7 4 8
+6 15 12 7 9
+7 4 3 1 2
+8 7 6 3 4
+9 12 11 6 7
+ 1               0               1
+ 2               0     0.666666667
+ 3     0.333333333               1
+ 4     0.333333333     0.666666667
+ 5               0     0.333333333
+ 6     0.666666667               1
+ 7     0.666666667     0.666666667
+ 8     0.333333333     0.333333333
+ 9     0.666666667     0.333333333
+10               0               0
+11               1               1
+12               1     0.666666667
+13     0.333333333               0
+14     0.666666667               0
+15               1     0.333333333
+16               1               0
+
 1 60 48 45 57	#Q1--> h=1_8
 2 63 51 48 60
 3 66 54 51 63
