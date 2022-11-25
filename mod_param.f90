@@ -4,6 +4,7 @@ module param
 
   character(len=5)  :: ProbType
   character(len=14) :: ElemType
+  character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
   integer           :: nevab, ntotv, nBVs, nBVscol, nband, max_time
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: DimPr, nelem, nnodes, nne, ndofn, totGp, kstab, ktaum, maxband, theta
@@ -17,11 +18,6 @@ module param
   double precision, allocatable, dimension(:,:,:)   :: conma
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
   double precision, allocatable, dimension(:)       :: force !Force vector 
-  
-  !character(len=29), parameter :: File_PostMsh  = 'Maxwell_L-domain.post.msh'
-  !character(len=29), parameter :: File_PostRes  = 'Maxwell_L-domain.post.res'
-  character(len=9) :: File_PostProcess 
-  
   
   contains
     
@@ -43,7 +39,7 @@ module param
       
       read(5, 100) ElemType, ProbType, DimPr, nelem, nnodes, nne, & 
       ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
-      Cu, mu, ell, i_exp, n_val
+      Cu, mu, ell, i_exp, n_val, File_PostProcess, error_name, coord_name, conec_name
 
       allocate( lnods(nelem,nne+1))
       allocate( coord(nnodes,Dimpr+1))
@@ -166,7 +162,7 @@ module param
      
       
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
-      &         2/, 2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/),/)
+      &         2/, 2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/, 4(11x,A10,/),/)
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
