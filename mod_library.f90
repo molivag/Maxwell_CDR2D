@@ -9,7 +9,7 @@ module library
       character(len=24) :: date
       character(len=4) :: aaaa 
       
-      integer :: i,j, k, l
+      !integer :: i,j, k, l
      
       
       if(kstab.eq.3 .or. kstab.eq.5)then
@@ -58,63 +58,69 @@ module library
       write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
       write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-        print*,' '
-      end do
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      end do
-        print*,' '
-      print*,'External Forces'
-      do i =1, ndofn
-        print"(f10.3)", force(i)
-      end do
-      print*, ' '
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !  print*,' '
+      !end do
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !  print*,' '
+      !print*,'External Forces'
+      !do i =1, ndofn
+      !  print"(f10.3)", force(i)
+      !end do
+      !print*, ' '
       
       
     endsubroutine GeneralInfo
     
-    subroutine ReadFile(FileName, NumRows, NumCols, IntegerArray)
+    subroutine ReadFile(NumRows, NumCols, condition, condition_value)
       
       integer :: i, j, status
       integer, intent(in)            :: NumRows, NumCols
       character(len=*), parameter    :: fileplace = "./"
-      character (len=*), intent (in) :: FileName
-      integer, dimension (1:NumRows, 1:NumCols), intent (out) :: IntegerArray
+      character (len=9)              :: FileName1, FileName2
+      integer, dimension (NumRows,NumCols-3), intent (out) :: condition
+      double precision, dimension (NumRows,3),intent (out) :: condition_value
       
+      FileName1 ='ifpre.dat' 
+      FileName2 ='BoVal.dat'
       
-      open (unit=99, file=fileplace//FileName, status='old', action='read' , iostat = status)
+      open (unit=10, file=fileplace//FileName1, status='old', action='read' , iostat = status)
+      open (unit=20, file=fileplace//FileName2, status='old', action='read' , iostat = status)
       
-      read(99,*) ((IntegerArray(i,j), j=1,NumCols), i=1,NumRows)
+      read(10,*) ((condition(i,j), j=1,NumCols-3), i=1,NumRows)
+      read(20,*) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
       if (status.ne.0) then
         print *, "Status while reading BVs file is:", status
       else
         continue
       end if
-      close (99)
+      close (10)
+      close (20)
       
     end subroutine ReadFile
     
-    subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap)
+    subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap, xi_cor, yi_cor)
       
       implicit none
       
@@ -122,18 +128,20 @@ module library
       integer,intent(in)                                   :: elm_num 
       integer                                              :: i,j,global_node_id
       double precision, dimension(nne,DimPr), intent(out)  :: element_nodes
+      double precision,dimension(nne), intent(out)         :: xi_cor, yi_cor
       integer,dimension(nne), intent(out)                  :: nodeIDmap
-      
       
       element_nodes = 0.0
       nodeIDmap = 0
       
       do i = 1, nne
         global_node_id = lnods(elm_num,i+1)
+        nodeIDmap(i)   = global_node_id
         do j=1 ,DimPr
           element_nodes(i,j) = coord(global_node_id,j+1)
         end do
-        nodeIDmap(i) = global_node_id
+        xi_cor(i) = element_nodes(i,1)
+        yi_cor(i) = element_nodes(i,2)
       end do
       
     end subroutine SetElementNodes
@@ -917,12 +925,13 @@ module library
     end subroutine Stabilization
     
     
-    subroutine VinculBVs(  BVs, nofix, ifpre, presc )
+    subroutine VinculBVs(condition,  BVs, nofix, ifpre, presc )
       
       implicit none
       
       !integer, intent(in)      :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
-      integer, intent(in) :: BVs( nBvs, nBVscol)
+      integer, intent(in) :: condition( nBvs, nBVscol-ndofn)
+      double precision, intent(in) :: BVs( nBvs, ndofn)
       integer             :: i, j
       double precision, intent(out) :: presc(ndofn,nBVs)
       integer, intent(out)          :: ifpre(ndofn,nBVs)
@@ -933,27 +942,27 @@ module library
         case(1)
           do i =1,ndofn
             do j=1,nBVs
-              nofix(j)   = BVs(j,1)
-              ifpre(i,j) = BVs(j,2) !El llenado de ifpre sera por grado de libertad
-              presc(i,j) = Bvs(j,3)
+              nofix(j)   = condition(j,1)
+              ifpre(i,j) = condition(j,2) !El llenado de ifpre sera por grado de libertad
+              presc(i,j) = Bvs(j,1)
             end do
           end do
           
         case(2)
           do i =1,ndofn
             do j=1,nBVs
-              nofix(j)   = BVs(j,1)
-              ifpre(i,j) = BVs(j,i+1) !El llenado de ifpre sera por grado de libertad
-              presc(i,j) = Bvs(j,i+3)
+              nofix(j)   = condition(j,1)
+              ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
+              presc(i,j) = Bvs(j,i)
             end do
           end do
          
         case(3)
           do i =1,ndofn
             do j=1,nBVs
-              nofix(j)   = BVs(j,1)
-              ifpre(i,j) = BVs(j,i+1) !El llenado de ifpre sera por grado de libertad
-              presc(i,j) = Bvs(j,i+4)
+              nofix(j)   = condition(j,1)
+              ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
+              presc(i,j) = Bvs(j,i)
             end do
           end do
           
@@ -994,6 +1003,7 @@ module library
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1   
       
+      print*, ' '
       print*,'!================ Bandwidth Info ==============!'
       
       write(*,"(A15,9X,I6,1X,A9)")' - UpBand:      ', upban,'   '
@@ -1011,7 +1021,7 @@ module library
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in):: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn)        :: source
-      double precision, dimension(nne)          :: basis
+      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
@@ -1029,7 +1039,7 @@ module library
       A_F = 0.0
       do ielem = 1, nelem 
         Ke = 0.0; Fe = 0.0; Ce = 0.0
-        call SetElementNodes(ielem, element_nodes, nodeIDmap)
+        call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         
         call gather(nodeIDmap, ugl_pre, ue_pre)
         time_cont = ue_pre * 1.0/delta_t
@@ -1044,7 +1054,7 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(basis, element_nodes, source)
+          call source_term(basis, xi_cor, yi_cor, source)
           
           !call source_term(igaus, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
@@ -1076,7 +1086,7 @@ module library
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn)        :: source
-      double precision, dimension(nne)          :: basis
+      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
@@ -1102,8 +1112,11 @@ module library
         Ke = 0.0    !Esto es amate
         Fe = 0.0    !Fe(nevab)
         Ce = 0.0    !elemental capacity matrix (not used in static case)
-        call SetElementNodes(ielem, element_nodes, nodeIDmap)
+        call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !do-loop: compute element stiffness matrix Ke
+        !print*, ' '
+        !print*, 'element:', ielem
+        !print"(A7,4(i3,1x))", 'nodes: ', nodeIDmap
         do igaus = 1, TotGp
           Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
           detJ = m22det(Jaco)
@@ -1115,14 +1128,17 @@ module library
             basis(ibase) = N(ibase,igaus)
           end do
           call TauMat(hmaxi,tauma)
-          call source_term(basis, element_nodes, source)
           
-          !call source_term(igaus, source)
+          !print*, ' '
+          !print"(A11,I2,A2,2(f7.5,2x))", 'GaussPoint', igaus,': ',ngaus(igaus,1), ngaus(igaus,2)
+          
+          call source_term(basis, xi_cor, yi_cor, source)
           call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
           !call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
         end do
+        !stop
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
@@ -1318,7 +1334,7 @@ module library
       101 format (A, 1x, I1, A)
       102 format (A, I3, A)
       103 format (A30, I3, A)
-      print*,' '
+      !print*,' '
     end subroutine MKLsolverResult
     
     
@@ -1431,45 +1447,7 @@ module library
     !  
     !end subroutine source_term
     
-    !subroutine source_term(igaus, source)
-    !  
-    !  implicit none
-    !  
-    !  !***********************************************************!
-    !  !The source term is given by:                               !
-    !  !                                                           !
-    !  !              u = (fi*psi',-fi'*psi)                       !
-    !  !                                                           !
-    !  !                                                           !
-    !  !   f = Lu       ;   where L is the diferential operator    !
-    !  !                                                           !
-    !  !***********************************************************!
-    !  
-    !  integer, intent(in) :: igaus
-    !  !double precision, dimension(totGp) :: x_coor, y_coor
-    !  double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
-    !  double precision :: x, y
-    !  double precision, dimension(ndofn), intent(out)  :: source
-    !  
-    !  
-    !  x = ngaus(igaus,1)
-    !  y = ngaus(igaus,2)
-    !  
-    !  !Derivatives in x-direction
-    !  dey_dydx = 2-4*y
-    !  dex_dy2  = 0.0
-    !  
-    !  !Derivatives in y-direction
-    !  dey_dx2  = 0.0
-    !  dex_dxdy = -2+4*x
-    !  
-    !  source(1) = mu*(dey_dydx - dex_dy2)
-    !  source(2) = mu*(-dey_dx2  + dex_dxdy)
-    !  source(3) = 0.0 !force(ndofn)
-    !  
-    !end subroutine source_term
-    
-    subroutine source_term(basis, element_nodes, source)
+    subroutine source_term(basis, xi_cor, yi_cor, source)
       
       implicit none     !interpolating X and Y
       
@@ -1478,14 +1456,11 @@ module library
       !                                                           !
       !              u = (fi*psi',-fi'*psi)                       !
       !                                                           !
-      !                                                           !
       !   f = Lu       ;   where L is the diferential operator    !
       !                                                           !
       !***********************************************************!
       
-      double precision, intent(in) :: basis(nne,1), element_nodes(nne,DimPr)
-      double precision, dimension(1,nne) :: basis_T
-      double precision, dimension(nne,1)   :: xi, yi
+      double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
       double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
       double precision :: x, y
       integer :: ii
@@ -1496,29 +1471,37 @@ module library
       x = 0.0
       y = 0.0
       
+      !x= matmul(basis,xi_cor)
       do ii = 1, nne 
-        xi(ii,1) = element_nodes(ii,1)
-        yi(ii,1) = element_nodes(ii,2)
+        x = x + basis(ii)*xi_cor(ii)
+        y = y + basis(ii)*yi_cor(ii)
+        !print"(3(1x,f10.7))",  basis(ii), yi_cor(ii), basis(ii)*yi_cor(ii)
       end do
       
-      basis_T = transpose(basis)
-     
-      do ii = 1, nne 
-        x = x + basis_T(1, ii)*xi(ii,1)
-        y = y + basis_T(1, ii)*yi(ii,1)
-      end do
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' xi1', xi_cor(1), 'x1', basis(1)*xi_cor(1)
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' xi2', xi_cor(2), 'x2', basis(2)*xi_cor(2)
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' xi3', xi_cor(3), 'x3', basis(3)*xi_cor(3)
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' xi4', xi_cor(4), 'x4', basis(4)*xi_cor(4)
+      !print"(A9,f10.5)",'x_gaus = ', x
+      !
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' yi1', yi_cor(1), 'y1', basis(1)*yi_cor(1)
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' yi2', yi_cor(2), 'y2', basis(2)*yi_cor(2)
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' yi3', yi_cor(3), 'y3', basis(3)*yi_cor(3)
+      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' yi4', yi_cor(4), 'y4', basis(4)*yi_cor(4)
+      !print"(A9,f10.5)",'y_gaus = ', y
+      
       
       !Derivatives in x-direction
-      dey_dydx = 0.0!2-4*y
-      dex_dy2  = 0.0
+      dey_dydx = 2.0-(4.0*y)
+      dex_dy2  = 0.0 
       
       !Derivatives in y-direction
       dey_dx2  = 0.0
-      dex_dxdy = 0.0!-2+4*x
+      dex_dxdy = (4.0*x)-2
       
       source(1) = mu*(dey_dydx - dex_dy2)
       source(2) = mu*(-dey_dx2  + dex_dxdy)
-      source(3) = 0.0 !force(ndofn)
+      source(3) = 0.0!force(ndofn)
       
     end subroutine source_term
     
@@ -1541,35 +1524,20 @@ module library
       
       solution_T = transpose(solution)
       error = 0.0 
-      !! * * * * * * * * * Exact solution * * * * * * * * * * * * *
-      ! L- domain w/singular solution 
-      !n    = n_val
-      !aa   = (2.0*n)/3.0
-      !exp1 = -(n/6.0)
-      !exp2 = n/3.0 - 1.0/2.0
       
-      !do i = 1, nnodes
-      !  bb = atan(y(i)/x(i))
-      !  cc = sin(2.0*n/3.0 * bb)
-      !  dd = cos(2.0*n/3.0 * bb)
-      !  ee = (x(i)**2 + y(i)**2)
-      !  
-      !  exact_x(i) = aa*ee**exp1*cc 
-      !  exact_y(i) = aa*ee**exp2*dd
-      !  
-      !end do
-      
-      !A simple test u(fi*psi',fi'*psi) 
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       do i = 1, nnodes  !simple Function
        
-        !fi = (x(i)-x(i)**2) 
-        !der_fi = (1.0-2.0*x(i))
-        !psi = (y(i)-y(i)**2)
-        !der_psi = (1.0-2.0*y(i))
+        fi = (x(i)-x(i)**2) 
+        der_fi = (1.0-2.0*x(i))
+        psi = (y(i)-y(i)**2)
+        der_psi = (1.0-2.0*y(i))
         
-        ex_x = 1+y(i)!fi*der_psi
-        ex_y = 2-x(i)!-(psi*der_fi)
+        ex_x = fi*der_psi               !exact solution
+        ex_y = -(psi*der_fi)
+        
+        !ex_x = 1+y(i)
+        !ex_y = 2-x(i)
         
         x_FEM = solution_T(1,ndofn*i-2)
         y_FEM = solution_T(1,ndofn*i-1)
@@ -1581,11 +1549,8 @@ module library
         
       end do
       error = sqrt(error/float(nnodes))
-      !! * * * * * * * * * (end) Exact solution * * * * * * * * * * 
-      
       
     end subroutine Convergence
-    
     
     subroutine Res_Matlab(solution)
       
@@ -1599,14 +1564,11 @@ module library
       double precision, dimension(nnodes)     :: exact_y, exact_x
       double precision, dimension(nnodes)     :: x, y
       character(len=12)                       :: extension
-      character(len=12)                       :: coord_name, conec_name
-      character(len=10)                       :: error_name
-      character(len=10)                       :: identy
-      integer                                 :: i,j, ipoin, ans
+      integer                                 :: i,j, ipoin
       double precision                        :: error, xmax
       
       
-      extension = "_matlab.txt"
+      extension ="_matlab.txt"
       
       solution_T = transpose(solution)
       xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
@@ -1618,7 +1580,6 @@ module library
       call Convergence(solution, x, y, exact_x, exact_y,  error)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-      
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
       do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
         write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
@@ -1628,25 +1589,23 @@ module library
       end do
       !print*, ' '
       !print*, '!====== Matlab file ======'
-      print"(A6,A24,A30)", ' File ',File_PostProcess//extension, 'written succesfully in Res/ '
-      print*, ' '
+      write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
       
       close(111)
       
-      write(*,*) '!====== Element size'
-      read(*,*) identy
+      !write(*,*) '!====== Element size'
+      !read(*,*) identy
       
-      write(*,*)'Mesh File?. Y=1, N=2'; read(*,*) ans
-      if(ans.eq.1)then
+      !write(*,*)'Mesh File?. Y=1, N=2'; read(*,*) ans
+      !if(ans.eq.1)then
         
-        write(*,*) '!====== Name of coordinates file'
-        read(*,*) coord_name
-        write(*,*) '!====== Name of connectivity file'
-        read(*,*) conec_name
+      !  write(*,*) '!====== Name of coordinates file'
+      !  read(*,*) coord_name
+      !  write(*,*) '!====== Name of connectivity file'
+      !  read(*,*) conec_name
         
-        open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
         open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
-        
+        open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
         
         do i=1,nelem
           write(333,902) (lnods(i,j+1), j =1,nne)
@@ -1655,24 +1614,21 @@ module library
         do ipoin = 1, nnodes
           write(444,904) ipoin, x(ipoin), y(ipoin)
         end do
-        print*, ' '
-        print*, '!====== Mesh file ======'
-        print"(A6,A12,A3,A12,A30)", ' File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
+        write(*,"(A7,A10,A5,A10,A29)") ' -File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
         print*, ' '
         
+        close(333)
         close(444)
-      else
-        continue
-      end if
-      
-      error_name = 'err_'//identy
+      !else
+      !  continue
+      !end if
       open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
       write(777,"(1x,E15.5)") error
       close(777)
 
       xmax = maxval(coord(:,2)) !the greatest number in x column
-      print*, ' '
-      write(*,"(A9,f7.3,A25,E15.5)")' For h = ', xmax*2**(-i_exp), 'the error estimation is ', error 
+      print*, '!============== Error Estimation ==============!'
+      write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', xmax*2**(-i_exp), 'the error estimation is ', error 
       print*, ' '
      
       902 format(10(1x,I7) ) !format for msh
@@ -1681,14 +1637,13 @@ module library
       
     end subroutine Res_Matlab
     
-    subroutine PostProcess(solution, activity)
+    subroutine PostProcess(solution)
       
       implicit none
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                :: activity
-      character(len=10)                       :: extension 
+      character(len=10)                       :: extension1, extension2
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin, ii
@@ -1697,10 +1652,13 @@ module library
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
       
+      print*, ' '
+      print*, '!============== Output files ==================!'
       
-      if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-        extension = ".post.msh"
-        open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      !if(activity == "msh")then !quitar este if y acomodar el numero de unidad
+        extension1 = ".post.msh"
+        extension2 = ".post.res"
+        open(unit=555, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
         
         write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -1717,11 +1675,10 @@ module library
         end do
         write(555,"(A)") 'End Elements'
         close(555)
-        print"(A6,A24,A30)", ' File ',File_PostProcess//'.post.msh','written succesfully in Pos/ '
+        write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
        
-      elseif(activity == "res")then
-        extension = ".post.res"
-        open(unit=555, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      !elseif(activity == "res")then
+        open(unit=555, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
         write(555,"(A)") 'GiD Post Results File 1.0'
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
         
@@ -1772,15 +1729,15 @@ module library
               ii=ii+1
             end do
             write(555,"(A)") 'End Values'
-            print"(A6,A24,A30)", ' File ',File_PostProcess//'.post.res', 'written succesfully in Pos/ '
+            write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.res','written succesfully in Pos/'
         end select
         
         close(555)
-      else
-        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
-        close(555)
-        stop
-      end if
+      !else
+        !write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
+        !close(555)
+        !stop
+      !end if
     
       
       900 format(A15, A13, A1, A13)
@@ -1811,6 +1768,7 @@ module library
       xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
       ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
       
+      print*, '!====== Output files ======'
       
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
         open(unit=100, file= fileplace//File_PostProcess, ACTION="write", STATUS="replace")
