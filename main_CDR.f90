@@ -8,7 +8,8 @@ implicit none
   double precision, allocatable, dimension(:,:) :: N, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:) :: hes_xixi, hes_xieta, hes_etaeta
   !double precision,              dimension(3,4) :: Hesxieta
-  integer, allocatable, dimension(:,:)          :: BVs, ifpre
+  integer, allocatable, dimension(:,:)          :: condition, ifpre
+  double precision, allocatable, dimension(:,:)   :: Bvs
   integer, allocatable, dimension(:)            :: nofix
   real                                          :: start, finish
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
@@ -38,11 +39,11 @@ implicit none
 
   !------- Setting Boundary Conditions ------!
   call SetBoundVal( nBVs, nBVscol) !Esta funcion crea el archivo BVs.dat
-  allocate( BVs(nBVs, nBVscol) ) !Designo la memoria para la matriz de nodos con valor en la frontera
-  call ReadFile("BVs.dat", nBVs, nBVscol, BVs)!Reading the boundary values file and store it at BVs
+  allocate( condition(nBvs,nBVscol-ndofn), BVs(nBVs,ndofn) ) !Designo la memoria para la matriz de nodos con valor en la frontera
+  call ReadFile(nBVs, nBVscol, condition, BVs)!Reading the boundary values file and store it at BVs
   !memoria para el numero de nodo, si esta preescrito o no y su valor correspondiente
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
-  call VinculBVs(  BVs, nofix, ifpre, presc )
+  call VinculBVs( condition,  BVs, nofix, ifpre, presc )
 
   !----- Setting MKL-Solver Parammeters -----!
   S_m     = size(A_K,2)  !antes ntotv
@@ -78,12 +79,10 @@ implicit none
     !allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
 
     print*, ' '
-    print*, '!================ MKL Solver ==============!'
+    print*, '!================ MKL Solver ==================!'
     AK_LU = A_K     !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F     !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
    
-    print*, ' '
-    
     !---------- Solving System of Equations by retpla solver -----------!
     print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
     call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
@@ -91,13 +90,10 @@ implicit none
     print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
-    print*, ' '
+    !print*, ' '
     
     !---------- Print and write results -----------!
-    print*, '!====== Name of Postprocess file'
-    read(*,*) File_PostProcess 
-    call PostProcess(u_sol, 'msh') 
-    call PostProcess(u_sol, 'res')
+    call PostProcess(u_sol) 
     call Res_Matlab(u_sol)
     !print*, ' '
     !print*, 'Shape of Global K: ',shape(A_K)
