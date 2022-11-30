@@ -167,16 +167,16 @@ module BoundVal
               !ux = -90.*(1.-2.*y)
               !uy =19.*(y-y**2)       !---->  malla 0-10
               write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0
-            elseif(x.eq.xmin)then
-              !ux = 2.0!1.0 + y
-              !uy = 2.!2.0             !---->  Lineal malla 0-1
-              ux = 0.0
-              uy = -(y-y**2)          !---->  malla 0-1
-              !ux = 0.0
-              !uy = -(y-y**2)          !---->  malla 0-10
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !right top corner  
+            elseif(x.eq.xmin)then                                                            
+              !ux = 2.0!1.0 + y                                                              
+              !uy = 2.!2.0             !---->  Lineal malla 0-1                              
+              ux = 0.0                                                                       
+              uy = -(y-y**2)          !---->  malla 0-1                                      
+              !ux = 0.0                                                                      
+              !uy = -(y-y**2)          !---->  malla 0-10                                    
+              write(200,10) i, 1, 1, 1                                                       
+              write(300,20)   ux, uy, 0.0                                 !left topt corner
             else
               !ux = 2.0
               !uy = 2.0 - x            !---->  Lineal malla 0-1
@@ -185,7 +185,7 @@ module BoundVal
               !ux =-19*(x-x**2)
               !uy = 90*(1-2*x)         !---->  malla 0-10
               write(200,10) i, 1, 0, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !top edge
             end if
             
             !if(x.eq.xhalf)then
@@ -202,7 +202,7 @@ module BoundVal
               !ux = 0.0
               !uy = -(y-y**2)           !---->  malla 0-10
               write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !left bottom corner
             elseif(x.eq.xmax)then
               !ux = 1.!1.0! + y
               !uy = 1.0             !---->  Lineal malla 0-1 
@@ -211,7 +211,7 @@ module BoundVal
               !ux =-90.*(1.-2.*y)
               !uy = 19.*(y-y**2)        !---->  malla 0-10
               write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !right bottom corner
             else
               !ux = 1.0
               !uy = 2.0 - x            !---->  Lineal malla 0-1 
@@ -220,7 +220,7 @@ module BoundVal
               !ux = (x-x**2)
               !uy = 0.0                 !---->  malla 0-10
               write(200,10) i, 1,  0, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !bottom edge
             end if
             b = b+3
             
@@ -232,7 +232,7 @@ module BoundVal
               !ux =-90.*(1.-2.*y)       !---->  malla 0-10
               !uy = 19.*(y-y**2)
               write(200,10) i, 0,  1, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !right edge
             c = c+3
             
           else if (x.eq.xmin)then
@@ -243,7 +243,7 @@ module BoundVal
               !ux = 0.0                 !---->  malla 0-10
               !uy = -(y-y**2)
               write(200,10) i, 0,  1, 1
-              write(300,20)   ux, uy, 0.0
+              write(300,20)   ux, uy, 0.0                                 !left edge
             d = d+3
            
           end if
