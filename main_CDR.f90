@@ -5,7 +5,7 @@ implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, presc
-  double precision, allocatable, dimension(:,:) :: N, dN_dxi, dN_deta
+  double precision, allocatable, dimension(:,:) :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:) :: hes_xixi, hes_xieta, hes_etaeta
   !double precision,              dimension(3,4) :: Hesxieta
   integer, allocatable, dimension(:,:)          :: condition, ifpre
@@ -28,13 +28,13 @@ implicit none
 
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)
-  call ShapeFunctions(ngaus, N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta)
+  call ShapeFunctions(ngaus, basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta)
 
   !------- Computing half bandwidth  --------!
   call BandWidth( )
   
   !---------- Global Matrix and Vector ------!
-  call GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+  call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
   !the allocate of A_K and A_F are inside of GlobalSystem
 
   !------- Setting Boundary Conditions ------!
@@ -57,12 +57,12 @@ implicit none
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'trans')then
     
-    call TimeIntegration(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
+    call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
     &                    time_ini, time_fin, max_time, nofix, ifpre, presc, &
     &                    S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
    
     !---------- Memory Relase -----------!
-    DEALLOCATE( N, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+    DEALLOCATE( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
     DEALLOCATE(hes_xixi, hes_xieta, hes_etaeta) 
   
   else
@@ -70,7 +70,7 @@ implicit none
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !---------- Memory Relase -----------!
-    DEALLOCATE( N, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
+    DEALLOCATE( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
     DEALLOCATE(hes_xixi, hes_xieta, hes_etaeta) 
     
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 

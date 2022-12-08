@@ -140,7 +140,7 @@ module biunit
    
    
     ! subroutine ShapeFunctions(s,t,nnode,shape,derst,hesst)
-    subroutine  ShapeFunctions(ngaus, N, dN_dxi, dN_deta, hes_ss, hes_st, hes_tt)
+    subroutine  ShapeFunctions(ngaus, basfun, dN_dxi, dN_deta, hes_ss, hes_st, hes_tt)
       !***********************************************************************
       !
       !     Evaluate the shape functions and its natural first derivatives 
@@ -153,7 +153,7 @@ module biunit
       double precision, dimension(totGp) :: xi_vector, eta_vector
       double precision                   :: s,t,st,a1,a2,a3,ss,tt,s1,t1,s9,t9
       integer                            :: j
-      double precision, allocatable, dimension(:,:), intent(out) :: N, dN_dxi, dN_deta
+      double precision, allocatable, dimension(:,:), intent(out) :: basfun, dN_dxi, dN_deta
       double precision, allocatable, dimension(:,:), intent(out) :: hes_ss, hes_st, hes_tt
       
       allocate( N(Nne,totGp), dN_dxi(Nne,totGp), dN_deta(Nne,totGp) )
@@ -174,10 +174,10 @@ module biunit
               s=xi_vector(j)                  ! xi-coordinate of point j 
               t=eta_vector(j)                 ! eta-coordinate of point j 
               
-              N(1,j)=(1.-t-s+s*t)*0.25
-              N(2,j)=(1.-t+s-s*t)*0.25
-              N(3,j)=(1.+t+s+s*t)*0.25
-              N(4,j)=(1.+t-s-s*t)*0.25
+              basfun(1,j)=(1.-t-s+s*t)*0.25
+              basfun(2,j)=(1.-t+s-s*t)*0.25
+              basfun(3,j)=(1.+t+s+s*t)*0.25
+              basfun(4,j)=(1.+t-s-s*t)*0.25
               
               dN_dxi(1,j)=(-1.+t)*0.25
               dN_dxi(2,j)=(+1.-t)*0.25
@@ -207,15 +207,15 @@ module biunit
               t1=t+1.0
               s9=s-1.0
               t9=t-1.0
-              N(1,j)=0.25*s9*st*t9
-              N(2,j)=0.25*s1*st*t9
-              N(3,j)=0.25*s1*st*t1  
-              N(4,j)=0.25*s9*st*t1
-              N(5,j)=0.5*(1.0-ss)*t*t9
-              N(6,j)=0.5*s*s1*(1.0-tt)
-              N(7,j)=0.5*(1.0-ss)*t*t1
-              N(8,j)=0.5*s*s9*(1.0-tt)
-              N(9,j)=(1.0-ss)*(1.0-tt)
+              basfun(1,j)=0.25*s9*st*t9
+              basfun(2,j)=0.25*s1*st*t9
+              basfun(3,j)=0.25*s1*st*t1  
+              basfun(4,j)=0.25*s9*st*t1
+              basfun(5,j)=0.5*(1.0-ss)*t*t9
+              basfun(6,j)=0.5*s*s1*(1.0-tt)
+              basfun(7,j)=0.5*(1.0-ss)*t*t1
+              basfun(8,j)=0.5*s*s9*(1.0-tt)
+              basfun(9,j)=(1.0-ss)*(1.0-tt)
               
               dN_dxi(1,j)=0.25*t*t9*(-1.0+2)
               dN_dxi(2,j)=0.25*(1.0+2.0*s)*t*t9
@@ -277,9 +277,9 @@ module biunit
               s=xi_vector(j)                      ! xi-coordinate of point j 
               t=eta_vector(j)                     ! eta-coordinate of point j 
               
-              N(1,j)=1.0-s-t
-              N(2,j)=s
-              N(3,j)=t
+              basfun(1,j)=1.0-s-t
+              basfun(2,j)=s
+              basfun(3,j)=t
               
               dN_dxi(1,j)=-1.0
               dN_dxi(2,j)= 1.0
@@ -298,12 +298,12 @@ module biunit
               a1=1.0-s-t
               a2=s
               a3=t
-              N(1,j)=(2.0*a1-1.0)*a1
-              N(2,j)=(2.0*a2-1.0)*a2
-              N(3,j)=(2.0*a3-1.0)*a3
-              N(4,j)= 4.0*a1*a2
-              N(5,j)= 4.0*a2*a3
-              N(6,j)= 4.0*a1*a3
+              basfun(1,j)=(2.0*a1-1.0)*a1
+              basfun(2,j)=(2.0*a2-1.0)*a2
+              basfun(3,j)=(2.0*a3-1.0)*a3
+              basfun(4,j)= 4.0*a1*a2
+              basfun(5,j)= 4.0*a2*a3
+              basfun(6,j)= 4.0*a1*a3
               
               dN_dxi(1,j)=1.0-4.0*a1
               dN_dxi(2,j)=4.0*a2-1.0
