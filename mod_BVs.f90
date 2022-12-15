@@ -54,30 +54,38 @@ module BoundVal
         do i =1, nnodes
           x=coord(i,2)
           y=coord(i,3)
-          if(y.eq.ymax) then 
-            if(x.eq.xmax)then           
-              write(100,70) i, 1, real(1)   !right top corner
-            elseif(x.eq.xmin)then
-              write(100,70) i, 1, real(0)   !left top corner
-            else                
-              write(100,70) i, 0, real(0)   !top edge
+          if(y.eq.ymax) then
+            if(x.eq.xmax)then                   !right top corner 
+              write(200,10) i, 1
+              write(300,30) 1.0
+            elseif(x.eq.xmin)then               !left top corner 
+              write(200,10) i, 1
+              write(300,30) 1.0
+            else
+              write(200,10) i, 1                !Top edge
+              write(300,30) 1.0
             end if
             a = a+1
           else if (y.eq.ymin)then
-            if(x.eq.xmin)then
-              write(100,70) i, 1, real(0)   !left bottom corner
-            elseif(x.eq.xmax)then                                
-              write(100,70) i, 1, real(1)   !right bottom corner
+            if(x.eq.xmin)then                   !right bottom corner  
+              write(200,10) i, 1
+              write(300,30) 0.0
+            elseif(x.eq.xmax)then               !left bottom corner
+              write(200,10) i, 1
+              write(300,30) 0.0
             else
-              write(100,70) i, 0, real(0)   !botomm edge
+              write(200,10) i, 1                !bottom edge
+              write(300,30) 0.0 
             end if
             b = b+1
-          else if(x.eq.xmax)then
-              write(100,70) i, 1, real(1)   !right edge
-            d = d+1
-          else if (x.eq.xmin)then
-              write(100,70) i, 1, real(0)   !left edge
+          else if(x.eq.xmax)then                !right edge
+              write(200,10) i, 1
+              write(300,30) 0.0
             c = c+1
+          else if (x.eq.xmin)then               !left edge
+              write(200,10) i, 1
+              write(300,30) 0.0
+            d = d+1
            
           end if
           nBVs = a+b+c+d
@@ -92,56 +100,64 @@ module BoundVal
           y=coord(i,3)
           if(y.eq.ymax) then 
             if(x.eq.xmax)then                         
-              write(100,60) i, 1,1, real(0), real(0)     !right top corner 
+              write(200,10) i, 1, 1
+              write(300,40)   1.0, 0.0
             elseif(x.eq.xmin)then                     
-              write(100,60) i, 1,1, real(0), real(0)     !left top corner
+              write(200,10) i, 1, 1
+              write(300,40)   1.0, 0.0
             else
-              write(100,60) i, 1,1, real(0), real(0)     !top edge 
+              write(200,10) i, 1, 1
+              write(300,40)   1.0, 0.0
             end if
             a = a+2
           else if (y.eq.ymin)then
             if(x.eq.xmin)then                         
-              write(100,60) i, 1,1, real(0), real(0)    !left bottom corner 
+              write(200,10) i, 1, 1
+              write(300,40)   0.0, 0.0
             elseif(x.eq.xmax)then                      
-              write(100,60) i, 1,1, real(0), real(0)    !right bottom corner
+              write(200,10) i, 1, 1
+              write(300,40)   0.0, 0.0
             else
-              write(100,60) i, 1,1, real(0), real(0)    !botomm edge
+              write(200,10) i, 1, 1
+              write(300,40)   0.0, 0.0
             end if
             b = b+2
           else if(x.eq.xmax)then                      
-              write(100,60) i, 1,1, real(0), real(0)    !right edge
+              write(200,10) i, 1, 1
+              write(300,40)   0.0, 0.0
             c = c+2
           else if (x.eq.xmin)then                     
-              write(100,60) i, 1,1, real(0), real(0)    !left edge
+              write(200,10) i, 1, 1
+              write(300,40)   0.0, 0.0
             d = d+2
            
-          else if(x.eq.xhalf)then
-            !print*,'coordinate', coord(i,1)
-            !print*,' ' 
-            !print*, 'x  = ', x
-            !
-            !print*, 'y_ = ', y
-            !print*, ' ' 
-            
-            if(y .gt. ymin)then
-              !print*, 'y = ', y
-              write(100,60) i, 1,1, real(0), real(0)     !half top edge
-              e = e+2
-            end if
-            
-          else if(y.eq.yhalf)then
-            !print*,'coordinate', coord(i,1)
-            !print*,' ' 
-            !print*, 'x  = ', x
-            !
-            !print*, 'y_ = ', y
-            !print*, ' ' 
-            
-            if(x .lt. xmax)then
-              !print*, 'y = ', y
-              write(100,60) i, 1,1, real(0), real(0)     !half top edge
-              e = e+2
-            end if
+            !else if(x.eq.xhalf)then
+            !  !print*,'coordinate', coord(i,1)
+            !  !print*,' ' 
+            !  !print*, 'x  = ', x
+            !  !
+            !  !print*, 'y_ = ', y
+            !  !print*, ' ' 
+            !  
+            !  if(y .gt. ymin)then
+            !    !print*, 'y = ', y
+            !    write(100,60) i, 1,1, real(0), real(0)     !half top edge
+            !    e = e+2
+            !  end if
+            !  
+            !else if(y.eq.yhalf)then
+            !  !print*,'coordinate', coord(i,1)
+            !  !print*,' ' 
+            !  !print*, 'x  = ', x
+            !  !
+            !  !print*, 'y_ = ', y
+            !  !print*, ' ' 
+            !  
+            !  if(x .lt. xmax)then
+            !    !print*, 'y = ', y
+            !    write(100,60) i, 1,1, real(0), real(0)     !half top edge
+            !    e = e+2
+            !  end if
             
           end if
           
@@ -160,90 +176,59 @@ module BoundVal
           
           if(y.eq.ymax) then
             if(x.eq.xmax)then
-              !ux =2.0!1.0 + y
-              !uy =1.0                !---->  Lineal malla 0-1
               ux = 0.0
-              uy = (y - y**2)        !---->  malla 0-1
-              !ux = -90.*(1.-2.*y)
-              !uy =19.*(y-y**2)       !---->  malla 0-10
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                                 !right top corner  
+              uy = (y - y**2)
+              write(200,10) i, 1, 1, 0                          
+              write(300,20)   1.0, 0.0, 0.0                             !Right top Corner
             elseif(x.eq.xmin)then                                                            
-              !ux = 2.0!1.0 + y                                                              
-              !uy = 2.!2.0             !---->  Lineal malla 0-1                              
               ux = 0.0                                                                       
-              uy = -(y-y**2)          !---->  malla 0-1                                      
-              !ux = 0.0                                                                      
-              !uy = -(y-y**2)          !---->  malla 0-10                                    
-              write(200,10) i, 1, 1, 1                                                       
-              write(300,20)   ux, uy, 0.0                                 !left topt corner
+              uy = -(y-y**2)
+              write(200,10) i, 1, 1, 0
+              write(300,20)   1.0, 0.0, 0.0                             !Left top Corner
             else
-              !ux = 2.0
-              !uy = 2.0 - x            !---->  Lineal malla 0-1
               ux = -(x - x**2)
-              uy = 0.0                !---->  malla 0-1
-              !ux =-19*(x-x**2)
-              !uy = 90*(1-2*x)         !---->  malla 0-10
-              write(200,10) i, 1, 0, 1
-              write(300,20)   ux, uy, 0.0                                 !top edge
+              uy = 0.0
+              write(200,10) i, 1, 1, 0                                  !Top border
+              write(300,20)   1.0, 0.0, 0.0
             end if
             
             !if(x.eq.xhalf)then
-            !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)        !half top edge
+            !  write(200,10) i, 1, 1, 1
+            !  write(300,20)   1.0, 0.0, 0.0                            !half top border
             !end if
             a = a+3
             
           else if(y.eq.ymin)then
             if(x.eq.xmin)then
-              !ux = 1.!1.0! + y
-              !uy = 2.!2.0              !---->  Lineal malla 0-1 
               ux = 0.0
-              uy = -(y-y**2)          !---->  malla 0-1
-              !ux = 0.0
-              !uy = -(y-y**2)           !---->  malla 0-10
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                                 !left bottom corner
-            elseif(x.eq.xmax)then
-              !ux = 1.!1.0! + y
-              !uy = 1.0             !---->  Lineal malla 0-1 
-              ux = 0.0
-              uy = (y - y**2)         !---->  malla 0-1
-              !ux =-90.*(1.-2.*y)
-              !uy = 19.*(y-y**2)        !---->  malla 0-10
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                                 !right bottom corner
-            else
-              !ux = 1.0
-              !uy = 2.0 - x            !---->  Lineal malla 0-1 
-              ux = (x - x**2)
-              uy = 0.0                !---->  malla 0-1
-              !ux = (x-x**2)
-              !uy = 0.0                 !---->  malla 0-10
-              write(200,10) i, 1,  0, 1
-              write(300,20)   ux, uy, 0.0                                 !bottom edge
+              uy = -(y-y**2)
+              write(200,10) i, 1, 1, 0
+              write(300,20)   0.0, 0.0, 0.0                             !Right bottom Corner
+            elseif(x.eq.xmax)then                                                             
+              ux = 0.0                                                                        
+              uy = (y - y**2)                                                                  
+              write(200,10) i, 1, 1, 0                                                         
+              write(300,20)   0.0, 0.0, 0.0                             !Left bottom Corner
+            else                                                                               
+              ux = (x - x**2)                                                                  
+              uy = 0.0                                                                         
+              write(200,10) i, 1,  1, 0                                 !Bottom border
+              write(300,20)   0.0, 0.0, 0.0                              
             end if
             b = b+3
             
           else if(x.eq.xmax)then
-              !ux = 1.0 + y            !---->  Lineal malla 0-1 
-              !uy = 1.0
-              ux = 0.0                !---->  malla 0-1
+              ux = 0.0
               uy = (y - y**2)
-              !ux =-90.*(1.-2.*y)       !---->  malla 0-10
-              !uy = 19.*(y-y**2)
-              write(200,10) i, 0,  1, 1
-              write(300,20)   ux, uy, 0.0                                 !right edge
+              write(200,10) i, 1, 1, 0                                  !Right border
+              write(300,20)   0.0, 0.0, 0.0
             c = c+3
             
           else if (x.eq.xmin)then
-              !ux = 1.0 + y            !---->  Lineal malla 0-1 
-              !uy = 2!2.0
-              ux = 0.0                !---->  malla 0-1
+              ux = 0.0
               uy = -(y-y**2)
-              !ux = 0.0                 !---->  malla 0-10
-              !uy = -(y-y**2)
-              write(200,10) i, 0,  1, 1
-              write(300,20)   ux, uy, 0.0                                 !left edge
+              write(200,10) i, 1, 1, 0                                  !Left border
+              write(300,20)   0.0, 0.0, 0.0
             d = d+3
            
           end if
@@ -257,13 +242,10 @@ module BoundVal
       
       close(100)
       
-      
       10 format(I6,1x,3(1x,I2))
       20 format(3(f12.5,2x))
-     ! 30 format(I6,2x,3(1x,I2),3(f12.5,2x))
-      
-      60 format(I6,2x,2I2,2x,2f12.5)
-      70 format(I6,2x,1I2,2x,f12.5)
+      30 format(f12.5)
+      40 format(2(f12.5,2x))
       
     end subroutine SetBoundVal 
    
