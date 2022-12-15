@@ -3,13 +3,12 @@ module biunit
  
   contains
     
-    
+    ! # # # # # # # # # # # # # # # # # # # #  
     
     subroutine GaussQuadrature(ngaus, weigp)
       implicit none
       
       double precision, allocatable, dimension(:,:),intent(out) :: ngaus, weigp
-      real :: a,b, ex1,et1,ez1,ex2,et2,ez2
       
       allocate(ngaus(totGp,2))
       allocate(weigp(totGp,1))
@@ -24,46 +23,50 @@ module biunit
             ngaus(1,2) = 0.0
             weigp(1,1) = 4.0
           else if(totGp.eq.4) then
-            ngaus(1,1) = -sqrt(1.0/3.0)
-            ngaus(2,1) = sqrt(1.0/3.0)
+            ngaus(1,1) =  sqrt(1.0/3.0)
+            ngaus(2,1) = -sqrt(1.0/3.0)
             ngaus(3,1) = -sqrt(1.0/3.0)
-            ngaus(4,1) = sqrt(1.0/3.0)
-            ngaus(1,2) = -sqrt(1.0/3.0)
-            ngaus(2,2) = -sqrt(1.0/3.0)
-            ngaus(3,2) = sqrt(1.0/3.0)
-            ngaus(4,2) = sqrt(1.0/3.0)
-            weigp(1,1)=1.0
-            weigp(2,1)=1.0
-            weigp(3,1)=1.0
-            weigp(4,1)=1.0
+            ngaus(4,1) =  sqrt(1.0/3.0)
+            
+            ngaus(1,2) =  sqrt(1.0/3.0)
+            ngaus(2,2) =  sqrt(1.0/3.0)
+            ngaus(3,2) = -sqrt(1.0/3.0)
+            ngaus(4,2) = -sqrt(1.0/3.0)
+           
+            weigp(1,1) = 1.0
+            weigp(2,1) = 1.0
+            weigp(3,1) = 1.0
+            weigp(4,1) = 1.0
           else if(totGp.eq.9) then
-            ngaus(1,1)=sqrt(3.0/5.0)
-            ngaus(2,1)= 0.0
-            ngaus(3,1)=-sqrt(3.0/5.0)
-            ngaus(4,1)=-sqrt(3.0/5.0)
-            ngaus(5,1)=-sqrt(3.0/5.0) 
-            ngaus(6,1)= 0.0
-            ngaus(7,1)=sqrt(3.0/5.0)
-            ngaus(8,1)=sqrt(3.0/5.0)
-            ngaus(9,1)= 0.0
-            ngaus(1,2)=sqrt(3.0/5.0)
-            ngaus(2,2)=sqrt(3.0/5.0)
-            ngaus(3,2)=sqrt(3.0/5.0)
-            ngaus(4,2)= 0.0
-            ngaus(5,2)=-sqrt(3.0/5.0)
-            ngaus(6,2)=-sqrt(3.0/5.0)
-            ngaus(7,2)=-sqrt(3.0/5.0)
-            ngaus(8,2)= 0.0
-            ngaus(9,2)= 0.0
-            weigp(1,1)= 25.0/81.0
-            weigp(2,1)= 40.0/81.0
-            weigp(3,1)= 25.0/81.0
-            weigp(4,1)= 40.0/81.0
-            weigp(5,1)= 25.0/81.0
-            weigp(6,1)= 40.0/81.0
-            weigp(7,1)= 25.0/81.0
-            weigp(8,1)= 40.0/81.0
-            weigp(9,1)= 64.0/81.0
+            ngaus(1,1) =  sqrt(3.0/5.0)
+            ngaus(2,1) =  0.0
+            ngaus(3,1) = -sqrt(3.0/5.0)
+            ngaus(4,1) = -sqrt(3.0/5.0)
+            ngaus(5,1) = -sqrt(3.0/5.0) 
+            ngaus(6,1) =  0.0
+            ngaus(7,1) =  sqrt(3.0/5.0)
+            ngaus(8,1) =  sqrt(3.0/5.0)
+            ngaus(9,1) =  0.0
+            
+            ngaus(1,2) =  sqrt(3.0/5.0)
+            ngaus(2,2) =  sqrt(3.0/5.0)
+            ngaus(3,2) =  sqrt(3.0/5.0)
+            ngaus(4,2) =  0.0
+            ngaus(5,2) = -sqrt(3.0/5.0)
+            ngaus(6,2) = -sqrt(3.0/5.0)
+            ngaus(7,2) = -sqrt(3.0/5.0)
+            ngaus(8,2) = 0.0
+            ngaus(9,2) = 0.0
+            
+            weigp(1,1) = 25.0/81.0
+            weigp(2,1) = 40.0/81.0
+            weigp(3,1) = 25.0/81.0
+            weigp(4,1) = 40.0/81.0
+            weigp(5,1) = 25.0/81.0
+            weigp(6,1) = 40.0/81.0
+            weigp(7,1) = 25.0/81.0
+            weigp(8,1) = 40.0/81.0
+            weigp(9,1) = 64.0/81.0
           else
             write(*,*) 'Invalid number of Gauss points for this element (Q1)'   
             stop
@@ -72,57 +75,43 @@ module biunit
           if(totGp.eq.1) then
             ngaus(1,1) = 1.0/3.0
             ngaus(1,2) = 1.0/3.0
-            weigp(1,1) = 0.5
+            weigp(1,1) = 1.0 
           else if(totGp.eq.3) then
-            ngaus(1,1) = 0.0
-            ngaus(2,1) = 0.5
-            ngaus(3,1) = 0.5
-            ngaus(1,2) = 0.5
-            ngaus(2,2) = 0.0
-            ngaus(3,2) = 0.5
-            weigp(1,1) =1.0/6.0
-            weigp(2,1) =1.0/6.0
-            weigp(3,1) =1.0/6.0
-          else if(totGp.eq.4) then
-            ngaus(1,1) =  1.0/3.0
-            ngaus(2,1) =  1.0/5.0
-            ngaus(3,1) =  1.0/5.0
-            ngaus(4,1) =  3.0/5.0
-            ngaus(1,2) =  1.0/3.0
-            ngaus(2,2) =  3.0/5.0
-            ngaus(3,2) =  1.0/5.0
-            ngaus(4,2) =  1.0/5.0
-            weigp(1,1) = -27.0/96.0
-            weigp(2,1) = 25.0/96.0
-            weigp(3,1) = 25.0/96.0
-            weigp(4,1) = 25.0/96.0
-          else if(totGp.eq.6) then
-            ex1 = 0.816847572980459 !0.81684 75729 80459 verificar si es un vector fila o un real de 18 digitos
-            et1 = 0.091576213509771
-            ez1 = 0.091576213509771
-            ex2 = 0.108103018168070
-            et2 = 0.445948490915965
-            ez2 = 0.445948490915965
-            ngaus(1,1) = ex1
-            ngaus(2,1) = et1
-            ngaus(3,1) = ez1
-            ngaus(4,1) = ex2
-            ngaus(5,1) = et2
-            ngaus(6,1) = ez2
-            ngaus(1,2) = et1
-            ngaus(2,2) = ez1
-            ngaus(3,2) = ex1
-            ngaus(4,2) = et2
-            ngaus(5,2) = ez2
-            ngaus(6,2) = ex2
-            a = 0.054975870996713638
-            b = 0.1116907969117165    
-            weigp(1,1) = a
-            weigp(2,1) = a
-            weigp(3,1) = a
-            weigp(4,1) = b
-            weigp(5,1) = b
-            weigp(6,1) = b
+            ngaus(1,1) = 1.0/6.0
+            ngaus(2,1) = 2.0/3.0
+            ngaus(3,1) = 1.0/6.0
+            
+            ngaus(1,2) = 1.0/6.0
+            ngaus(2,2) = 1.0/6.0
+            ngaus(3,2) = 2.0/3.0
+            
+            weigp(1,1) = 1.0/3.0
+            weigp(2,1) = 1.0/3.0
+            weigp(3,1) = 1.0/3.0
+          else if(totGp.eq.7) then
+            ngaus(1,1) = 0.1012865073235
+            ngaus(2,1) = 0.7974269853531
+            ngaus(3,1) = 0.1012865073235
+            ngaus(4,1) = 0.4701420641051
+            ngaus(5,1) = 0.4701420641051
+            ngaus(6,1) = 0.0597158717898
+            ngaus(7,1) = 0.3333333333333
+            
+            ngaus(1,2) = 0.1012865073235
+            ngaus(2,2) = 0.1012865073235
+            ngaus(3,2) = 0.7974269853531
+            ngaus(4,2) = 0.0597158717898
+            ngaus(5,2) = 0.4701420641051
+            ngaus(6,2) = 0.4701420641051
+            ngaus(7,2) = 0.3333333333333
+            
+            weigp(1,1) = 0.1259391805448 
+            weigp(2,1) = 0.1259391805448 
+            weigp(3,1) = 0.1259391805448 
+            weigp(4,1) = 0.1323941527885 
+            weigp(5,1) = 0.1323941527885 
+            weigp(6,1) = 0.1323941527885 
+            weigp(7,1) = 0.225
           else
             write(*,*) 'Invalid number of Gauss poooints for this element (P1)'   
             stop
@@ -151,121 +140,214 @@ module biunit
       
       double precision, dimension(:,:), intent(in) :: ngaus
       double precision, dimension(totGp) :: xi_vector, eta_vector
-      double precision                   :: s,t,st,a1,a2,a3,ss,tt,s1,t1,s9,t9
+      double precision                   :: xi, eta,l1,l2,l3
       integer                            :: j
       double precision, allocatable, dimension(:,:), intent(out) :: basfun, dN_dxi, dN_deta
       double precision, allocatable, dimension(:,:), intent(out) :: hes_ss, hes_st, hes_tt
       
-      allocate( N(Nne,totGp), dN_dxi(Nne,totGp), dN_deta(Nne,totGp) )
+      allocate( basfun(Nne,totGp), dN_dxi(Nne,totGp), dN_deta(Nne,totGp) )
       allocate( hes_ss(Nne,totGp), hes_st(Nne,totGp), hes_tt(Nne,totGp) )
+      
+      
+      !         s = xi    t = eta 
+      
       
       xi_vector  = ngaus(:,1)     ! xi-coordinate of point j
       eta_vector = ngaus(:,2)
       
-      hes_ss = 0.0
+      hes_ss = 0.0 
       hes_st = 0.0
       hes_tt = 0.0
+      basfun = 0.0 
+      dN_dxi = 0.0 
+      dN_deta = 0.0
       
       select case(ElemType)
         case('Quadrilateral')
           if(nne.eq.4) then
             
-            do j=1,totGp                      ! columns for point 1,2 ...
-              s=xi_vector(j)                  ! xi-coordinate of point j 
-              t=eta_vector(j)                 ! eta-coordinate of point j 
+            do j=1,totGp 
+              xi = xi_vector(j)    ! xi-coordinate of point j 
+              eta= eta_vector(j)   ! eta-coordinate of point j 
               
-              basfun(1,j)=(1.-t-s+s*t)*0.25
-              basfun(2,j)=(1.-t+s-s*t)*0.25
-              basfun(3,j)=(1.+t+s+s*t)*0.25
-              basfun(4,j)=(1.+t-s-s*t)*0.25
+              basfun(1,j) = 0.25*(1+xi)*(1+eta)
+              basfun(2,j) = 0.25*(1-xi)*(1+eta)
+              basfun(3,j) = 0.25*(1-xi)*(1-eta)
+              basfun(4,j) = 0.25*(1+xi)*(1-eta)
               
-              dN_dxi(1,j)=(-1.+t)*0.25
-              dN_dxi(2,j)=(+1.-t)*0.25
-              dN_dxi(3,j)=(+1.+t)*0.25
-              dN_dxi(4,j)=(-1.-t)*0.25
+              dN_dxi(1,j) = 0.25*(1+eta)
+              dN_dxi(2,j) =-0.25*(1+eta)
+              dN_dxi(3,j) =-0.25*(1-eta)
+              dN_dxi(4,j) = 0.25*(1-eta)
               
-              dN_deta(1,j)=(-1.+s)*0.25
-              dN_deta(2,j)=(-1.-s)*0.25
-              dN_deta(3,j)=(+1.+s)*0.25
-              dN_deta(4,j)=(+1.-s)*0.25
+              dN_deta(1,j) = 0.25*(1+xi)
+              dN_deta(2,j) = 0.25*(1-xi)
+              dN_deta(3,j) =-0.25*(1-xi)
+              dN_deta(4,j) =-0.25*(1+xi)
               
-              hes_st(1,j)= 0.25
-              hes_st(2,j)=-0.25
-              hes_st(3,j)= 0.25
-              hes_st(4,j)=-0.25
+              hes_st(1,j) = 0.25
+              hes_st(2,j) =-0.25
+              hes_st(3,j) = 0.25
+              hes_st(4,j) =-0.25
             end do
-            
+          !else if(nne.eq.8) then
+          !  do j = 1, totGP
+          !   
+          !    xi = xi_vector(j)    ! xi-coordinate of point j 
+          !    eta= eta_vector(j)   ! eta-coordinate of point j 
+          !    
+          !    N(1,j) = 0.25*s9*st*t9
+          !    N(2,j) = 0.25*s1*st*t9
+          !    N(3,j) = 0.25*s1*st*t1  
+          !    N(4,j) = 0.25*s9*st*t1
+          !    N(5,j) = 0.5*(1.0-ss)*t*t9
+          !    N(6,j) = 0.5*s*s1*(1.0-tt)
+          !    N(7,j) = 0.5*(1.0-ss)*t*t1
+          !    N(8,j) = 0.5*s*s9*(1.0-tt)
+          !    
+          !    dN_dxi(1,j) = 
+          !    dN_dxi(2,j) = 
+          !    dN_dxi(3,j) = 
+          !    dN_dxi(4,j) = 
+          !    dN_dxi(5,j) = 
+          !    dN_dxi(6,j) = 
+          !    dN_dxi(7,j) = 
+          !    dN_dxi(8,j) = 
+          !    
+          !    dN_deta(1,j) = 
+          !    dN_deta(2,j) = 
+          !    dN_deta(3,j) = 
+          !    dN_deta(4,j) = 
+          !    dN_deta(5,j) = 
+          !    dN_deta(6,j) = 
+          !    dN_deta(7,j) = 
+          !    dN_deta(8,j) = 
+          !    
+          !    hes_ss(1,j) = 
+          !    hes_ss(2,j) = 
+          !    hes_ss(3,j) = 
+          !    hes_ss(4,j) = 
+          !    hes_ss(5,j) = 
+          !    hes_ss(6,j) = 
+          !    hes_ss(7,j) = 
+          !    hes_ss(8,j) = 
+          !    
+          !    hes_st(1,j) =
+          !    hes_st(2,j) =
+          !    hes_st(3,j) =
+          !    hes_st(4,j) =
+          !    hes_st(5,j) =
+          !    hes_st(6,j) =
+          !    hes_st(7,j) =
+          !    hes_st(8,j) =
+          !    
+          !    hes_tt(1,j) =
+          !    hes_tt(2,j) =
+          !    hes_tt(3,j) =
+          !    hes_tt(4,j) =
+          !    hes_tt(5,j) =
+          !    hes_tt(6,j) =
+          !    hes_tt(7,j) =
+          !    hes_tt(8,j) =
+          !  end do
           else if(nne.eq.9) then
             do j = 1, totGP
-              s=xi_vector(j)                     ! xi-coordinate of point j 
-              t=eta_vector(j)                    ! eta-coordinate of point j 
+              xi = xi_vector(j)    ! xi-coordinate of point j 
+              eta= eta_vector(j)   ! eta-coordinate of point j 
               
-              ss=s*s
-              st=s*t
-              tt=t*t
-              s1=s+1.0
-              t1=t+1.0
-              s9=s-1.0
-              t9=t-1.0
-              basfun(1,j)=0.25*s9*st*t9
-              basfun(2,j)=0.25*s1*st*t9
-              basfun(3,j)=0.25*s1*st*t1  
-              basfun(4,j)=0.25*s9*st*t1
-              basfun(5,j)=0.5*(1.0-ss)*t*t9
-              basfun(6,j)=0.5*s*s1*(1.0-tt)
-              basfun(7,j)=0.5*(1.0-ss)*t*t1
-              basfun(8,j)=0.5*s*s9*(1.0-tt)
-              basfun(9,j)=(1.0-ss)*(1.0-tt)
+              basfun(1,j) = 0.25*xi*(1.+xi)*eta*(1.+eta)
+              basfun(2,j) =-0.25*xi*(1.-xi)*eta*(1.+eta)
+              basfun(3,j) = 0.25*xi*(1.-xi)*eta*(1.-eta)
+              basfun(4,j) =-0.25*xi*(1.+xi)*eta*(1.-eta)
+              basfun(5,j) = 0.50*(1.0-xi**2)*eta*(1.0+eta)
+              basfun(6,j) =-0.50*xi*(1.-xi)*(1.0-eta**2)
+              basfun(7,j) =-0.50*(1.-xi**2)*eta*(1.-eta)
+              basfun(8,j) = 0.50*xi*(1.+xi)*(1.0-eta**2)
+              basfun(9,j) = (1.0-xi**2)*(1.0-eta**2) 
               
-              dN_dxi(1,j)=0.25*t*t9*(-1.0+2)
-              dN_dxi(2,j)=0.25*(1.0+2.0*s)*t*t9
-              dN_dxi(3,j)=0.25*(1.0+2.0*s)*t*t1
-              dN_dxi(4,j)=0.25*(-1.0+2.0*s)*t*t1
-              dN_dxi(5,j)=-st*t9
-              dN_dxi(6,j)=0.5*(1.0+2.0*s)*(1.0-tt)
-              dN_dxi(7,j)=-st*t1
-              dN_dxi(8,j)=0.5*(-1.0+2.0*s)*(1.0-tt)
-              dN_dxi(9,j)=-2.0*s*(1.0-tt)
+              !basfun(1,j) = 0.25*(xi**2-xi)*(eta**2-eta);
+              !basfun(2,j) = 0.25*(xi**2+xi)*(eta**2-eta);
+              !basfun(3,j) = 0.25*(xi**2+xi)*(eta**2+eta);
+              !basfun(4,j) = 0.25*(xi**2-xi)*(eta**2+eta);
+              !basfun(5,j) = 0.5*(1-xi**2)*(eta**2-eta);
+              !basfun(6,j) = 0.5*(xi**2+xi)*(1-eta**2);
+              !basfun(7,j) = 0.5*(1-xi**2)*(eta**2+eta);
+              !basfun(8,j) = 0.5*(xi**2-xi)*(1-eta**2);
+              !basfun(9,j) = (1-xi**2)*(1-eta**2);
               
-              dN_deta(1,j)=0.25*(-1.0+2.0*t)*s*s9
-              dN_deta(2,j)=0.25*s*s1*(-1.0+2.0*t)
-              dN_deta(3,j)=0.25*s*s1*(1.0+2.0*t)
-              dN_deta(4,j)=0.25*s*s9*(1.0+2.0*t)
-              dN_deta(5,j)=0.5*(1.0-ss)*(-1.0+2.0*t)
-              dN_deta(6,j)=-st*s1
-              dN_deta(7,j)=0.5*(1.0-ss)*(1.0+2.0*t)
-              dN_deta(8,j)=-st*s9
-              dN_deta(9,j)=-2.0*t*(1.0-ss)
+              dN_dxi(1,j) = 0.5*(0.5+xi)*eta*(1.0+eta)
+              dN_dxi(2,j) = 0.5*(xi-0.5)*eta*(1.0+eta)
+              dN_dxi(3,j) = eta*(xi*(0.5*eta-0.5)-0.25*eta+0.25)
+              dN_dxi(4,j) = eta*(xi*(0.5*eta-0.5)+0.25*eta-0.25)
+              dN_dxi(5,j) =-xi*eta*(1.+eta) 
+              dN_dxi(6,j) = xi*(1.0-eta**2)+0.5*(eta**2)-0.5
+              dN_dxi(7,j) =-xi*(eta-1.0)*eta 
+              dN_dxi(8,j) = xi*(1.0-eta**2)-0.5*(eta**2)+0.5
+              dN_dxi(9,j) = 2*xi*(-1.0+eta**2)
+              
+              !! Derivatives of S w.r.t xi
+              !dN_dxi(1,j) = 0.25*(2*xi-1.0)*(eta**2-eta);
+              !dN_dxi(2,j) = 0.25*(2*xi+1.0)*(eta**2-eta);
+              !dN_dxi(3,j) = 0.25*(2*xi+1.0)*(eta**2+eta);
+              !dN_dxi(4,j) = 0.25*(2*xi-1)*(eta**2+eta);
+              !dN_dxi(5,j) = -(xi)*(eta**2-eta);
+              !dN_dxi(6,j) = 0.5*(2*xi+1)*(1-eta**2);
+              !dN_dxi(7,j) = -(xi)*(eta**2+eta);
+              !dN_dxi(8,j) = 0.5*(2*xi-1)*(1-eta**2);
+              !dN_dxi(9,j) = (-2*xi)*(1-eta**2);
+              
+              
+              dN_deta(1,j) = 0.25*xi*(1.0+xi)*(2*eta+1) 
+              dN_deta(2,j) = xi*(xi*(0.5*eta+0.25)-0.5*eta-0.25)
+              dN_deta(3,j) = xi*(xi*(0.5*eta-0.25)-0.5*eta+0.25)
+              dN_deta(4,j) = 0.5*xi*(xi+1.0)*(eta-0.5)
+              dN_deta(5,j) = xi*xi*(-eta-0.5)+eta+0.5
+              dN_deta(6,j) =-(xi-1.0)*xi*eta 
+              dN_deta(7,j) = xi**2*(0.5-eta)+eta-0.5
+              dN_deta(8,j) =-xi*(xi+1.0)*eta 
+              dN_deta(9,j) = 2.0*(-1.0+xi**2)*eta
+              
+              !! Derivatives of S w.r.t eta
+              !dN_deta(1,j) = 0.25*(xi**2-xi)*(2.*eta-1);
+              !dN_deta(2,j) = 0.25*(xi**2+xi)*(2.*eta-1);
+              !dN_deta(3,j) = 0.25*(xi**2+xi)*(2.*eta+1);
+              !dN_deta(4,j) = 0.25*(xi**2-xi)*(2.*eta+1);
+              !dN_deta(5,j) = 0.5*(1-xi**2)*(2*eta-1);
+              !dN_deta(6,j) = 0.5*(xi**2+xi)*(-2.*eta);
+              !dN_deta(7,j) = 0.5*(1-xi**2)*(2.*eta+1);
+              !dN_deta(8,j) = 0.5*(xi**2-xi)*(-2.*eta);
+              !dN_deta(9,j) = (1-xi**2)*(-2.*eta);
+              
 
-              hes_ss(1,j)= 0.5*t*t9
-              hes_ss(2,j)= 0.5*t*t9
-              hes_ss(3,j)= 0.5*t*t1
-              hes_ss(4,j)= 0.5*t*t1
-              hes_ss(5,j)=-t*t9
-              hes_ss(6,j)= 1.0-tt
-              hes_ss(7,j)=-t*t1
-              hes_ss(8,j)= 1.0-tt
-              hes_ss(9,j)=-2.0*(1.0-tt)
+              hes_ss(1,j) = 0.5*eta*(1.0+eta) 
+              hes_ss(2,j) = 0.5*eta*(eta+1.0) 
+              hes_ss(3,j) = 0.5*eta*(eta-1.0) 
+              hes_ss(4,j) = 0.5*eta*(eta-1.0) 
+              hes_ss(5,j) =-eta*(1.0+eta) 
+              hes_ss(6,j) = (1.0-eta**2) 
+              hes_ss(7,j) =-eta*(eta-1.0)
+              hes_ss(8,j) = (1.0-eta**2)
+              hes_ss(9,j) = 2.0*(-1.0+eta**2)
               
-              hes_st(1,j)= 0.25*(-1.0+2.0*t)*(s9+s)
-              hes_st(2,j)= 0.25*(-1.0+2.0*t)*(s1+s)
-              hes_st(3,j)= 0.25*( 1.0+2.0*t)*(s1+s)
-              hes_st(4,j)= 0.25*( 1.0+2.0*t)*(s9+s)
-              hes_st(5,j)=-s*(-1.0+2.0*t)
-              hes_st(6,j)=-t*s1-st
-              hes_st(7,j)=-s*(1.0+2.0*t)
-              hes_st(8,j)=-t*s9-st
-              hes_st(9,j)= 2.0*s*2.0*t
+              hes_st(1,j) = xi*(eta+0.5)+0.5*eta+0.25 
+              hes_st(2,j) = xi*(eta+0.5)-0.5*eta-0.25 
+              hes_st(3,j) = xi*(eta-0.5)-0.5*eta+0.25  
+              hes_st(4,j) = xi*(eta-0.5)+0.5*eta-0.25  
+              hes_st(5,j) =-xi*(2.0*eta+1.0)
+              hes_st(6,j) = eta*(1.0-2.0*xi)  
+              hes_st(7,j) = xi*(1.0-2.0*eta) 
+              hes_st(8,j) =-eta*(2.0*xi+1.0)
+              hes_st(9,j) = 4.0*xi*eta
               
-              hes_tt(1,j)= 0.5*s*s9
-              hes_tt(2,j)= 0.5*s*s1
-              hes_tt(3,j)= 0.5*s*s1
-              hes_tt(4,j)= 0.5*s*s9
-              hes_tt(5,j)= 1.0-ss
-              hes_tt(6,j)=-s*s1
-              hes_tt(7,j)= 1.0-ss
-              hes_tt(8,j)=-s*s9
-              hes_tt(9,j)=-2.0*(1.0-ss)
+              hes_tt(1,j) = 0.5*xi*(1.0+xi) 
+              hes_tt(2,j) = 0.5*xi*(xi-1.0) 
+              hes_tt(3,j) = 0.5*xi*(xi-1.0) 
+              hes_tt(4,j) = 0.5*xi*(1.0+xi) 
+              hes_tt(5,j) = 1.0-xi**2 
+              hes_tt(6,j) =-xi*(xi-1.0)
+              hes_tt(7,j) = 1.0-xi**2
+              hes_tt(8,j) =-xi*(1.0+xi)
+              hes_tt(9,j) = 2.0*(-1.0+xi**2) 
             end do
           else
           write(*,*) 'Invalid number of nodes in element. Q must be 4 or 9'
@@ -274,63 +356,68 @@ module biunit
         case('Triangle')
           if(nne.eq.3) then
             do j = 1, totGP
-              s=xi_vector(j)                      ! xi-coordinate of point j 
-              t=eta_vector(j)                     ! eta-coordinate of point j 
+             
+              xi = xi_vector(j)    ! xi-coordinate of point j 
+              eta= eta_vector(j)   ! eta-coordinate of point j 
               
-              basfun(1,j)=1.0-s-t
-              basfun(2,j)=s
-              basfun(3,j)=t
+              l1 = 1.0-xi-eta
+              l2 = xi
+              l3 = eta
               
-              dN_dxi(1,j)=-1.0
-              dN_dxi(2,j)= 1.0
-              dN_dxi(3,j)= 0.0 
+              basfun(1,j) = l1
+              basfun(2,j) = l2
+              basfun(3,j) = l3
               
-              dN_deta(1,j)=-1.0
-              dN_deta(2,j)= 0.0
-              dN_deta(3,j)= 1.0
+              dN_dxi(1,j) =-1.0
+              dN_dxi(2,j) = 1.0
+              dN_dxi(3,j) = 0.0
+              
+              dN_deta(1,j) =-1.0
+              dN_deta(2,j) = 0.0
+              dN_deta(3,j) = 1.0
             end do
           else if(nne.eq.6) then
             do j = 1, totGP
+              xi = xi_vector(j)    ! xi-coordinate of point j 
+              eta= eta_vector(j)   ! eta-coordinate of point j 
               
-              s=xi_vector(j)                      ! xi-coordinate of point j 
-              t=eta_vector(j)                     ! eta-coordinate of point j 
+              l1 = 1.0-xi-eta
+              l2 = xi
+              l3 = eta
               
-              a1=1.0-s-t
-              a2=s
-              a3=t
-              basfun(1,j)=(2.0*a1-1.0)*a1
-              basfun(2,j)=(2.0*a2-1.0)*a2
-              basfun(3,j)=(2.0*a3-1.0)*a3
-              basfun(4,j)= 4.0*a1*a2
-              basfun(5,j)= 4.0*a2*a3
-              basfun(6,j)= 4.0*a1*a3
+              basfun(1,j) = 2.*l1*(l1-0.5)
+              basfun(2,j) = 2.*l2*(l2-0.5)
+              basfun(3,j) = 2.*l3*(l3-0.5)
+              basfun(4,j) = 4.*l1*l2
+              basfun(5,j) = 4.*l2*l3
+              basfun(6,j) = 4.*l3*l1 
               
-              dN_dxi(1,j)=1.0-4.0*a1
-              dN_dxi(2,j)=4.0*a2-1.0
-              dN_dxi(3,j)=0.0
-              dN_dxi(4,j)=4.0*(a1-a2)
-              dN_dxi(5,j)=4.0*a3
-              dN_dxi(6,j)=-4.0*a3
+              dN_dxi(1,j) = 4.0*(xi+eta-0.75)
+              dN_dxi(2,j) = 4.0*(xi-0.25)
+              dN_dxi(3,j) = 0.0000000000000
+              dN_dxi(4,j) =-4.0*(2.*xi+eta-1.0)
+              dN_dxi(5,j) = 4.0*eta
+              dN_dxi(6,j) =-4.0*eta
               
-              dN_deta(1,j)=1.0-4.0*a1
-              dN_deta(2,j)=0.0
-              dN_deta(3,j)=4.0*a3-1.0
-              dN_deta(4,j)=-4.0*a2
-              dN_deta(5,j)=4.0*a2
-              dN_deta(6,j)=4.0*(a1-a3)
+              dN_deta(1,j) = 4.0*(xi+eta-0.75) 
+              dN_deta(2,j) = 0.0000000000000
+              dN_deta(3,j) = 4*(eta-0.25)
+              dN_deta(4,j) =-4.0*xi 
+              dN_deta(5,j) = 4.0*xi
+              dN_deta(6,j) =-4.0*(xi+2.0*eta-1.0)
               
-              hes_ss(1,1)= 4.0
-              hes_ss(1,2)= 4.0
-              hes_ss(1,4)=-8.0
+              hes_ss(1,j) = 4.0 
+              hes_ss(2,j) = 4.0
+              hes_ss(4,j) =-8.0
               
-              hes_st(2,1)= 4.0
-              hes_st(2,4)=-4.0
-              hes_st(2,5)= 4.0
-              hes_st(2,6)=-4.0
+              hes_st(1,j) = 4.0
+              hes_st(4,j) =-4.0
+              hes_st(5,j) = 4.0
+              hes_st(6,j) =-4.0
               
-              hes_tt(3,1)= 4.0
-              hes_tt(3,3)= 4.0
-              hes_tt(3,6)=-8.0
+              hes_tt(1,j) = 4.0 
+              hes_tt(3,j) = 4.0
+              hes_tt(6,j) =-8.0
               
             end do
           else
