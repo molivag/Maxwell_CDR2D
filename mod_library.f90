@@ -99,8 +99,8 @@ module library
       integer, intent(in)            :: NumRows, NumCols
       character(len=*), parameter    :: fileplace = "./"
       character (len=9)              :: FileName1, FileName2
-      integer, dimension (NumRows,NumCols-3), intent (out) :: condition
-      double precision, dimension (NumRows,3),intent (out) :: condition_value
+      integer, dimension (NumRows,NumCols-ndofn), intent (out) :: condition
+      double precision, dimension (NumRows,ndofn),intent (out) :: condition_value
       
       FileName1 ='ifpre.dat' 
       FileName2 ='BoVal.dat'
@@ -108,7 +108,7 @@ module library
       open (unit=10, file=fileplace//FileName1, status='old', action='read' , iostat = status)
       open (unit=20, file=fileplace//FileName2, status='old', action='read' , iostat = status)
       
-      read(10,*) ((condition(i,j), j=1,NumCols-3), i=1,NumRows)
+      read(10,*) ((condition(i,j), j=1,NumCols-ndofn), i=1,NumRows)
       read(20,*) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
       if (status.ne.0) then
         print *, "Status while reading BVs file is:", status
@@ -146,23 +146,28 @@ module library
       
     end subroutine SetElementNodes
     
-    function J2D( element_nodes, dN_dxi, dN_deta, Gp)
+    subroutine Jacobian( element_nodes, dN_dxi, dN_deta, Gp, xjacm, djacb, xjaci)
       implicit none
       
       integer, intent(in)      :: Gp ! se usara en el lazo principal con el punto de Gauss
       double precision, dimension(nne,DimPr), intent(in) :: element_nodes
       double precision, dimension(nne,totGp), intent(in) :: dN_dxi, dN_deta
-      double precision, dimension(DimPr,nne)  :: Basis2D!, derst
-      !double precision, dimension(DimPr,nne)  :: elcod
-      double precision, dimension(1,nne)      :: Nxi, Neta
-      double precision, dimension(DimPr,DimPr):: J2D!, xjacm
-      !integer                                 :: ideime, jdime 
+      double precision, dimension(DimPr,nne)  :: derst!, Basis2D, derst
+      double precision, dimension(DimPr,nne)  :: elcod
+      double precision, dimension(DimPr,DimPr), intent(out) :: xjacm, xjaci
+      double precision                        , intent(out) :: djacb
+      double precision, parameter                           :: EPS = 1.0E-10
+      integer                                               :: idime, jdime, inode
+      
+      !double precision, dimension(1,nne)      :: Nxi, Neta
+      !double precision, dimension(DimPr,DimPr):: J2D
+      
       !con estas instrucciones extraigo la columna de Nx como renglon y lo guardo en Nxi, Gp se
       !ira moviendo conforme la funcion J2D sea llamada en el lazo principal para 
       !cada elemento lo mismo para Neta con dN_deta
       
-      Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
-      Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
+      !Nxi  = spread(dN_dxi(:,Gp),dim = 1, ncopies= 1)
+      !Neta = spread(dN_deta(:,Gp),dim = 1, ncopies= 1)
       
       !Las siguientes tres lineas realizan de forma implicita el calculo de las derivadas
       !espaciales es decir dN/dx and dN/dy (eq. 5.114 - 5.117). Las derivadas espaciales
@@ -170,90 +175,106 @@ module library
       
       !            d/dy = (d/deta)J^-1      (ver eq. 5.77 y 5.109)
       
-      Basis2D(1,:) = Nxi(1,:)
-      Basis2D(2,:) = Neta(1,:)
-      
-      J2D = matmul(Basis2D,element_nodes)
-      
-     
-      !do inode = 1,nne
-      !  derst(1,inode) = dN_dxi(i,Gp) 
-      !  derst(2,inode) = dN_deta(i,Gp) 
-      !end do
+      !Basis2D(1,:) = Nxi(1,:)
+      !Basis2D(2,:) = Neta(1,:)
       !
-      !do jdime = 1,2
-      !  do inode = 1,nne
-      !   elcod(jdime,inode) = element_nodes(inode, jdime)
-      !  end do
-      !end do
+      !J2D = matmul(Basis2D,element_nodes)
+      
+      
+      do jdime = 1,2
+        do inode = 1,nne
+          elcod(jdime,inode) = element_nodes(inode, jdime)
+        end do
+      end do
      
-      !
+      do inode = 1,nne
+        derst(1,inode) = dN_dxi(inode,Gp) 
+        derst(2,inode) = dN_deta(inode,Gp) 
+      end do
+      !print*," " 
+      !print"(A8, 9(1x,f9.5))","dN_dxi: ", (derst(1,inode), inode=1,nne)
+      !print"(A9, 9(1x,f9.5))","dN_deta: ", (derst(2,inode), inode=1,nne)
+     
+      ! Jacobian Matrix
+      do idime=1,2
+        do jdime=1,2
+          xjacm(idime,jdime)=0.0
+          do inode=1,nne
+            !xjacm(idime,jdime) = xjacm(idime,jdime) + derst(idime,inode)*element_nodes(inode,jdime)
+            xjacm(idime,jdime) = xjacm(idime,jdime) + derst(idime,inode)*elcod(jdime,inode)
+          end do
+        end do
+      end do
+      
       !do idime=1,2
-      !  do jdime=1,2
-      !    xjacm(idime,jdime)=0.0
-      !    do inode=1,nnode
-      !      xjacm(idime,jdime) = xjacm(idime,jdime) + derst(idime,inode)*elcod(jdime,inode)
-      !    end do
-      !  end do
+      !  write(*,"(f10.5, 1x, f10.5)" )( xjacm(idime,jdime) ,jdime=1,2)
       !end do
       
-      return
-      
-    end function J2D
-    
-    function m22det(A)
-      
-      implicit none
-      
-      double precision :: m22det
-      double precision, dimension(2,2), intent(in)  :: A
-      
-      m22det =   A(1,1)*A(2,2) - A(1,2)*A(2,1)
-      
-      !djacb  = xjacm(1,1)*xjacm(2,2) - xjacm(1,2)*xjacm(2,1)
-      
-      if(m22det.lt.1.e-8)then
+      ! Determinant of Jacobian Matrix
+      djacb  = xjacm(1,1)*xjacm(2,2) - xjacm(1,2)*xjacm(2,1)
+      !print"(A8,f15.5)", 'det Jaco: ',djacb 
+      if(djacb.lt.1.e-8)then
         write(*,*)'Element with non-positive Jacobian'
       end if
-     
-      return
       
-    end function m22det
-    
-    function inv2x2(A)
-      
-      implicit none
-      
-      double precision, parameter :: EPS = 1.0E-10
-      double precision, dimension(DimPr, DimPr), intent(in) :: A
-      double precision, dimension(DimPr, DimPr)             :: inv2x2
-      double precision, dimension(DimPr,DimPr)              :: cofactor
-      double precision            :: det
-      
-      
-      det = A(1,1)*A(2,2) - A(2,1)*A(1,2)
-      
-      if (abs(det) .le. EPS) then
-        inv2x2 = 0.0D0
+      ! Inverse of Jacobian
+      if (abs(djacb) .le. EPS) then
+        xjaci = 0.0! 0.0D0
         return
       end if
-      
-      cofactor(1,1) = +A(2,2)
-      cofactor(1,2) = -A(2,1)
-      cofactor(2,1) = -A(1,2)
-      cofactor(2,2) = +A(1,1)
-      
-      inv2x2 = transpose(cofactor) / det
-      
-      
-      !xjaci(1,1)= xjacm(2,2)/djacb
-      !xjaci(2,2)= xjacm(1,1)/djacb
-      !xjaci(1,2)=-xjacm(1,2)/djacb
-      !xjaci(2,1)=-xjacm(2,1)/djacb
+      xjaci(1,1)= xjacm(2,2)/djacb
+      xjaci(2,2)= xjacm(1,1)/djacb
+      xjaci(1,2)=-xjacm(1,2)/djacb
+      xjaci(2,1)=-xjacm(2,1)/djacb
       
       return
       
-    end function inv2x2
+    end subroutine Jacobian
+    
+    !function djacb(xjacm)
+    !  
+    !  implicit none
+    !  
+    !  double precision :: djacb
+    !  double precision, dimension(2,2), intent(in)  :: xjacm
+    !  integer :: idime, jdime 
+    !  !m22det =   A(1,1)*A(2,2) - A(1,2)*A(2,1)
+    !  do idime=1,2
+    !    write(*,"(f10.5, 1x, f10.5)" )( xjacm(idime,jdime) ,jdime=1,2)
+    !  end do
+    !  
+    !  djacb  = xjacm(1,1)*xjacm(2,2) - xjacm(1,2)*xjacm(2,1)
+    !  print"(A8,f15.5)", 'det Jaco: ',djacb 
+    !  if(djacb.lt.1.e-8)then
+    !    write(*,*)'Element with non-positive Jacobian'
+    !  end if
+    ! 
+    !  return
+    !  
+    !end function djacb
+    !
+    !function xjaci(detJ,xjacm)
+    !  
+    !  implicit none
+    !  
+    !  double precision, parameter :: EPS = 1.0E-10
+    !  double precision, dimension(DimPr, DimPr), intent(in) :: xjacm
+    !  double precision, intent(in)                          :: detJ
+    !  
+    !  
+    !  if (abs(detJ) .le. EPS) then
+    !    xjaci = 0.0! 0.0D0
+    !    return
+    !  end if
+    !  
+    !  xjaci(1,1)= xjacm(2,2)/detJ
+    !  xjaci(2,2)= xjacm(1,1)/detJ
+    !  xjaci(1,2)=-xjacm(1,2)/detJ
+    !  xjaci(2,1)=-xjacm(2,1)/detJ
+    !  
+    !  return
+    !  
+    !end function xjaci
     
     subroutine DerivativesXY(Gp,InvJaco,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy, HesXY)
       
@@ -862,7 +883,7 @@ module library
       !common/proper/difma,conma,reama,force
       
       ievab = 0
-      print*, 'in'
+      !print*, 'in'
       pertu =  0.0
       
       do inode=1,nne
@@ -1045,9 +1066,10 @@ module library
         time_cont = ue_pre * 1.0/delta_t
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
-          Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
-          detJ = m22det(Jaco)
-          Jinv = inv2x2(Jaco)
+          call Jacobian( element_nodes, dN_dxi, dN_deta, igaus, Jaco, detJ, Jinv)
+          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
+          !detJ = djacb(Jaco)
+          !Jinv = xjaci(detJ,Jaco)
           dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
@@ -1097,7 +1119,7 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ, aaa
       
-      integer                                   :: igaus, ibase, ielem
+      integer                                   :: igaus, ibase, ielem, i
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
@@ -1116,11 +1138,17 @@ module library
         !do-loop: compute element stiffness matrix Ke
         !print*, ' '
         !print*, 'element:', ielem
-        !print"(A7,4(i3,1x))", 'nodes: ', nodeIDmap
+        !print"(A7,9(i3,1x))", 'nodes: ', nodeIDmap
+        !print"(A7)", 'corNodes: '
+        !do i = 1,nne
+        !  print"(2(1x,f7.4))", element_nodes(i,1), element_nodes(i,2)
+        !end do
         do igaus = 1, TotGp
-          Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
-          detJ = m22det(Jaco)
-          Jinv = inv2x2(Jaco)
+        !print*, 'gauss point:', igaus
+          call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
+          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
+          !detJ = djacb(Jaco)
+          !Jinv = xjaci(detJ,Jaco)
           dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
@@ -1143,6 +1171,11 @@ module library
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
+        
+        
+        
+        !call AssembleK(A_K, ke, node_id_map, 3) ! assemble global K
+        
       end do
       
       aaa = maxval(coord(:,2))*2**(-i_exp) 
@@ -1150,6 +1183,92 @@ module library
       
     end subroutine GlobalSystem
     
+    
+    
+    
+    
+    !subroutine AssembleK(K, ke, node_id_map, ndDOF)
+
+    !  implicit none
+    !  real(8), dimension(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes),intent(in out)  :: K 
+    !  !  Global Stiffnes matrix debe 
+    !  !  llevar inout por que entra como variable (IN) 
+    !  !  pero en esta funcion se modifica (out)
+    !  real(8), dimension(2*nUne, 2*nUne), intent(in)   :: ke
+    !  integer, dimension(nUne,1), intent(in)           :: node_id_map
+    !  integer, intent(in)                              :: ndDOF 
+    !  integer :: i, j, row_node, row, col_node, col !nodal Degrees of Freedom
+    !  
+    !  do i = 1, nUne
+    !    row_node = node_id_map(i,1)
+    !    row = ndDOF*row_node - (ndDOF-1)
+    !    
+    !    do j = 1, nUne
+    !      col_node = node_id_map(j,1)
+    !      col = ndDOF*col_node - (ndDOF-1)
+    !      K(row:row+ndDOF-1, col:col+ndDOF-1) =  K(row:row+ndDOF-1, col:col+ndDOF-1) + &
+    !      ke((i-1)*ndDOF+1:i*ndDOF,(j-1)*ndDOF+1:j*ndDOF)
+    !    enddo
+    !    
+    !  enddo
+    !  
+    !  return
+    !  
+    !end subroutine AssembleK
+   
+    !subroutine ApplyBoundCond( NoBV, Fbcsvp, A_K, Sv )
+    !  ! - - - - - - - - - - * * * * * * * * * * - - - - - - - 
+    !  ! Set velocity (u) and preasure (p) boundary condition by penalty method
+    !  ! - - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
+    !  implicit none
+    !                      !Dof
+    !  integer , dimension(NoBV,Dof), intent(in) :: Fbcsvp
+    !  double precision, dimension(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes),intent(in out) :: A_K  !Global Stiffnes matrix
+    !  double precision, dimension(2*n_nodes+n_pnodes, 1), intent(in out) :: Sv
+    !  double precision :: param, coeff
+    !  integer          :: preasure_row, NoBV, i, component, node_id, pnode_id
+    !  
+    !  !Esencialmente la siguiente instruccion hace: A_K(1*2-1,:) = A_K(1,:) Es decir, obtene el valor maximo de
+    !  !la primera fila de la matriz global K (A_K). No le veo el caso pero lo dejamos asi.
+    !  param = maxval(A_K(int(Fbcsvp(1,1))*2-1,:))
+    !  coeff = abs(param) * 1.0E7
+
+    !  print*, 'param', param
+    !  print*, 'coeff', coeff
+    !  
+    !  preasure_row = 2*n_nodes
+
+    !  do i =1, NoBV
+    !    !print*, 'iteration', i
+    !    node_id   = Fbcsvp(i,1) !se pone este int() pq la 1a y 2a col de Fbcsvp esta leida como integer pero 
+    !    !print*, 'node_id', node_id
+    !    component = Fbcsvp(i,2)!la matriz completa esta declarada como real en esta subroutina y en el main.
+    !    !print*, 'component', component
+    !    !print*, shape(Fbcsvp)
+    !    !print*, Fbcsvp(i,:)
+    !    if ( component .le. 2 ) then
+    !      !print*, 'component of Boundary value', component
+    !      !print*,'La pausa', 2*node_id-2+component,' ', 2*node_id-2 +component
+    !      !read(*,*)
+    !      A_K(2*node_id-2+component, 2*node_id-2 +component) = coeff
+    !      Sv( 2*node_id-2+component, 1) = Fbcsvp(i,3)*coeff 
+    !    else                                                     
+    !      pnode_id = pnodes(node_id,2)
+    !      !print*, 'pnode_id', pnode_id 
+    !      !print*, 'preasure_row', preasure_row
+    !      A_K(preasure_row+pnode_id, preasure_row + pnode_id) = coeff
+    !      !print*, preasure_row+pnode_id, preasure_row + pnode_id
+    !      Sv(preasure_row+pnode_id,1) = Fbcsvp(i,3)*coeff 
+    !      !el tres es por que en la columna 3 esta el valor de la condicon de forntera
+    !    end if
+    !  end do
+
+    !end subroutine ApplyBoundCond
+   
+    
+   
+   
+   
     subroutine Assemb_Glob_Mat(lnods,Ke,A_K)
       !subroutine Assemb_Glob_Mat(ielem,lnods,Ke,A_K)
       !*****************************************************************************
@@ -1293,7 +1412,7 @@ module library
         call xerbla( routine_name, num )
         print*, ' ~ ~ ~ Stopping the execution'
         print*, ' '
-        stop
+        !stop
       endif
       print*, ' '
 
@@ -1301,6 +1420,23 @@ module library
       102 format (A, I4, A)
       103 format (A, I3, A, I3, A)
     end subroutine MKLfactoResult
+    
+    !subroutint MKLCondNumber()
+    !  implicit none
+    !  
+    !  
+    !  
+    !  
+    !  
+    !  
+    !  
+    !  
+    !  
+    !  
+    !end subroutine MKLCondNumber
+    
+    
+    
 
     subroutine MKLsolverResult(routine_name, num )
       implicit none
@@ -1490,7 +1626,6 @@ module library
       !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' yi4', yi_cor(4), 'y4', basis(4)*yi_cor(4)
       !print"(A9,f10.5)",'y_gaus = ', y
       
-      
       !Derivatives in x-direction
       dey_dydx = 2.0-(4.0*y)
       dex_dy2  = 0.0 
@@ -1501,7 +1636,7 @@ module library
       
       source(1) = mu*(dey_dydx - dex_dy2)
       source(2) = mu*(-dey_dx2  + dex_dxdy)
-      source(3) = 0.0!force(ndofn)
+      source(3) = 0.0
       
     end subroutine source_term
     
@@ -1536,9 +1671,6 @@ module library
         ex_x = fi*der_psi               !exact solution
         ex_y = -(psi*der_fi)
         
-        !ex_x = 1+y(i)
-        !ex_y = 2-x(i)
-        
         x_FEM = solution_T(1,ndofn*i-2)
         y_FEM = solution_T(1,ndofn*i-1)
         !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
@@ -1550,6 +1682,7 @@ module library
       end do
       error = sqrt(error/float(nnodes))
       
+     
     end subroutine Convergence
     
     subroutine Res_Matlab(solution)
@@ -1581,12 +1714,17 @@ module library
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      !do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+      !  write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
+      !  &              exact_x(ipoin), exact_y(ipoin)
+      !  !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
+      !  !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
+      !end do
+      !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
       do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-        write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
-        &              exact_x(ipoin), exact_y(ipoin)
-        !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
-        !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
+        write(111,906) solution_T(1, ipoin), exact_x(ipoin)
       end do
+      !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
       !print*, ' '
       !print*, '!====== Matlab file ======'
       write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
