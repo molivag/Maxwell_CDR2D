@@ -55,6 +55,9 @@ module param
       reama = 0.0
       force = 0.0
       
+      param_stab1 = Cu*mu*(helem**2/ell**2)
+      param_stab2 = ell**2 / mu
+      
       if(ndofn.eq.1)then
         read(5,101) difma(1,1,1,1), difma(1,1,1,2)
         read(5,101) difma(1,1,2,1), difma(1,1,2,2)
@@ -114,6 +117,20 @@ module param
         
        read(5,107) force(1), force(2), force(3)
        
+        !difma(1,1,1,1) = param_stab1
+        difma(2,2,1,1) = difma(2,2,1,1)*mu
+        difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
+        
+        !difma(1,2,1,2) = param_stab1
+        difma(1,2,1,2) = difma(1,2,1,2)*mu
+        
+        difma(2,1,2,1) = difma(2,1,2,1)*mu
+        !difma(2,1,2,1) = param_stab1
+        
+        difma(1,1,2,2) = difma(1,1,2,2)*mu
+        !difma(2,2,2,2) = param_stab1
+        difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
+        
       end if
       
       
@@ -121,28 +138,7 @@ module param
       ntotv = ndofn*nnodes
       helem = 2**(-i_exp)
       
-      param_stab1 = Cu*mu*(helem**2/ell**2)
-      param_stab2 = difma(3,3,2,2)*ell**2 / mu
      
-      !print*, helem
-      !print*, param_stab1
-      !print*, param_stab2
-      
-      !difma(1,1,1,1) = cte_param1
-      difma(2,2,1,1) = difma(2,2,1,1)*mu
-      difma(3,3,1,1) = difma(3,3,1,1)*ell**2 / mu
-      
-      !difma(1,2,1,2) = cte_param1
-      difma(1,2,1,2) = difma(1,2,1,2)*mu
-      
-      difma(2,1,2,1) = difma(2,1,2,1)*mu
-      !difma(2,1,2,1) = cte_param1
-      
-      difma(1,1,2,2) = difma(1,1,2,2)*mu
-      !difma(2,2,2,2) = cte_param1
-      difma(3,3,2,2) = difma(3,3,2,2)*ell**2 / mu 
-      
-      
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) (lnods(i,j), j =1,nne+1)
         IF ( stat /= 0 )then
