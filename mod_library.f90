@@ -1119,7 +1119,7 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ, aaa
       
-      integer                                   :: igaus, ibase, ielem, i
+      integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
@@ -1421,23 +1421,36 @@ module library
       103 format (A, I3, A, I3, A)
     end subroutine MKLfactoResult
     
-    !subroutint MKLCondNumber()
+    !subroutine MKLCondNumber(norm, ab, ipiv)
     !  implicit none
     !  
+    !  double precision, dimension(ldAKban ,ntotv ), intent(in) :: ab
+    !  integer, dimension(ntotv), intent(in) :: ipiv
+    !  character(*), intent(in)              :: norm         !must be 1 or I
+    !  !double precision          :: work(*)
+    !  double precision, allocatable, dimension(:) :: work
+    !  integer, dimension(ntotv) :: iwork
+    !  double precision          :: rcond, val
+    !  integer                   :: orderMatrix
+    !  external                  :: xerbla, dgbcon
+    !  integer                   :: info
     !  
+    !  allocate(work(max(1,3*ntotv)))
+    !  orderMatrix = ldAKban*ntotv   
     !  
+    !  !val = dlangb(norm, orderMatrix, lowban, upban, ab, ldakban, work )
+    !  val = 23550.9023
+    !  call dgbcon( norm, orderMatrix, upban, lowban, ab, ldakban, ipiv, val, rcond, work, iwork, info )
     !  
-    !  
-    !  
-    !  
+    !  call xerbla('dgbcon',info)
+
+    !  print*,'Reciprocal of Condition Number', rcond 
+    !  print*,'Condition Number', 1./rcond 
     !  
     !  
     !  
     !end subroutine MKLCondNumber
     
-    
-    
-
     subroutine MKLsolverResult(routine_name, num )
       implicit none
       character(*), intent(in)  :: routine_name
@@ -1474,32 +1487,37 @@ module library
     end subroutine MKLsolverResult
     
     
-    subroutine writeMatrix(Matrix, unit1, name1, Vector, unit2, name2)
+    subroutine writeMatrix(Matrix, name1, Vector, name2)
       implicit none
       
       character(len=*), parameter    :: fileplace = "Res/"
       character(*) :: name1, name2
-      integer :: i, j, mrow, ncol, unit1, unit2
+      integer :: i, j, mrow, ncol
       double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
-      double precision, dimension(ntotv ,1), intent(in) :: Vector
+      !double precision, dimension(ntotv), intent(in) :: Vector
+      integer, dimension(ntotv), intent(in) :: Vector
      
-      100 format (900E15.5)
      
       mrow = size(Matrix,1)
       ncol = size(Matrix,2)
-      open(unit=unit1, file= fileplace//name1, ACTION="write", STATUS="replace")
+      open(unit=10, file= fileplace//name1, ACTION="write", STATUS="replace")
      
       do i=1,mrow
-        write(unit1, 100)( Matrix(i,j) ,j=1,ncol)
+        write(10, 100)( Matrix(i,j) ,j=1,ncol)
       end do
-      close(unit1)
+      close(10)
      
-      open(unit=unit2, file= fileplace//name2, ACTION="write", STATUS="replace")
+      open(unit=20, file= fileplace//name2, ACTION="write", STATUS="replace")
       do i=1,ncol
-        write(unit2, 100) Vector(i,1)
+        !write(unit2, 100) Vector(i,1)
+        write(20, 200) Vector(i)
       end do
-      close(unit2)
+      close(20)
       write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
+      
+      
+      100 format (900E15.5)
+      200 format (900I7)
       
     end subroutine writeMatrix
     
@@ -1634,9 +1652,15 @@ module library
       dey_dx2  = 0.0
       dex_dxdy = (4.0*x)-2
       
-      source(1) = mu*(dey_dydx - dex_dy2)
-      source(2) = mu*(-dey_dx2  + dex_dxdy)
-      source(3) = 0.0
+      if(ndofn.eq.3)then
+        source(1) = mu*(dey_dydx - dex_dy2)
+        source(2) = mu*(-dey_dx2  + dex_dxdy)
+        source(3) = 0.0
+      elseif(ndofn.eq.2)then
+        source(2) = mu*(-dey_dx2  + dex_dxdy)
+      else
+        source(1) = mu*(dey_dydx - dex_dy2)
+      endif
       
     end subroutine source_term
     
@@ -1714,16 +1738,16 @@ module library
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
-      !do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-      !  write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
-      !  &              exact_x(ipoin), exact_y(ipoin)
-      !  !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
-      !  !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
-      !end do
-      !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
       do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-        write(111,906) solution_T(1, ipoin), exact_x(ipoin)
+        write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
+        &              exact_x(ipoin), exact_y(ipoin)
+        !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
+        !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
       end do
+      !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
+      !do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+      !  write(111,906) solution_T(1, ipoin), exact_x(ipoin)
+      !end do
       !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
       !print*, ' '
       !print*, '!====== Matlab file ======'
