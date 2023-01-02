@@ -18,7 +18,7 @@ module BoundVal
       
       character(len=*), parameter :: fileplace ="./"
       integer :: ierror, a ,b, c, d, e, f,i 
-      double precision  :: x, y, xmin, xmax, ymin, ymax, xhalf, yhalf, ux, uy
+      double precision  :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
       integer, intent(out) :: nBVs, nBVscol
       
       
@@ -38,14 +38,14 @@ module BoundVal
       xmax = maxval(coord(:,2)) !the greatest number in x column
       ymin = minval(coord(:,3)) !the smallest number in y column
       ymax = maxval(coord(:,3)) !the greatest number in y column
-      xhalf = xmax/2.0 !0.0
-      yhalf = ymax/2.0 !0.0
+      xmiddle =  0.0 !xmax/2.0
+      ymiddle =  0.0 !ymax/2.0
       !print*, 'xmin = ', xmin
       !print*, 'xmax = ', xmax
       !print*, 'ymin = ', ymin
       !print*, 'ymax = ', ymax
-      !print*, 'xhalf = ', xhalf
-      !print*, 'yhalf = ', yhalf
+      !print*, 'xmiddle = ', xmiddle
+      !print*, 'ymiddle = ', ymiddle
       
       
       
@@ -62,7 +62,7 @@ module BoundVal
               write(200,10) i, 1
               write(300,30) 1.0
             else
-              write(200,10) i, 1                !Top edge
+              write(200,10) i, 1                !Top boundary
               write(300,30) 1.0
             end if
             a = a+1
@@ -74,15 +74,15 @@ module BoundVal
               write(200,10) i, 1
               write(300,30) 0.0
             else
-              write(200,10) i, 1                !bottom edge
+              write(200,10) i, 1                !bottom boundary
               write(300,30) 0.0 
             end if
             b = b+1
-          else if(x.eq.xmax)then                !right edge
+          else if(x.eq.xmax)then                !right boundary
               write(200,10) i, 1
               write(300,30) 0.0
             c = c+1
-          else if (x.eq.xmin)then               !left edge
+          else if (x.eq.xmin)then               !left boundary
               write(200,10) i, 1
               write(300,30) 0.0
             d = d+1
@@ -131,7 +131,7 @@ module BoundVal
               write(300,40)   0.0, 0.0
             d = d+2
            
-            !else if(x.eq.xhalf)then
+            !else if(x.eq.xmiddle)then
             !  !print*,'coordinate', coord(i,1)
             !  !print*,' ' 
             !  !print*, 'x  = ', x
@@ -141,11 +141,11 @@ module BoundVal
             !  
             !  if(y .gt. ymin)then
             !    !print*, 'y = ', y
-            !    write(100,60) i, 1,1, real(0), real(0)     !half top edge
+            !    write(100,60) i, 1,1, real(0), real(0)     !middle top boundary
             !    e = e+2
             !  end if
             !  
-            !else if(y.eq.yhalf)then
+            !else if(y.eq.ymiddle)then
             !  !print*,'coordinate', coord(i,1)
             !  !print*,' ' 
             !  !print*, 'x  = ', x
@@ -155,7 +155,7 @@ module BoundVal
             !  
             !  if(x .lt. xmax)then
             !    !print*, 'y = ', y
-            !    write(100,60) i, 1,1, real(0), real(0)     !half top edge
+            !    write(100,60) i, 1,1, real(0), real(0)     !middle top boundary
             !    e = e+2
             !  end if
             
@@ -177,62 +177,99 @@ module BoundVal
           if(y.eq.ymax) then
             if(x.eq.xmax)then
               ux = 0.0
-              uy = (y - y**2)
-              write(200,10) i, 1, 1, 0                          
-              write(300,20)   1.0, 0.0, 0.0                             !Right top Corner
-            elseif(x.eq.xmin)then                                                            
+              uy = 0.0!(y - y**2)
+              write(200,10) i, 1, 1, 1
+              write(300,20)   ux, uy, 0.0                        !Right top Corner
+            elseif(x.eq.xmin)then
               ux = 0.0                                                                       
-              uy = -(y-y**2)
-              write(200,10) i, 1, 1, 0
-              write(300,20)   1.0, 0.0, 0.0                             !Left top Corner
+              uy = 0.0!-(y-y**2)
+              write(200,10) i, 1, 1, 1
+              write(300,20)   ux, uy, 0.0                        !Left top Corner
             else
-              ux = -(x - x**2)
+              ux = 0.0!-(x - x**2)
               uy = 0.0
-              write(200,10) i, 1, 1, 0                                  !Top border
-              write(300,20)   1.0, 0.0, 0.0
+              write(200,10) i, 1, 0, 1                           !Top boundary
+              write(300,20)   ux, uy, 0.0
             end if
             
-            !if(x.eq.xhalf)then
+            !if(x.eq.xmiddle)then
             !  write(200,10) i, 1, 1, 1
-            !  write(300,20)   1.0, 0.0, 0.0                            !half top border
+            !  write(300,20)   1.0, 0.0, 0.0                     !middle top preasure boundary
             !end if
             a = a+3
             
           else if(y.eq.ymin)then
             if(x.eq.xmin)then
               ux = 0.0
-              uy = -(y-y**2)
-              write(200,10) i, 1, 1, 0
-              write(300,20)   0.0, 0.0, 0.0                             !Right bottom Corner
-            elseif(x.eq.xmax)then                                                             
+              uy = 0.0!-(y-y**2)
+              write(200,10) i, 1, 1, 1
+              write(300,20)   ux, uy, 0.0                        !Left bottom Corner
+            elseif(x.eq.xmiddle)then
               ux = 0.0                                                                        
-              uy = (y - y**2)                                                                  
-              write(200,10) i, 1, 1, 0                                                         
-              write(300,20)   0.0, 0.0, 0.0                             !Left bottom Corner
-            else                                                                               
-              ux = (x - x**2)                                                                  
+              uy = 0.0!(y - y**2)
+              write(200,10) i, 1, 1, 1
+              write(300,20)   ux, uy, 0.0                        !bottom Corner at the middle
+            else
+              ux = 0.0!(x - x**2)
               uy = 0.0                                                                         
-              write(200,10) i, 1,  1, 0                                 !Bottom border
-              write(300,20)   0.0, 0.0, 0.0                              
+              write(200,10) i, 1, 0, 1                           !Bottom boundary
+              write(300,20)   ux, uy, 0.0
             end if
             b = b+3
             
           else if(x.eq.xmax)then
+            if(y.gt.ymiddle)then
               ux = 0.0
-              uy = (y - y**2)
-              write(200,10) i, 1, 1, 0                                  !Right border
-              write(300,20)   0.0, 0.0, 0.0
+              uy = 0.0!(y - y**2)
+              write(200,10) i, 0, 1, 1                           !Right boundary
+              write(300,20)   ux, uy, 0.0
+            elseif(y.eq.ymiddle)then
+              ux = 0.0
+              uy = 0.0!(y - y**2)
+              write(200,10) i, 1, 1, 1                           !middle right corner
+              write(300,20)   ux, uy, 0.0
+            endif
             c = c+3
-            
           else if (x.eq.xmin)then
               ux = 0.0
-              uy = -(y-y**2)
-              write(200,10) i, 1, 1, 0                                  !Left border
-              write(300,20)   0.0, 0.0, 0.0
+              uy = 0.0!-(y-y**2)
+              write(200,10) i, 0, 1, 1                           !Left boundary
+              write(300,20)   ux, uy, 0.0
             d = d+3
            
+          else if(x.eq.xmiddle)then
+            !print*,'coordinate', coord(i,1)
+            !print*,' ' 
+            !print*, 'x  = ', x
+            !
+            !print*, 'y_ = ', y
+            !print*, ' ' 
+            if(y .eq. ymiddle)then
+              write(200,10) i, 1, 1, 1                           !central corner
+              write(300,20)   ux, uy, 0.0
+            elseif(y .gt. ymin)then
+            !  print*, 'y = ', y
+              write(200,10) i, 0, 1, 1                           !vertical boundary at the middle
+              write(300,20)   ux, uy, 0.0
+            end if
+            e = e+3
+           
+          else if(y.eq.ymiddle)then
+            !print*,'coordinate', coord(i,1)
+            !print*,' ' 
+            !print*, 'x  = ', x
+            !
+            !print*, 'y_ = ', y
+            !print*, ' ' 
+            if(x .gt. xmiddle)then
+              !print*, 'y = ', y
+              write(200,10) i, 1, 0, 1
+              write(300,20)   ux, uy, 0.0                        !horizontal boundary at the middle
+            end if
+           
+            f = f+3
           end if
-          nBVs = a+b+c+d
+          nBVs = a+b+c+d+e+f
          
         end do
         nBVs = nBVs/3
