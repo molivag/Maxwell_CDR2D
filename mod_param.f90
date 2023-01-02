@@ -55,6 +55,12 @@ module param
       reama = 0.0
       force = 0.0
       
+      
+      nevab = ndofn*nne
+      ntotv = ndofn*nnodes
+      helem = 2**(-i_exp)
+     
+      !Parameter of stabilization in augmented formulation
       param_stab1 = Cu*mu*(helem**2/ell**2)
       param_stab2 = ell**2 / mu
       
@@ -117,27 +123,21 @@ module param
         
        read(5,107) force(1), force(2), force(3)
        
-        !difma(1,1,1,1) = param_stab1
+        difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
         difma(2,2,1,1) = difma(2,2,1,1)*mu
         difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
         
-        !difma(1,2,1,2) = param_stab1
+        difma(1,2,1,2) = difma(1,2,1,2)*param_stab1
         difma(1,2,1,2) = difma(1,2,1,2)*mu
         
         difma(2,1,2,1) = difma(2,1,2,1)*mu
-        !difma(2,1,2,1) = param_stab1
+        difma(2,1,2,1) = difma(2,1,2,1)*param_stab1
         
         difma(1,1,2,2) = difma(1,1,2,2)*mu
-        !difma(2,2,2,2) = param_stab1
+        difma(2,2,2,2) = difma(2,2,2,2)*param_stab1
         difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
         
       end if
-      
-      
-      nevab = ndofn*nne
-      ntotv = ndofn*nnodes
-      helem = 2**(-i_exp)
-      
      
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) (lnods(i,j), j =1,nne+1)
