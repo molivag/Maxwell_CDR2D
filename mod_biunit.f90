@@ -385,17 +385,17 @@ module biunit
               l2 = xi
               l3 = eta
               
-              basfun(1,j) = 2.*l1*(l1-0.5)
-              basfun(2,j) = 2.*l2*(l2-0.5)
-              basfun(3,j) = 2.*l3*(l3-0.5)
-              basfun(4,j) = 4.*l1*l2
-              basfun(5,j) = 4.*l2*l3
-              basfun(6,j) = 4.*l3*l1 
+              basfun(1,j) = 2.0*l1*(l1-0.5)
+              basfun(2,j) = 2.0*l2*(l2-0.5)
+              basfun(3,j) = 2.0*l3*(l3-0.5)
+              basfun(4,j) = 4.0*l1*l2
+              basfun(5,j) = 4.0*l2*l3
+              basfun(6,j) = 4.0*l3*l1 
               
               dN_dxi(1,j) = 4.0*(xi+eta-0.75)
               dN_dxi(2,j) = 4.0*(xi-0.25)
               dN_dxi(3,j) = 0.0000000000000
-              dN_dxi(4,j) =-4.0*(2.*xi+eta-1.0)
+              dN_dxi(4,j) =-4.0*((2.0*xi)+eta-1.0)
               dN_dxi(5,j) = 4.0*eta
               dN_dxi(6,j) =-4.0*eta
               
@@ -404,7 +404,7 @@ module biunit
               dN_deta(3,j) = 4*(eta-0.25)
               dN_deta(4,j) =-4.0*xi 
               dN_deta(5,j) = 4.0*xi
-              dN_deta(6,j) =-4.0*(xi+2.0*eta-1.0)
+              dN_deta(6,j) =-4.0*(xi+(2.0*eta)-1.0)
               
               hes_ss(1,j) = 4.0 
               hes_ss(2,j) = 4.0
