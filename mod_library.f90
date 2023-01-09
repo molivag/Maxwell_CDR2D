@@ -1521,148 +1521,149 @@ module library
       
     end subroutine writeMatrix
     
-    !subroutine source_term(igaus, source)
-    !  implicit none
+    subroutine source_term(basis, xi_cor, yi_cor, source)
+      implicit none
+      
+      !***********************************************************!
+      !The source term is given by:                               !
+      !                                                           !
+      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+      ! where:                                                    !
+      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
+      !                                                           !
+      ! and                                                       !
+      !         f = Lu  ;   where L is the diferential operator   !
+      !                                                           !
+      !***********************************************************!
+      
+      double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
+      integer :: ibase
+      real    :: n
+      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
+      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2, param_stab
+      double precision, dimension(ndofn), intent(out)  :: source
+      
+      
+      x = 0.0
+      y = 0.0
+      
+      do ibase = 1, nne 
+        x = x + basis(ibase)*xi_cor(ibase)
+        y = y + basis(ibase)*yi_cor(ibase)
+        !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
+      end do
+      
+      !terms for derivatives
+      n  = n_val
+      aa = (2.0*n**2)/27.0
+      bb = (2.0*n)/27.0
+      cc = x**2*(4.0*n + 3.0) - y**2*(n+3.0)
+      dd = atan(y/x)
+      ee = sin(2.0*(n/3.0)* dd)
+      ff = cos(2.0*(n/3.0)* dd)
+      gg = (x**2 + y**2)
+      exp_1 = -(2.0 + n/6.0)
+      exp_2 = (n/3.0 - 2.5)
+      hh = (2.0*n**2 - 9.0*n + 9.0)
+      ii = (4.0*n**2 - 6.0*n + 9.0)
+      jj = (x**2 - y**2)
+      kk = x**2*(n+3.0) - y**2*(4.0*n+3.0)
+      ll = (8.0*n**2 - 24.0*n +27.0)
+      mm = (8.0*n*x*y)*(n-3.0)
+      
+      param_stab = Cu*mu*(helem**2/ell**2) 
+     
+      !Derivatives in x-direction
+      dey_dydx = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
+      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4.0*x*y*(n+3.0) * ff)
+      dex_dx2  = aa * gg**exp_1 *( kk * ee - 4.0*x*y*(n+3.0) * ff)
+      dey_dxdy = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )
+      
+      !Derivatives in y-direction
+      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
+      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3.0)* gg * ff + x*y*(5.0*n+ 6.0) * ee )
+      dex_dydx = aa * gg**exp_1 * ( 2*(n+3.0)* gg * ff + x*y*(5.0*n+ 6.0) * ee )
+      dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
+      
+      source(1) = mu*dey_dydx + mu*dex_dy2 + param_stab*(dex_dx2 + dey_dxdy )
+      source(2) =-mu*dey_dx2 + mu*dex_dxdy + param_stab*(dex_dydx - dey_dy2 )
+      if(ndofn.eq.3)then
+        source(3) = force(ndofn)
+      elseif(ndofn.eq.2)then
+        continue
+      else
+        print*, 'Source term is a bidimensional field, not enough DoF'
+      end if
+      
+      ! print*, ' Se imprime el termino de fuente '
+      ! do i =1,ndofn
+      !   print*, source(i)
+      ! end do
+      
+    end subroutine source_term
+    
+    !subroutine source_term(basis, xi_cor, yi_cor, source)
+    !  
+    !  implicit none     !interpolating X and Y
     !  
     !  !***********************************************************!
     !  !The source term is given by:                               !
     !  !                                                           !
-    !  !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
-    !  ! where:                                                    !
-    !  ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
-    !  !                                                           !
-    !  ! and                                                       !
+    !  !              u = (fi*psi',-fi'*psi)                       !
     !  !                                                           !
     !  !   f = Lu       ;   where L is the diferential operator    !
     !  !                                                           !
     !  !***********************************************************!
     !  
-    !  !integer, intent(in) :: ievab
-    !  integer, intent(in) :: igaus
-    !  double precision, dimension(totGp) :: x_coor, y_coor
-    !  !double precision, dimension(totGp) :: x, y
-    !  real    :: n
-    !  !integer :: i
-    !  double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
-    !  double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2
+    !  double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
+    !  double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
+    !  double precision :: x, y
+    !  integer :: ii
     !  double precision, dimension(ndofn), intent(out)  :: source
     !  
+    !  !En cada llamada de esta funcion entrara basis con diferente gauss point
     !  
-    !  x_coor = ngaus(:,1)
-    !  y_coor = ngaus(:,2)
+    !  x = 0.0
+    !  y = 0.0
     !  
-    !  x = x_coor(igaus)               ! xi-coordinate of point j 
-    !  y = y_coor(igaus)               ! eta-coordinate of point j 
+    !  !x= matmul(basis,xi_cor)
+    !  do ii = 1, nne 
+    !    x = x + basis(ii)*xi_cor(ii)
+    !    y = y + basis(ii)*yi_cor(ii)
+    !    !print"(3(1x,f10.7))",  basis(ii), yi_cor(ii), basis(ii)*yi_cor(ii)
+    !  end do
     !  
-    !  !terms for derivatives
-    !  n  = n_val
-    !  aa = (2.0*n**2)/27.0
-    !  bb = (2.0*n)/27.0
-    !  cc = x**2.0*(4.0*n + 3.0) - y**2.0*(n+3.0)
-    !  dd = atan(y/x)
-    !  ee = sin(2.0*n/3.0 * dd)
-    !  ff = cos(2.0*n/3.0 * dd)
-    !  gg = (x**2 + y**2)
-    !  exp_1 = -(2.0 + n/6.0)
-    !  exp_2 = (n/3.0 - 5.0/2.0)
-    !  hh = (2.0*n**2 - 9.0*n + 9.0)
-    !  ii = (4.0*n**2 - 6.0*n + 9.0)
-    !  jj = (x**2 - y**2)
-    !  kk = x**2.0*(n+3.0) - y**2.0*(4.0*n+3.0)
-    !  ll = (8.0*n**2.0 - 24.0*n +27)
-    !  mm = 8.0*n*x*y*(n-3.0)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' xi1', xi_cor(1), 'x1', basis(1)*xi_cor(1)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' xi2', xi_cor(2), 'x2', basis(2)*xi_cor(2)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' xi3', xi_cor(3), 'x3', basis(3)*xi_cor(3)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' xi4', xi_cor(4), 'x4', basis(4)*xi_cor(4)
+    !  !print"(A9,f10.5)",'x_gaus = ', x
+    !  !
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' yi1', yi_cor(1), 'y1', basis(1)*yi_cor(1)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' yi2', yi_cor(2), 'y2', basis(2)*yi_cor(2)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' yi3', yi_cor(3), 'y3', basis(3)*yi_cor(3)
+    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' yi4', yi_cor(4), 'y4', basis(4)*yi_cor(4)
+    !  !print"(A9,f10.5)",'y_gaus = ', y
     !  
     !  !Derivatives in x-direction
-    !  dey_dydx = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
-    !  dex_dy2  = aa * gg**exp_1 *( cc * ee - 4*x*y*(n+3.0) * ff)
-    !  dex_dx2  = aa * gg**exp_1 *( kk * ee - 4*x*y*(n+3.0) * ff)
-    !  dey_dxdy = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )
+    !  dey_dydx = 2.0-(4.0*y)
+    !  dex_dy2  = 0.0 
     !  
     !  !Derivatives in y-direction
-    !  dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
-    !  dex_dxdy = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
-    !  dex_dydx = aa * gg**exp_1 * ( 2*(n+3)* gg * ff + x*y*(5*n+ 6) * ee )
-    !  dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
+    !  dey_dx2  = 0.0
+    !  dex_dxdy = (4.0*x)-2
     !  
-    !  source(1) = mu*dey_dydx + mu*dex_dy2 +  Cu*mu*(helem**2/ell**2) * (dex_dx2 + dey_dxdy )
-    !  source(2) =-mu*dey_dx2 + mu*dex_dxdy +  Cu*mu*(helem**2/ell**2) * (dex_dydx - dey_dy2 )
     !  if(ndofn.eq.3)then
-    !    source(3) = force(ndofn)
+    !    source(1) = mu*(dey_dydx - dex_dy2)
+    !    source(2) = mu*(-dey_dx2  + dex_dxdy)
+    !    source(3) = 0.0
     !  elseif(ndofn.eq.2)then
-    !    continue
+    !    source(2) = mu*(-dey_dx2  + dex_dxdy)
     !  else
-    !    print*, 'Source term is a bidimensional field, not enough DoF'
-    !  end if
-    !  
-    !  ! print*, ' Se imprime el termino de fuente '
-    !  ! do i =1,ndofn
-    !  !   print*, source(i)
-    !  ! end do
+    !    source(1) = mu*(dey_dydx - dex_dy2)
+    !  endif
     !  
     !end subroutine source_term
-    
-    subroutine source_term(basis, xi_cor, yi_cor, source)
-      
-      implicit none     !interpolating X and Y
-      
-      !***********************************************************!
-      !The source term is given by:                               !
-      !                                                           !
-      !              u = (fi*psi',-fi'*psi)                       !
-      !                                                           !
-      !   f = Lu       ;   where L is the diferential operator    !
-      !                                                           !
-      !***********************************************************!
-      
-      double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
-      double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
-      double precision :: x, y
-      integer :: ii
-      double precision, dimension(ndofn), intent(out)  :: source
-      
-      !En cada llamada de esta funcion entrara basis con diferente gauss point
-      
-      x = 0.0
-      y = 0.0
-      
-      !x= matmul(basis,xi_cor)
-      do ii = 1, nne 
-        x = x + basis(ii)*xi_cor(ii)
-        y = y + basis(ii)*yi_cor(ii)
-        !print"(3(1x,f10.7))",  basis(ii), yi_cor(ii), basis(ii)*yi_cor(ii)
-      end do
-      
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' xi1', xi_cor(1), 'x1', basis(1)*xi_cor(1)
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' xi2', xi_cor(2), 'x2', basis(2)*xi_cor(2)
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' xi3', xi_cor(3), 'x3', basis(3)*xi_cor(3)
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' xi4', xi_cor(4), 'x4', basis(4)*xi_cor(4)
-      !print"(A9,f10.5)",'x_gaus = ', x
-      !
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' yi1', yi_cor(1), 'y1', basis(1)*yi_cor(1)
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' yi2', yi_cor(2), 'y2', basis(2)*yi_cor(2)
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' yi3', yi_cor(3), 'y3', basis(3)*yi_cor(3)
-      !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' yi4', yi_cor(4), 'y4', basis(4)*yi_cor(4)
-      !print"(A9,f10.5)",'y_gaus = ', y
-      
-      !Derivatives in x-direction
-      dey_dydx = 2.0-(4.0*y)
-      dex_dy2  = 0.0 
-      
-      !Derivatives in y-direction
-      dey_dx2  = 0.0
-      dex_dxdy = (4.0*x)-2
-      
-      if(ndofn.eq.3)then
-        source(1) = mu*(dey_dydx - dex_dy2)
-        source(2) = mu*(-dey_dx2  + dex_dxdy)
-        source(3) = 0.0
-      elseif(ndofn.eq.2)then
-        source(2) = mu*(-dey_dx2  + dex_dxdy)
-      else
-        source(1) = mu*(dey_dydx - dex_dy2)
-      endif
-      
-    end subroutine source_term
     
     subroutine Convergence(solution, x, y, exact_x, exact_y, error)
       implicit none
@@ -1670,42 +1671,50 @@ module library
       double precision, dimension(ntotv,1), intent(in) :: solution
       double precision, dimension(nnodes), intent(in)  :: x, y
       !declaracion de variables relacionadas con la solucion exacta
-      !double precision                                 :: aa, bb, cc, dd, ee, exp1, exp2
-      !real                                             :: n
+      double precision                                 :: aa, bb, cc, dd, ee, ff
+      double precision                                 :: x_FEM, y_FEM, uxSol, uySol
+      real                                             :: n
       double precision                                 :: fi, psi, der_fi, der_psi 
       integer                                          :: i
       !end variables for exact solution
-      
       double precision, dimension(1, ntotv)            :: solution_T
-      double precision                                 :: x_FEM, y_FEM, ex_x, ex_y
       double precision, dimension(nnodes), intent(out) :: exact_y, exact_x
       double precision, intent(out)                    :: error
       
       solution_T = transpose(solution)
-      error = 0.0 
-      
+      error = 0.0
+
+      aa = (2.0*n_val)/3.0
+      bb = (n_val/3.0) - 0.5
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       do i = 1, nnodes  !simple Function
        
-        fi = (x(i)-x(i)**2) 
-        der_fi = (1.0-2.0*x(i))
-        psi = (y(i)-y(i)**2)
-        der_psi = (1.0-2.0*y(i))
+        !fi = (x(i)-x(i)**2) 
+        !der_fi = (1.0-2.0*x(i))
+        !psi = (y(i)-y(i)**2)
+        !der_psi = (1.0-2.0*y(i))
         
-        ex_x = fi*der_psi               !exact solution
-        ex_y = -(psi*der_fi)
+        !ex_x = fi*der_psi               !exact solution
+        !ex_y = -(psi*der_fi)
+       
+       !exact solution
+        dd = ((x(i)**2 + y(i)**2))
+        ee = y(i)/x(i)
+        ff = atan(ee)
+        
+        uxSol = aa*dd**bb*sin(aa*ff)
+        uySol = aa*dd**bb*cos(aa*ff)
         
         x_FEM = solution_T(1,ndofn*i-2)
         y_FEM = solution_T(1,ndofn*i-1)
-        !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
-        error = error + (x_FEM - ex_x)**2 + (y_FEM - ex_y)**2 
-        
-        exact_x(i) = ex_x 
-        exact_y(i) = ex_y
+        !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
+        error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+        !print*, 'error', error 
+        exact_x(i) = uxSol 
+        exact_y(i) = uySol
         
       end do
       error = sqrt(error/float(nnodes))
-      
      
     end subroutine Convergence
     
@@ -1755,35 +1764,22 @@ module library
       
       close(111)
       
-      !write(*,*) '!====== Element size'
-      !read(*,*) identy
+      open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
+      open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
       
-      !write(*,*)'Mesh File?. Y=1, N=2'; read(*,*) ans
-      !if(ans.eq.1)then
-        
-      !  write(*,*) '!====== Name of coordinates file'
-      !  read(*,*) coord_name
-      !  write(*,*) '!====== Name of connectivity file'
-      !  read(*,*) conec_name
-        
-        open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
-        open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
-        
-        do i=1,nelem
-          write(333,902) (lnods(i,j+1), j =1,nne)
-        end do
-        
-        do ipoin = 1, nnodes
-          write(444,904) ipoin, x(ipoin), y(ipoin)
-        end do
-        write(*,"(A7,A10,A5,A10,A29)") ' -File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
-        print*, ' '
-        
-        close(333)
-        close(444)
-      !else
-      !  continue
-      !end if
+      do i=1,nelem
+        write(333,902) (lnods(i,j+1), j =1,nne)
+      end do
+      
+      do ipoin = 1, nnodes
+        write(444,904) ipoin, x(ipoin), y(ipoin)
+      end do
+      write(*,"(A7,A10,A5,A10,A29)") ' -File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
+      print*, ' '
+      
+      close(333)
+      close(444)
+
       open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
       write(777,"(1x,E15.5)") error
       close(777)
