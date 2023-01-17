@@ -24,7 +24,7 @@ use param
       
       !character(len=2), intent(in) :: refiType
       !integer         , intent(in) :: initElem, initNodes
-      integer :: ielem, jpoin, idime, i,j, stat
+      integer :: ielem, jpoin, idime, i,j, stat, ipoin, inode
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
       
@@ -33,7 +33,7 @@ use param
       
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
       !integer, allocatable, dimension(:,:) :: lnodw
-      integer          :: lnodw(mxelw,mxpow)
+      integer          :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
       integer          :: npoiw,nelew,nnodw, npoif
       
       
@@ -69,27 +69,52 @@ use param
         goto 101
         
       elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
-        !                             tempo     lnodw 
+        !
         !***  Undertakes the mesh change
-      ! call mesdiv(mxnow,mxelw,mxpow,coord,coorw,lnods,lnodw,npoiw,nelew)
-        call Macroelement(refiType,npoiw,nelew,nnodw,coorw,lnodw) 
+        !
+        call AddNodes(refiType,npoiw,nnodw,coorw,lnod_add)
         !
         !***  Checks if there are repeated nodes and output of results
-        !    mescek(mxnow,mxelw,mxpow,coord,coorw,lnods,lnodw,tempo,lpoiw,npoiw,nelew)
-        !call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif, coordRef,lnodsRef)
-        call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif, tempo,lnodw)
+        ! 
+        call SplitElem(refiType,lnod_add,nelew,lnodw) 
+        !
+        !***  Checks if there are repeated nodes and reallocate coord and lnods
+        ! 
+        call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif,tempo,tlnod)
         
-        stop
-        
-        !allocate(coord(size(tempo,1),size(tempo,dim=2)) )
-        !allocate(lnods(size(lnodw,1),size(lnodw,dim=2)) )
        
-        !coord = coordRef
-        !lnods = lnodsRef
+        !write(*,'(a)') 'ELEMENTS'
+        !do ielem=1,nelew
+        !  write(*,10) ielem,(lnods(ielem,inode),inode=1,nnodw)
+        !end do
+        !write(*,'(a)') 'END_ELEMENTS'
+        !
+        !
+        !write(*,'(a)') 'COORDINATES'
+        !do ipoin=1,npoif
+        !  write(*,20) ipoin,(coord(idime,ipoin),idime=1,DimPr)
+        !end do
+        !write(*,'(a)') 'END_COORDINATES'
+        !
+        !
+        !10 format(1x,i5,10(1x,i5))
+        !20 format(5x,i6,3(2x,f16.9))
         
-        print*,npoif
-        nelem = nelew
-        !nnodes= size(coordRef,2)!npoif
+        !
+        !* Recounting of nodes and elements after the refination
+        !
+        nnodes = npoif
+        nelem  = nelew 
+        nne    = nnodw
+       
+        print*, ' '
+        print*,'!================= REFINMENT INFO ===============!'
+        write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelew,'   '
+        write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', npoif, ' '
+
+       
+
+
         
       else
         continue
@@ -100,7 +125,8 @@ use param
       close(5)
      
       101 continue
-
+      
+      
       nevab = ndofn*nne
       ntotv = ndofn*nnodes
       
@@ -109,9 +135,7 @@ use param
     !
     !*************************************************************************     
     !
-    !                      ( mxnow,mxelw,mxpow,coord,coorw,lnods,lnodw,npoiw,nelew)
-    !          
-    subroutine Macroelement(refiType,npoiw,nelew,nnodw,coorw,lnodw)
+    subroutine AddNodes(refiType,npoiw,nnodw,coorw,lnodw)
       !******************************************************************************
       !
       !**** This program changes the element type of a finite element mesh.
@@ -127,14 +151,11 @@ use param
       !
       !******************************************************************************
       !       
-      !implicit     real*8 (a-h,o-z)
-      !common/contr/nin,nou,DimPr,nelem,nne,nnodes
       character(len=2),intent(in)      :: refitype
-      integer                      , dimension(mxelw,mxnow) :: lnod7
       integer                                               :: idime, inode, ielem, ipoin 
       double precision, intent(out), dimension(DimPr,mxpow) :: coorw
       integer         , intent(out), dimension(mxelw,mxnow) :: lnodw
-      integer         , intent(out) :: nnodw, nelew ,npoiw
+      integer         , intent(out) :: nnodw ,npoiw
       
       !***  Initializations
       do idime=1,DimPr
@@ -143,14 +164,8 @@ use param
         end do
       end do
       
-      
-      !***  Splits the elements
-      !write(6,'(a,$)') ' >>> Nodes of the final elements:'
-      !read(5,*) 
-      
-      nelew=nelem
       npoiw=nnodes
-      nnodw=3 !is a fix value due to in PS & CB, the final element is a 3-node ∆ element
+      nnodw=3 !is a fix value because both PS & CB, has as a final element a 3-node ∆ element
       
       do ielem=1,nelem
         !*** 2D: NNODE = 3 --> NNODE = 4 6 & 7
@@ -171,8 +186,8 @@ use param
                 coorw(idime,npoiw+3)= 0.5*(coord(idime,lnods(ielem,3))+coord(idime,lnods(ielem,1)))
               end do
               do inode=1,3
-                lnod7(ielem,  inode)=lnods(ielem,inode)
-                lnod7(ielem,3+inode)=npoiw+inode
+                lnodw(ielem,  inode)=lnods(ielem,inode)
+                lnodw(ielem,3+inode)=npoiw+inode
               end do
               npoiw=npoiw+3
             !if(nnodw.eq.7) then
@@ -180,42 +195,10 @@ use param
                 coorw(idime,npoiw+1)= (1.0/3.0)*(coord(idime,lnods(ielem,1)) + &
                 &                     coord(idime,lnods(ielem,2))+coord(idime,lnods(ielem,3)))
               end do
-              lnod7(ielem,7)=npoiw+1
+              lnodw(ielem,7)=npoiw+1
               npoiw=npoiw+1
             !endif
           endif
-          !Split of a 7-node ∆ element into six 3-nodes ∆ elements. 
-          !  ^
-          !  |        3
-          !  |        o
-          !  |       / \
-          !  |      /   \
-          !  Y    6o  7  o5
-          !  |    /   o   \
-          !  |   /         \
-          !  |  o-----o-----o
-          !  |  1     4     2
-          !  |
-          !  +--------X-------->
-          lnodw(ielem  ,1)=lnod7(ielem,1)
-          lnodw(ielem  ,2)=lnod7(ielem,4)
-          lnodw(ielem  ,3)=lnod7(ielem,7)
-          lnodw(nelew+1,1)=lnod7(ielem,1)
-          lnodw(nelew+1,2)=lnod7(ielem,7)
-          lnodw(nelew+1,3)=lnod7(ielem,6)
-          lnodw(nelew+2,1)=lnod7(ielem,7)
-          lnodw(nelew+2,2)=lnod7(ielem,3)
-          lnodw(nelew+2,3)=lnod7(ielem,6)
-          lnodw(nelew+3,1)=lnod7(ielem,4)
-          lnodw(nelew+3,2)=lnod7(ielem,2)
-          lnodw(nelew+3,3)=lnod7(ielem,7)
-          lnodw(nelew+4,1)=lnod7(ielem,2)
-          lnodw(nelew+4,2)=lnod7(ielem,5)
-          lnodw(nelew+4,3)=lnod7(ielem,7)
-          lnodw(nelew+5,1)=lnod7(ielem,5)
-          lnodw(nelew+5,2)=lnod7(ielem,3)
-          lnodw(nelew+5,3)=lnod7(ielem,7)
-          nelew=nelew+5
           
         elseif(refiType.eq.'CB')then
           if(nne.ne.4)then
@@ -230,7 +213,89 @@ use param
               coorw(idime,npoiw+1)= 0.25*(coord(idime,lnods(ielem,1))+coord(idime,lnods(ielem,2))&
               &                         +coord(idime,lnods(ielem,3))+coord(idime,lnods(ielem,4)))
             end do
-            ! 
+            
+          endif
+        else
+          write(*,'(A)')' --No refinment selected-- '
+          goto 101
+        end if
+        
+      end do
+      
+      if(npoiw.gt.mxpow) then
+        write(*,'(a,i5)') 'Increase MXPOW to ' , npoiw
+        stop
+      end if
+      
+      101 continue
+      
+    end subroutine AddNodes 
+    !
+    !*************************************************************************     
+    !
+    subroutine SplitElem(refiType,lnod_add,nelew,lnodw) 
+      
+      implicit none 
+      
+      character(len=2), intent(in) :: refitype
+      integer         , intent(in), dimension(mxelw,mxnow) :: lnod_add !add nodes
+      integer                                               :: idime, inode, ielem, ipoin 
+      integer         , intent(out), dimension(mxelw,mxnow) :: lnodw
+      integer         , intent(out)                         ::  nelew 
+      
+      nelew=nelem
+      do ielem=1,nelem
+        !*** 2D: NNODE = 3 --> NNODE = 4 6 & 7
+        if(refiType.eq.'PS')then
+          if(nne.ne.3)then 
+            write(*,'(a)') 'PS refinment not compatible with quadrilateral element'
+            write(*,'(a)') '>>> Verify PS must be nne=3'
+            stop
+          else
+            continue
+          !Split of a 7-node ∆ element into six 3-nodes ∆ elements. 
+          !  ^
+          !  |        3
+          !  |        o
+          !  |       / \
+          !  |      /   \
+          !  Y    6o  7  o5
+          !  |    /   o   \
+          !  |   /         \
+          !  |  o-----o-----o
+          !  |  1     4     2
+          !  |
+          !  +--------X-------->
+          lnodw(ielem  ,1)=lnod_add(ielem,1)
+          lnodw(ielem  ,2)=lnod_add(ielem,4)
+          lnodw(ielem  ,3)=lnod_add(ielem,7)
+          lnodw(nelew+1,1)=lnod_add(ielem,1)
+          lnodw(nelew+1,2)=lnod_add(ielem,7)
+          lnodw(nelew+1,3)=lnod_add(ielem,6)
+          lnodw(nelew+2,1)=lnod_add(ielem,7)
+          lnodw(nelew+2,2)=lnod_add(ielem,3)
+          lnodw(nelew+2,3)=lnod_add(ielem,6)
+          lnodw(nelew+3,1)=lnod_add(ielem,4)
+          lnodw(nelew+3,2)=lnod_add(ielem,2)
+          lnodw(nelew+3,3)=lnod_add(ielem,7)
+          lnodw(nelew+4,1)=lnod_add(ielem,2)
+          lnodw(nelew+4,2)=lnod_add(ielem,5)
+          lnodw(nelew+4,3)=lnod_add(ielem,7)
+          lnodw(nelew+5,1)=lnod_add(ielem,5)
+          lnodw(nelew+5,2)=lnod_add(ielem,3)
+          lnodw(nelew+5,3)=lnod_add(ielem,7)
+          nelew=nelew+5
+          endif
+          
+        elseif(refiType.eq.'CB')then
+          if(nne.ne.4)then
+            
+            write(*,'(a)') 'CB refinment not compatible with triangular element'
+            write(*,'(a)') '>>> Verify CB must be nne=4'
+            stop
+          else
+            continue
+            !  !Creation of one more node at the center of 4 node quadrilateral
             !  
             !  !Split of a 5-node element into four 3 nodes ∆ elements. 
             !  !  ^
@@ -245,26 +310,20 @@ use param
             !  !  | 1       2
             !  !  +------X------->
             !  
-            lnodw(ielem  ,1)=lnods(ielem,1)
-            lnodw(ielem  ,2)=lnods(ielem,2)
-            lnodw(ielem  ,3)=lnods(ielem,5)
-            lnodw(nelew+1,1)=lnods(ielem,1)
-            lnodw(nelew+1,2)=lnods(ielem,5)
-            lnodw(nelew+1,3)=lnods(ielem,4)
-            lnodw(nelew+2,1)=lnods(ielem,5)
-            lnodw(nelew+2,2)=lnods(ielem,3)
-            lnodw(nelew+2,3)=lnods(ielem,4)
-            lnodw(nelew+3,1)=lnods(ielem,2)
-            lnodw(nelew+3,2)=lnods(ielem,3)
-            lnodw(nelew+3,3)=lnods(ielem,5)
+            lnodw(ielem  ,1)=lnod_add(ielem,1)
+            lnodw(ielem  ,2)=lnod_add(ielem,2)
+            lnodw(ielem  ,3)=lnod_add(ielem,5)
+            lnodw(nelew+1,1)=lnod_add(ielem,1)
+            lnodw(nelew+1,2)=lnod_add(ielem,5)
+            lnodw(nelew+1,3)=lnod_add(ielem,4)
+            lnodw(nelew+2,1)=lnod_add(ielem,5)
+            lnodw(nelew+2,2)=lnod_add(ielem,3)
+            lnodw(nelew+2,3)=lnod_add(ielem,4)
+            lnodw(nelew+3,1)=lnod_add(ielem,2)
+            lnodw(nelew+3,2)=lnod_add(ielem,3)
+            lnodw(nelew+3,3)=lnod_add(ielem,5)
             nelew=nelew+3
             
-            !  lnodw(ielem  ,1)=lnods(ielem,1)
-            !  lnodw(ielem  ,2)=lnods(ielem,2)
-            !  lnodw(ielem  ,3)=lnods(ielem,3)
-            !  lnodw(ielem  ,4)=lnods(ielem,4)
-            !  lnodw(ielem  ,5)=npoiw+1
-            !  npoiw=npoiw+1
           endif
         else
           write(*,'(A)')' --No refinment selected-- '
@@ -278,33 +337,30 @@ use param
         write(*,'(a,i5)') 'Increase MXELW to ' , nelew
         stop
       end if
-      if(npoiw.gt.mxpow) then
-        write(*,'(a,i5)') 'Increase MXPOW to ' , npoiw
-        stop
-      end if
       
       101 print*, 'no_refinment'
       continue
       
-    end subroutine Macroelement 
+    end subroutine SplitElem
     !
     !*************************************************************************     
     !
-    subroutine checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif, tempo,lpoiw)
+    subroutine checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif,tempo,tlnod)
       
       !implicit     real*8 (a-h,o-z)
       
       implicit none !integer :: (i,j)
       
-      integer         , intent(in out) :: lnodw(mxelw,mxnow)
-      !integer         , allocatable, dimension(:,:), intent(in out)  :: lnodw
+      integer         , intent(in) :: lnodw(mxelw,mxnow)
       double precision, intent(in)  :: coorw(DimPr,mxpow)
       integer         , intent(in)  :: nnodw, nelew, npoiw
       integer                       :: ipoiw, ielew, inodw, idime, kpoiw, jpoiw, lpoiw(npoiw)
       double precision              :: x0, x1, y0, y1, z1, z0, dist
-      double precision, intent(out) :: tempo(DimPr,npoiw)
-      !integer         , intent(out) :: lnodw(mxelw,mxnow)
+      double precision, intent(out) :: tempo(DimPr,npoiw) !Total EleMent POint
+      integer         , intent(out) :: tlnod(mxelw,mxnow) !Total List of NODes
       integer         , intent(out) :: npoif
+      
+      integer :: ielem, ipoin, inode
       
       !dimension :: coorw(DimPr,mxpow),  
       !double precision, intent(out), dimension :: tempo(DimPr,npoiw)
@@ -348,24 +404,40 @@ use param
       
       do ielew=1,nelew
         do inodw=1,nnodw
-          lnodw(ielew,inodw)=abs(lpoiw(lnodw(ielew,inodw)))
+          tlnod(ielew,inodw)=abs(lpoiw(lnodw(ielew,inodw)))
         end do
       end do
       
-      ! write(nou,'(a)') 'ELEMENTS'
-      ! do ielem=1,nelew
-      !   write(nou,10) ielem,(lnodw(ielem,inode),inode=1,nnodw)
-      ! end do
-      ! write(nou,'(a)') 'END_ELEMENTS'
+      !* Setting the refinment mesh in previous coord and lnods (global)) variables 
+      deallocate(coord, lnods)
+      allocate(coord(DimPr,npoif),lnods(nelew,nnodw))
      
-      ! write(nou,'(a)') 'COORDINATES'
-      ! do ipoin=1,npoif
-      !   write(nou,20) ipoin,(tempo(idime,ipoin),idime=1,DimPr)
-      ! end do
-      ! write(nou,'(a)') 'END_COORDINATES'
+      do ielem=1,nelew
+        do inode=1,nnodw
+          lnods(ielem,inode)=tlnod(ielem,inode)
+        end do
+      end do
+      
+      do ipoin=1,npoif
+          do idime=1,DimPr
+            coord(idime,ipoin)=tempo(idime,ipoin)
+          end do
+      end do
+      
+      !write(*,'(a)') 'ELEMENTS'
+      !do ielem=1,nelew
+      !  write(*,10) ielem,(lnods(ielem,inode),inode=1,nnodw)
+      !end do
+      !write(*,'(a)') 'END_ELEMENTS'
+     
+      !write(*,'(a)') 'COORDINATES'
+      !do ipoin=1,npoif
+      !  write(*,20) ipoin,(coord(idime,ipoin),idime=1,DimPr)
+      !end do
+      !write(*,'(a)') 'END_COORDINATES'
       ! 
-      ! 10 format(1x,i5,10(1x,i5))
-      ! 20 format(5x,i6,3(2x,f16.9))
+      !10 format(1x,i5,10(1x,i5))
+      !20 format(5x,i6,3(2x,f16.9))
       
     end subroutine checkMesh
     
