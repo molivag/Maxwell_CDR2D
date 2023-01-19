@@ -1,5 +1,5 @@
 module biunit 
-  use param
+  use geometry
  
   contains
     
