@@ -3,15 +3,16 @@ module param
   implicit none
 
   character(len=5)  :: ProbType
-  character(len=14) :: ElemType
+  character(len=14) :: InitElemType
+  character(len=2)  :: refiType
   character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
-  integer           :: nevab, ntotv, nBVs, nBVscol, nband, max_time
+  integer           :: nBVs, nBVscol, nband, max_time
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
-  integer           :: DimPr, nelem, nnodes, nne, ndofn, totGp, kstab, ktaum, maxband, theta
+  integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   real              :: hnatu, patau, time_ini, time_fin, u0cond
   real              :: Cu,mu, ell, helem, i_exp, n_val
-  integer,          allocatable, dimension(:,:)     :: lnods
-  double precision, allocatable, dimension(:,:)     :: coord
+  !integer,          allocatable, dimension(:,:)     :: lnods, lnodsRef
+  !double precision, allocatable, dimension(:,:)     :: coord, coordRef
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -21,7 +22,7 @@ module param
   
   contains
     
-    subroutine inputData( ) 
+    subroutine inputData
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       !                                                                                   !
       ! subrutina que lee todos los parametros de entrada para la simulacion,             !
@@ -30,34 +31,29 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      integer :: i,j, stat
-      character(len=80) :: msg
-      character(len=*), parameter  :: fileplace = "./"
-      double precision :: param_stab1, param_stab2 
-            
+      double precision  :: param_stab1, param_stab2 
+      character(len=80)             :: msg
+      character(len=*), parameter   :: fileplace = "./"
+      !character(len=2), intent(out) :: refiType
+      !integer         , intent(out) :: initElem, initNodes
+      integer                       :: ielem, jpoin, idime, i,j, stat
+      
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
-      read(5, 100) ElemType, ProbType, DimPr, nelem, nnodes, nne, & 
-      ndofn, totGp, maxband, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
+      read(5, 100) InitElemType, ProbType, DimPr, initElem, initNodes, nne, ndofn, totGp, maxband, &
+      refiType, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
       Cu, mu, ell, i_exp, n_val, File_PostProcess, error_name, coord_name, conec_name
-
-      allocate( lnods(nelem,nne+1))
-      allocate( coord(nnodes,Dimpr+1))
+     
       allocate( difma(ndofn,ndofn,DimPr,DimPr) )
       allocate( conma(ndofn,ndofn,DimPr) )
       allocate( reama(ndofn,ndofn) )
       allocate( force(ndofn) )
       
-      lnods = 0.0
-      coord = 0.0
       difma = 0.0
       conma = 0.0
       reama = 0.0
       force = 0.0
       
-      
-      nevab = ndofn*nne
-      ntotv = ndofn*nnodes
       helem = 2**(-i_exp)
      
       !Parameter of stabilization in augmented formulation
@@ -139,26 +135,13 @@ module param
         
       end if
      
-      do i=1,nelem
-        read(5,*,iostat=stat,iomsg=msg) (lnods(i,j), j =1,nne+1)
-        IF ( stat /= 0 )then
-          print*,stat
-          print*, msg
-        end if
-      end do
-      do i=1,nnodes
-        read(5,*,iostat=stat,iomsg=msg) (coord(i,j), j =1,DimPr+1 )
-        IF ( stat /= 0 )then
-          print*,stat
-          print*, msg
-        end if
-      end do
-      
       close(5)
-     
       
-      100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 2/, 11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/,&
-      &         2/, 2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/, 4(11x,A10,/),/)
+      
+      100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 11x, A2,/, 2/,&         !geometry
+      &          11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/, 2/,&               !time
+      &          2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/,& !stabi
+      &          4(11x,A10,/),/)                                                 !out file
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
@@ -166,8 +149,7 @@ module param
       105 format(1/,F12.5,2/)
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,e15.5,e15.5,e15.5,2/) 
-      
-      
+     
     end subroutine inputData
     
   !end contains
