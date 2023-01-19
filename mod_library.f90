@@ -1,10 +1,11 @@
 module library
   use param
+  use geometry
   use biunit
 
   contains
     
-    subroutine GeneralInfo( )
+    subroutine GeneralInfo
       external :: fdate
       character(len=24) :: date
       character(len=4) :: aaaa 
@@ -26,18 +27,17 @@ module library
         write(*,'(A)') '> > >Error in stabilization method'
       endif
       
-      
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convetion-Diffusion-Reaction Simulation - - - - '
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
-      write(*,"(A19,4x,a13,3X,A1)") ' - Element type:           ', ElemType,''
+      write(*,"(A19,4x,a13,3X,A1)") ' - Element type:           ', InitElemType,''
       write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
       write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Elements:               ', nelem,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', nnodes, ' '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
       write(*,"(A19,4X,I6,1X,A10)") ' - DoF per node:           ', ndofn, '  '
       write(*,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
       write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
@@ -95,26 +95,37 @@ module library
     
     subroutine ReadFile(NumRows, NumCols, condition, condition_value)
       
-      integer :: i, j, status
+      integer :: i, j, stat1, stat2
       integer, intent(in)            :: NumRows, NumCols
       character(len=*), parameter    :: fileplace = "./"
       character (len=9)              :: FileName1, FileName2
-      integer, dimension (NumRows,NumCols-ndofn), intent (out) :: condition
-      double precision, dimension (NumRows,ndofn),intent (out) :: condition_value
+      character(len=80) :: msg
+      integer, dimension(NumRows,NumCols-ndofn), intent (out) :: condition
+      double precision, dimension(NumRows,ndofn),intent (out) :: condition_value
       
       FileName1 ='ifpre.dat' 
       FileName2 ='BoVal.dat'
       
-      open (unit=10, file=fileplace//FileName1, status='old', action='read' , iostat = status)
-      open (unit=20, file=fileplace//FileName2, status='old', action='read' , iostat = status)
+      open(unit=10,file=fileplace//FileName1, status='old', action='read', iostat=stat1, iomsg=msg)
+      open(unit=20,file=fileplace//FileName2, status='old', action='read', iostat=stat2, iomsg=msg)
       
-      read(10,*) ((condition(i,j), j=1,NumCols-ndofn), i=1,NumRows)
-      read(20,*) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
-      if (status.ne.0) then
-        print *, "Status while reading BVs file is:", status
+      read(10,*,iostat=stat1,iomsg=msg) ((condition(i,j), j=1,NumCols-ndofn), i=1,NumRows)
+      if (stat1.ne.0) then
+        print*, ' '
+        print*,'!============ STATUS READING BOUND VAL. ============!'
+        print "(A38,I2)", "- Status while reading ifPre file is: ", stat1
       else
         continue
       end if
+      
+      read(20,*,iostat=stat2,iomsg=msg) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
+      if (stat2.ne.0) then
+        print "(A38,I2)", "- Status while reading BoVal file is: ", stat2
+      else
+        continue
+      end if
+      
+      
       close (10)
       close (20)
       
@@ -127,6 +138,7 @@ module library
       ! number of element for each elem integral in loop of K global
       integer,intent(in)                                   :: elm_num 
       integer                                              :: i,j,global_node_id
+      double precision, dimension(DimPr,nne)               :: aaa
       double precision, dimension(nne,DimPr), intent(out)  :: element_nodes
       double precision,dimension(nne), intent(out)         :: xi_cor, yi_cor
       integer,dimension(nne), intent(out)                  :: nodeIDmap
@@ -135,14 +147,16 @@ module library
       nodeIDmap = 0
       
       do i = 1, nne
-        global_node_id = lnods(elm_num,i+1)
+        global_node_id = lnods(elm_num,i)
         nodeIDmap(i)   = global_node_id
         do j=1 ,DimPr
-          element_nodes(i,j) = coord(global_node_id,j+1)
+          aaa(j,i) = coord(j,global_node_id)
         end do
         xi_cor(i) = element_nodes(i,1)
         yi_cor(i) = element_nodes(i,2)
       end do
+      
+      element_nodes = transpose(aaa)
       
     end subroutine SetElementNodes
     
@@ -1003,9 +1017,9 @@ module library
       iband=0
       do ielem =1, nelem
         do inode = 1, nne
-          ipoin = lnods(ielem,inode+1) !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
+          ipoin = lnods(ielem,inode) !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
           do jnode = 1, nne
-            jpoin = lnods(ielem,jnode+1)
+            jpoin = lnods(ielem,jnode)
             iband = max(iband,abs(jpoin-ipoin))
           end do
         end do
@@ -1178,7 +1192,7 @@ module library
         
       end do
       
-      aaa = maxval(coord(:,2))*2**(-i_exp) 
+      aaa = maxval(coord(1,:))*2**(-i_exp) 
       if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
       
     end subroutine GlobalSystem
@@ -1730,15 +1744,15 @@ module library
       double precision, dimension(nnodes)     :: exact_y, exact_x
       double precision, dimension(nnodes)     :: x, y
       character(len=12)                       :: extension
-      integer                                 :: i,j, ipoin
+      integer                                 :: i,j, ipoin, ielem, inode
       double precision                        :: error, xmax
       
       
       extension ="_matlab.txt"
       
       solution_T = transpose(solution)
-      xcoor = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycoor = spread(coord(:,3),dim = 1, ncopies= 1)
+      xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycoor = spread(coord(2,:),dim = 1, ncopies= 1)
       
       x  = xcoor(1,:)
       y  = ycoor(1,:)
@@ -1747,12 +1761,18 @@ module library
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      
+      
       do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+       
         write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
         &              exact_x(ipoin), exact_y(ipoin)
         !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
         !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
+        
       end do
+      
+      
       !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
       !do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
       !  write(111,906) solution_T(1, ipoin), exact_x(ipoin)
@@ -1767,8 +1787,8 @@ module library
       open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
       open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
       
-      do i=1,nelem
-        write(333,902) (lnods(i,j+1), j =1,nne)
+      do ielem=1,nelem
+        write(333,902) (lnods(ielem,inode),inode=1,nne)
       end do
       
       do ipoin = 1, nnodes
@@ -1784,12 +1804,12 @@ module library
       write(777,"(1x,E15.5)") error
       close(777)
 
-      xmax = maxval(coord(:,2)) !the greatest number in x column
+      xmax = maxval(coord(1,:)) !the greatest number in x column
       print*, '!============== Error Estimation ==============!'
       write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', xmax*2**(-i_exp), 'the error estimation is ', error 
       print*, ' '
      
-      902 format(10(1x,I7) ) !format for msh
+      902 format(1x,i5,10(1x,i5))
       904 format(I7,2(3x,f9.4) ) !format for msh
       906 format(4(E15.5, 3x))
       
@@ -1804,11 +1824,11 @@ module library
       character(len=10)                       :: extension1, extension2
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin, ii
+      integer                                 :: ipoin, ii, ielem, inode
       
       solution_T = transpose(solution)
-      xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
+      xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
       print*, ' '
       print*, '!============== Output files ==================!'
@@ -1821,17 +1841,24 @@ module library
         write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
         write(555,"(A)") '#2D Convection-Diffusion-Reaction'
         write(555,900) '#Element tipe: ', ElemType,'/',ElemType
+        
+        
         write(555,"(A)")'Coordinates'
         write(555,"(A)") '#   No        X           Y'
         do ipoin = 1, nnodes
           write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
         end do
         write(555,"(A)") 'End Coordinates'
+        
+        
+        
         write(555,"(A)") 'Elements'
-        do ipoin = 1, nelem
-          write(555,908) lnods(ipoin,:)
+        do ielem=1,nelem
+          write(555,908) ielem,(lnods(ielem,inode),inode=1,nne)
         end do
         write(555,"(A)") 'End Elements'
+        
+        
         close(555)
         write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
        
@@ -1923,8 +1950,8 @@ module library
       integer                                 :: ipoin, ii
       
       solution_T = transpose(solution)
-      xcor  = spread(coord(:,2),dim = 1, ncopies= 1)
-      ycor  = spread(coord(:,3),dim = 1, ncopies= 1)
+      xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
       print*, '!====== Output files ======'
       
