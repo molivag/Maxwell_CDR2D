@@ -1,5 +1,6 @@
 module BoundVal
   use param
+  use geometry
 
   contains
     
@@ -34,10 +35,10 @@ module BoundVal
       
       !u(x) = u1/x1 - x0
       
-      xmin = minval(coord(:,2)) !the smallest number in x column
-      xmax = maxval(coord(:,2)) !the greatest number in x column
-      ymin = minval(coord(:,3)) !the smallest number in y column
-      ymax = maxval(coord(:,3)) !the greatest number in y column
+      xmin = minval(coord(1,:)) !the smallest number in x column
+      xmax = maxval(coord(1,:)) !the greatest number in x column
+      ymin = minval(coord(2,:)) !the smallest number in y column
+      ymax = maxval(coord(2,:)) !the greatest number in y column
       xmiddle =  0.0 !xmax/2.0
       ymiddle =  0.0 !ymax/2.0
       !print*, 'xmin = ', xmin
@@ -52,8 +53,8 @@ module BoundVal
       if(ndofn .eq. 1) then
         
         do i =1, nnodes
-          x=coord(i,2)
-          y=coord(i,3)
+          x=coord(1,i)
+          y=coord(2,i)
           if(y.eq.ymax) then
             if(x.eq.xmax)then                   !right top corner 
               write(200,10) i, 1
@@ -96,8 +97,8 @@ module BoundVal
         
       elseif(ndofn .eq. 2) then
         do i =1, nnodes
-          x=coord(i,2)
-          y=coord(i,3)
+          x=coord(1,i)
+          y=coord(2,i)
           if(y.eq.ymax) then 
             if(x.eq.xmax)then                         
               write(200,10) i, 1, 1
@@ -132,7 +133,7 @@ module BoundVal
             d = d+2
            
             !else if(x.eq.xmiddle)then
-            !  !print*,'coordinate', coord(i,1)
+            !  !print*,'coordinate', coord(1,i)
             !  !print*,' ' 
             !  !print*, 'x  = ', x
             !  !
@@ -146,7 +147,7 @@ module BoundVal
             !  end if
             !  
             !else if(y.eq.ymiddle)then
-            !  !print*,'coordinate', coord(i,1)
+            !  !print*,'coordinate', coord(1,i)
             !  !print*,' ' 
             !  !print*, 'x  = ', x
             !  !
@@ -171,8 +172,8 @@ module BoundVal
         
       elseif(ndofn .eq. 3)then
         do i = 1, nnodes
-          x=coord(i,2)
-          y=coord(i,3)
+          x=coord(1,i)
+          y=coord(2,i)
           
           if(y.eq.ymax) then
             if(x.eq.xmax)then
@@ -238,7 +239,7 @@ module BoundVal
             d = d+3
            
           else if(x.eq.xmiddle)then
-            !print*,'coordinate', coord(i,1)
+            !print*,'coordinate', coord(1,i)
             !print*,' ' 
             !print*, 'x  = ', x
             !
@@ -255,7 +256,7 @@ module BoundVal
             e = e+3
            
           else if(y.eq.ymiddle)then
-            !print*,'coordinate', coord(i,1)
+            !print*,'coordinate', coord(1,i)
             !print*,' ' 
             !print*, 'x  = ', x
             !
