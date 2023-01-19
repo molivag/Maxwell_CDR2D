@@ -1,5 +1,6 @@
 module timeInt
   use param
+  use geometry
   use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
 
   contains
