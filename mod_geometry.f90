@@ -5,6 +5,7 @@ use param
 
   double precision, allocatable, dimension(:,:)     :: coord !, coordRef
   integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
+  character(len=14) :: ElemType
   integer           :: nelem, nnodes, nevab, ntotv
 
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
@@ -25,6 +26,7 @@ use param
       !character(len=2), intent(in) :: refiType
       !integer         , intent(in) :: initElem, initNodes
       integer :: ielem, jpoin, idime, i,j, stat, ipoin, inode
+      character(len=12) :: bbbb 
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
       
@@ -107,8 +109,21 @@ use param
         nelem  = nelew 
         nne    = nnodw
        
+        
+        
+        if(refiType.eq.'NO')then
+          bbbb = '    NONE'
+        elseif(refiType.eq.'PS')then
+          bbbb = 'Powell-Sabin'
+        elseif(refiType.eq.'CB')then
+          bbbb = 'Cross-Box'
+        else
+          write(*,'(A)') '> > >Error in refinment type'
+        endif
+        
         print*, ' '
         print*,'!================= REFINMENT INFO ===============!'
+        write(*,"(A23,2x,a12,3X,A1)") ' - Refinment type:         ', bbbb,''
         write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelew,'   '
         write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', npoif, ' '
 
@@ -214,6 +229,13 @@ use param
               &                         +coord(idime,lnods(ielem,3))+coord(idime,lnods(ielem,4)))
             end do
             
+            lnodw(ielem  ,1)=lnods(ielem,1)
+            lnodw(ielem  ,2)=lnods(ielem,2)
+            lnodw(ielem  ,3)=lnods(ielem,3)
+            lnodw(ielem  ,4)=lnods(ielem,4)
+            lnodw(ielem  ,5)=npoiw+1
+            npoiw=npoiw+1
+            
           endif
         else
           write(*,'(A)')' --No refinment selected-- '
@@ -253,38 +275,41 @@ use param
             stop
           else
             continue
-          !Split of a 7-node ∆ element into six 3-nodes ∆ elements. 
-          !  ^
-          !  |        3
-          !  |        o
-          !  |       / \
-          !  |      /   \
-          !  Y    6o  7  o5
-          !  |    /   o   \
-          !  |   /         \
-          !  |  o-----o-----o
-          !  |  1     4     2
-          !  |
-          !  +--------X-------->
-          lnodw(ielem  ,1)=lnod_add(ielem,1)
-          lnodw(ielem  ,2)=lnod_add(ielem,4)
-          lnodw(ielem  ,3)=lnod_add(ielem,7)
-          lnodw(nelew+1,1)=lnod_add(ielem,1)
-          lnodw(nelew+1,2)=lnod_add(ielem,7)
-          lnodw(nelew+1,3)=lnod_add(ielem,6)
-          lnodw(nelew+2,1)=lnod_add(ielem,7)
-          lnodw(nelew+2,2)=lnod_add(ielem,3)
-          lnodw(nelew+2,3)=lnod_add(ielem,6)
-          lnodw(nelew+3,1)=lnod_add(ielem,4)
-          lnodw(nelew+3,2)=lnod_add(ielem,2)
-          lnodw(nelew+3,3)=lnod_add(ielem,7)
-          lnodw(nelew+4,1)=lnod_add(ielem,2)
-          lnodw(nelew+4,2)=lnod_add(ielem,5)
-          lnodw(nelew+4,3)=lnod_add(ielem,7)
-          lnodw(nelew+5,1)=lnod_add(ielem,5)
-          lnodw(nelew+5,2)=lnod_add(ielem,3)
-          lnodw(nelew+5,3)=lnod_add(ielem,7)
-          nelew=nelew+5
+            !Split of a 7-node ∆ element into six 3-nodes ∆ elements. 
+            !  ^
+            !  |        3
+            !  |        o
+            !  |       / \
+            !  |      /   \
+            !  Y    6o  7  o5
+            !  |    /   o   \
+            !  |   /         \
+            !  |  o-----o-----o
+            !  |  1     4     2
+            !  |
+            !  +--------X-------->
+            lnodw(ielem  ,1)=lnod_add(ielem,1)
+            lnodw(ielem  ,2)=lnod_add(ielem,4)
+            lnodw(ielem  ,3)=lnod_add(ielem,7)
+            lnodw(nelew+1,1)=lnod_add(ielem,1)
+            lnodw(nelew+1,2)=lnod_add(ielem,7)
+            lnodw(nelew+1,3)=lnod_add(ielem,6)
+            lnodw(nelew+2,1)=lnod_add(ielem,7)
+            lnodw(nelew+2,2)=lnod_add(ielem,3)
+            lnodw(nelew+2,3)=lnod_add(ielem,6)
+            lnodw(nelew+3,1)=lnod_add(ielem,4)
+            lnodw(nelew+3,2)=lnod_add(ielem,2)
+            lnodw(nelew+3,3)=lnod_add(ielem,7)
+            lnodw(nelew+4,1)=lnod_add(ielem,2)
+            lnodw(nelew+4,2)=lnod_add(ielem,5)
+            lnodw(nelew+4,3)=lnod_add(ielem,7)
+            lnodw(nelew+5,1)=lnod_add(ielem,5)
+            lnodw(nelew+5,2)=lnod_add(ielem,3)
+            lnodw(nelew+5,3)=lnod_add(ielem,7)
+            nelew=nelew+5
+            
+            ElemType = InitElemType
+           
           endif
           
         elseif(refiType.eq.'CB')then
@@ -324,6 +349,8 @@ use param
             lnodw(nelew+3,3)=lnod_add(ielem,5)
             nelew=nelew+3
             
+            ElemType = 'Triangle'
+            
           endif
         else
           write(*,'(A)')' --No refinment selected-- '
@@ -338,8 +365,7 @@ use param
         stop
       end if
       
-      101 print*, 'no_refinment'
-      continue
+      101 continue
       
     end subroutine SplitElem
     !
