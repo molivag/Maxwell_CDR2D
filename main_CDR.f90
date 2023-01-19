@@ -1,5 +1,6 @@
 program main_CDR3d
-  use library; use param ; use biunit ; use boundVal ; use timeInt
+  use param; use geometry; use biunit
+  use library; use boundVal; use timeInt
 
 implicit none
 
@@ -18,13 +19,16 @@ implicit none
   !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
   integer, allocatable,          dimension(:)   :: S_ipiv!, S_iwork
   character(len=1) :: S_trans
-  integer          :: S_m, S_n, S_nrhs, info, S_ldSol!, workdim
+  integer          :: S_m, S_n, S_nrhs, info, S_ldSol
   
 
-  !---------- Input Data -----------!
+  !--------------- Input Data ---------------!
   call cpu_time(start)
-  call inputData( )
-  call GeneralInfo( )
+  call inputData
+  call GeneralInfo
+  
+  !--------------- Geometry -----------------!
+  call readMesh
 
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)
