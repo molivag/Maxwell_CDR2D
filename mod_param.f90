@@ -6,7 +6,7 @@ module param
   character(len=14) :: InitElemType
   character(len=2)  :: refiType
   character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
-  integer           :: nBVs, nBVscol, nband, max_time
+  integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   real              :: hnatu, patau, time_ini, time_fin, u0cond
@@ -137,6 +137,9 @@ module param
      
       close(5)
       
+      !Initial elemental and global variables, it will changes if refination is selected.
+      initnevab = ndofn*nne
+      initntotv = ndofn*initNodes
       
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 11x, A2,/, 2/,&         !geometry
       &          11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/, 2/,&               !time
