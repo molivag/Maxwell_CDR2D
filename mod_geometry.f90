@@ -23,18 +23,11 @@ use param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      !character(len=2), intent(in) :: refiType
-      !integer         , intent(in) :: initElem, initNodes
-      integer :: ielem, jpoin, idime, i,j, stat, ipoin, inode
+      integer :: ielem, jpoin, idime, i,j, stat
       character(len=12) :: bbbb 
       character(len=80) :: msg
       character(len=*), parameter  :: fileplace = "./"
-      
-      !double precision, allocatable, dimension(:,:)     :: coord !, coordRef
-      !integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
-      
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
-      !integer, allocatable, dimension(:,:) :: lnodw
       integer          :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
       integer          :: npoiw,nelew,nnodw, npoif
       
@@ -68,6 +61,10 @@ use param
       end do
       
       if(refiType.eq.'NO')then
+        ElemType = InitElemType
+        nevab    = initnevab
+        ntotv    = initntotv
+        
         goto 101
         
       elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
@@ -84,32 +81,12 @@ use param
         ! 
         call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif,tempo,tlnod)
         
-       
-        !write(*,'(a)') 'ELEMENTS'
-        !do ielem=1,nelew
-        !  write(*,10) ielem,(lnods(ielem,inode),inode=1,nnodw)
-        !end do
-        !write(*,'(a)') 'END_ELEMENTS'
-        !
-        !
-        !write(*,'(a)') 'COORDINATES'
-        !do ipoin=1,npoif
-        !  write(*,20) ipoin,(coord(idime,ipoin),idime=1,DimPr)
-        !end do
-        !write(*,'(a)') 'END_COORDINATES'
-        !
-        !
-        !10 format(1x,i5,10(1x,i5))
-        !20 format(5x,i6,3(2x,f16.9))
-        
         !
         !* Recounting of nodes and elements after the refination
         !
         nnodes = npoif
         nelem  = nelew 
         nne    = nnodw
-       
-        
         
         if(refiType.eq.'NO')then
           bbbb = '    NONE'
@@ -126,16 +103,11 @@ use param
         write(*,"(A23,2x,a12,3X,A1)") ' - Refinment type:         ', bbbb,''
         write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelew,'   '
         write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', npoif, ' '
-
-       
-
-
         
       else
         continue
         write(*,'(A)')' --From PARA: none refinment selected-- '
       end if
-      
       
       close(5)
      
@@ -144,7 +116,6 @@ use param
       
       nevab = ndofn*nne
       ntotv = ndofn*nnodes
-      
       
     end subroutine readMesh
     !
@@ -261,7 +232,7 @@ use param
       
       character(len=2), intent(in) :: refitype
       integer         , intent(in), dimension(mxelw,mxnow) :: lnod_add !add nodes
-      integer                                               :: idime, inode, ielem, ipoin 
+      integer                                               :: ielem
       integer         , intent(out), dimension(mxelw,mxnow) :: lnodw
       integer         , intent(out)                         ::  nelew 
       
