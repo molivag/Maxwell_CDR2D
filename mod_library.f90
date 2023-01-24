@@ -41,8 +41,8 @@ module library
       write(*,"(A19,4X,I6,1X,A10)") ' - DoF per node:           ', ndofn, '  '
       write(*,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
       write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', nevab,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', ntotv,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', initnevab,'   '
+      write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', initntotv,'   '
       
       print*, ' '
       print*,'!========== STABILIZATION PARAMETERS ==========!'
@@ -54,7 +54,7 @@ module library
       write(*,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
       write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of lenght:   ', ell, '    '
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
-      write(*,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 10*2**(-i_exp),'   '
+      write(*,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 2**(-i_exp),'   '
       write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
       write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
       
@@ -152,8 +152,8 @@ module library
         do j=1 ,DimPr
           aaa(j,i) = coord(j,global_node_id)
         end do
-        xi_cor(i) = element_nodes(i,1)
-        yi_cor(i) = element_nodes(i,2)
+        xi_cor(i) = aaa(1,i)
+        yi_cor(i) = aaa(2,i)
       end do
       
       element_nodes = transpose(aaa)
@@ -533,7 +533,7 @@ module library
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty
-      double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
+      double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       ievab=0
       do inode=1,nne
         do idofn=1,ndofn
@@ -1553,11 +1553,15 @@ module library
       double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
       integer :: ibase
       real    :: n
-      double precision :: dey_dydx, dex_dy2, dex_dx2, dey_dxdy, dey_dx2, dex_dxdy, dex_dydx, dey_dy2 
-      double precision :: x, y, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk, ll, mm, exp_1, exp_2, param_stab
+      double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
+      double precision :: x, y, param_stab1
+      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
+      double precision :: itan, senn, coss
       double precision, dimension(ndofn), intent(out)  :: source
       
       
+      param_stab1 = Cu*(helem**2/ell**2)
+      n = n_val
       x = 0.0
       y = 0.0
       
@@ -1568,39 +1572,37 @@ module library
       end do
       
       !terms for derivatives
-      n  = n_val
-      aa = (2.0*n**2)/27.0
-      bb = (2.0*n)/27.0
-      cc = x**2*(4.0*n + 3.0) - y**2*(n+3.0)
-      dd = atan(y/x)
-      ee = sin(2.0*(n/3.0)* dd)
-      ff = cos(2.0*(n/3.0)* dd)
-      gg = (x**2 + y**2)
-      exp_1 = -(2.0 + n/6.0)
-      exp_2 = (n/3.0 - 2.5)
-      hh = (2.0*n**2 - 9.0*n + 9.0)
-      ii = (4.0*n**2 - 6.0*n + 9.0)
-      jj = (x**2 - y**2)
-      kk = x**2*(n+3.0) - y**2*(4.0*n+3.0)
-      ll = (8.0*n**2 - 24.0*n +27.0)
-      mm = (8.0*n*x*y)*(n-3.0)
+      aa   = (2.0/27.0)*n
+      bb   = (x**2 + y**2) 
+      cc   = (n/3.0 - 5.0/2.0)
+      dd   = (8.0*n**2 - 24.0*n + 27.0) 
+      ee   = (2.0/3.0)*n
+      ff   = (y/x) 
+      gg   = 4.0*(n-3.0)*n
+      hh   = (x**2 - y**2)  
+      ii   = (4.0*n**2 - 6.0*n + 9.0) 
+      jj   = (2.0*n**2 - 9.0*n + 9.0) 
+      kk   = (8.0*x*y)*(n-3.0)*n 
+      itan = datan(ff) 
+      senn = dsin(ee*itan)
+      coss = dcos(ee*itan)
       
-      param_stab = Cu*mu*(helem**2/ell**2) 
-     
       !Derivatives in x-direction
-      dey_dydx = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )  
-      dex_dy2  = aa * gg**exp_1 *( cc * ee - 4.0*x*y*(n+3.0) * ff)
-      dex_dx2  = aa * gg**exp_1 *( kk * ee - 4.0*x*y*(n+3.0) * ff)
-      dey_dxdy = bb * gg**exp_2 *( x*y* ll * ff + 4.0*n*(n-3.0)*jj * ee )
+      dey_dydx = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
+      dex_dy2  =-aa * bb**cc *( (x*x*ii - 2.0*y*y*jj)*senn - kk*coss )  
+      dex_dx2  = aa * bb**cc *( (2.0*x*x*jj - y*y*ii)*senn - kk*coss )
+      dey_dxdy = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
       
       !Derivatives in y-direction
-      dey_dx2  = bb * gg**exp_2 * ( (2.0*x**2 * hh - y**2 * ii)*ff - mm * ee )
-      dex_dxdy = aa * gg**exp_1 * ( 2*(n+3.0)* gg * ff + x*y*(5.0*n+ 6.0) * ee )
-      dex_dydx = aa * gg**exp_1 * ( 2*(n+3.0)* gg * ff + x*y*(5.0*n+ 6.0) * ee )
-      dey_dy2  = bb * gg**exp_2 * ( (x**2 * ii - 2.0*y**2 * hh)*ff - mm * ee ) 
+      dey_dx2  = aa * bb**cc *( (2.0*x*x*jj - y*y*ii)*coss + kk*senn )
+      dex_dxdy = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )
+      dex_dydx = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )  
+      dey_dy2  =-aa * bb**cc *( (x*x*ii - 2.0*y*y*jj)*coss + kk*senn ) 
       
-      source(1) = mu*dey_dydx + mu*dex_dy2 + param_stab*(dex_dx2 + dey_dxdy )
-      source(2) =-mu*dey_dx2 + mu*dex_dxdy + param_stab*(dex_dydx - dey_dy2 )
+      !Source Term computation
+      source(1) = mu*( dey_dydx - dex_dy2 + param_stab1*( dex_dx2 + dey_dxdy) )
+      source(2) = mu*(-dey_dx2 + dex_dxdy + param_stab1*( dex_dydx+ dey_dy2 ) )
+      
       if(ndofn.eq.3)then
         source(3) = force(ndofn)
       elseif(ndofn.eq.2)then
@@ -1684,54 +1686,50 @@ module library
       
       double precision, dimension(ntotv,1), intent(in) :: solution
       double precision, dimension(nnodes), intent(in)  :: x, y
-      !declaracion de variables relacionadas con la solucion exacta
-      double precision                                 :: aa, bb, cc, dd, ee, ff
+      double precision                                 :: aa, bb, cc, dd, ee, xcor, ycor
       double precision                                 :: x_FEM, y_FEM, uxSol, uySol
-      real                                             :: n
-      double precision                                 :: fi, psi, der_fi, der_psi 
-      integer                                          :: i
-      !end variables for exact solution
+      integer                                          :: inode
       double precision, dimension(1, ntotv)            :: solution_T
       double precision, dimension(nnodes), intent(out) :: exact_y, exact_x
       double precision, intent(out)                    :: error
       
       solution_T = transpose(solution)
       error = 0.0
-
-      aa = (2.0*n_val)/3.0
-      bb = (n_val/3.0) - 0.5
+      
+      aa = (2.0/3.0)*n_val
+      cc = (n_val/3.0) - (1.0/2.0)
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-      do i = 1, nnodes  !simple Function
+      do inode = 1, nnodes  
        
-        !fi = (x(i)-x(i)**2) 
-        !der_fi = (1.0-2.0*x(i))
-        !psi = (y(i)-y(i)**2)
-        !der_psi = (1.0-2.0*y(i))
-        
-        !ex_x = fi*der_psi               !exact solution
-        !ex_y = -(psi*der_fi)
+        xcor = coord(1,inode)
+        ycor = coord(2,inode)
        
        !exact solution
-        dd = ((x(i)**2 + y(i)**2))
-        ee = y(i)/x(i)
-        ff = atan(ee)
+        bb    = ((xcor**2 + ycor**2))
+        dd    = ycor/xcor
+        ee    = datan(dd)
+        uxSol = aa * bb**cc * dsin(aa*ee)
+        uySol = aa * bb**cc * dcos(aa*ee)
         
-        uxSol = aa*dd**bb*sin(aa*ff)
-        uySol = aa*dd**bb*cos(aa*ff)
+        !FEM solution
+        x_FEM = solution_T(1,ndofn*inode-2)
+        y_FEM = solution_T(1,ndofn*inode-1)
         
-        x_FEM = solution_T(1,ndofn*i-2)
-        y_FEM = solution_T(1,ndofn*i-1)
         !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
         error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-        !print*, 'error', error 
-        exact_x(i) = uxSol 
-        exact_y(i) = uySol
+        !print*, 'error', error  
+        
+        !Write to plotting file 
+        exact_x(inode) = uxSol 
+        exact_y(inode) = uySol
         
       end do
       error = sqrt(error/float(nnodes))
      
     end subroutine Convergence
-    
+    !
+    !*************************************************************************
+    !
     subroutine Res_Matlab(solution)
       
       implicit none
@@ -1744,7 +1742,7 @@ module library
       double precision, dimension(nnodes)     :: exact_y, exact_x
       double precision, dimension(nnodes)     :: x, y
       character(len=12)                       :: extension
-      integer                                 :: i,j, ipoin, ielem, inode
+      integer                                 :: ipoin, ielem, inode
       double precision                        :: error, xmax
       
       
