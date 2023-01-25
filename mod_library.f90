@@ -7,11 +7,14 @@ module library
     
     subroutine GeneralInfo
       external :: fdate
-      character(len=24) :: date
-      character(len=4) :: aaaa 
       
-      !integer :: i,j, k, l
-     
+      character(len=*), parameter :: fileplace = "Res/results/"
+      character(len=5) :: file_name 
+      character(len=24):: date
+      character(len=4) :: aaaa
+      character(len=12) :: bbbb 
+      
+      integer :: i,j, k, l
       
       if(kstab.eq.3 .or. kstab.eq.5)then
         aaaa = 'SGS'
@@ -29,7 +32,7 @@ module library
       
       call fdate(date)
       print*, ' '
-      print*, '- - - - 2D Convetion-Diffusion-Reaction Simulation - - - - '
+      print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
@@ -49,50 +52,125 @@ module library
       write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
       write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Lenght ref. element:    ', hnatu,'   '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
       write(*,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
       write(*,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
-      write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of lenght:   ', ell, '    '
+      write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of length:   ', ell, '    '
       write(*,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
       write(*,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 2**(-i_exp),'   '
       write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
       write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
       
-      !print*, ' '
-      !print*,'!============ TENSOR COEFFICIENTS  ============!'
-      !print*, 'Diffusion'
-      !do i = 1,dimPr
-      !  do j = 1,DimPr
-      !    print"(A,2I1)", 'k_',i,j
-      !    do k = 1,ndofn
-      !      print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
-      !    end do
-      !    !print*,' '
-      !  end do
-      !end do
-      !print*, ' '  
-      !print*, 'Convection'
-      !do k = 1, DimPr
-      !  print"(A,2I1)",'A_',k
-      !  do i = 1, ndofn
-      !    write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-      !  end do
-      !  print*,' '
-      !end do
-      !print*,'Reaction'
-      !do i=1,ndofn
-      !  write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      !end do
-      !  print*,' '
-      !print*,'External Forces'
-      !do i =1, ndofn
-      !  print"(f10.3)", force(i)
-      !end do
-      !print*, ' '
+      print*, ' '
+      print*,'!============ TENSOR COEFFICIENTS  ============!'
+      print*, 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+      end do
+        print*,' '
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
+      end do
+        print*,' '
+      print*,'External Forces'
+        write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      print*, ' '
+      
+      file_name ="test_"
+      open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
+      
+      if(refiType.eq.'NO')then
+        bbbb = '    NONE'
+      elseif(refiType.eq.'PS')then
+        bbbb = 'Powell-Sabin'
+      elseif(refiType.eq.'CB')then
+        bbbb = 'Cross-Box'
+      else
+        write(*,'(A)') '> > >Error in refinment type'
+      endif
+      
+      write(100,'(A)')'- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
+      write(100,'(A)')
+      write(100,'(A9,1x,A2)') 'test No: ',testNo
+      write(100,'(A)') " "
+      write(100,'(A)') date
+      write(100,'(A)')'!================= GENERAL INFO ===============!'
+      write(100,"(A19,4x,a13,3X,A1)") ' - Element type:           ', InitElemType,''
+      write(100,"(A19,4X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
+      write(100,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
+      write(100,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
+      write(100,'(A)')
+      write(100,'(A)')'!================= REFINMENT INFO ===============!'
+      write(100,"(A23,2x,a12,3X,A1)") ' - Refinement type:         ', bbbb,''
+      write(100,"(A23,4x,a13,3X,A1)") ' - Final element type:     ', ElemType,''
+      write(100,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
+      write(100,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
+      write(100,'(A)') 
+      write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+      write(100,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
+      write(100,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
+      write(100,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
+      write(100,"(A26,1X,f5.1,1X,A10)") ' - Constante of length:   ', ell, '    '
+      write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
+      write(100,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 2**(-i_exp),'   '
+      write(100,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
+      write(100,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
+      
+      
+      write(100,'(A)') 
+      write(100,'(A)')'!============ TENSOR COEFFICIENTS  ============!'
+      write(100,'(A)') 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          write(100,"(A,2I1)") 'k_',i,j
+          do k = 1,ndofn
+            write(100,"(e15.5,1x,e15.5, 1x, e15.5)") ( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      write(100,'(A)')
+      write(100,'(A)') 'Convection'
+      do k = 1, DimPr
+        write(100,"(A,2I1)")'A_',k
+        do i = 1, ndofn
+          write(100,"(f10.3, 1x, f10.3, 1x, f10.3)") ( conma(i,j,k) ,j=1, ndofn)
+        end do
+      end do
+      write(100,'(A)') 
+      write(100,'(A)') 'Reaction'
+      do i=1,ndofn
+        write(100,"(f10.3, 1x, f10.3, 1x, f10.3)" ) ( reama(i,j) ,j=1,ndofn)
+      end do
+        write(100,'(A)') 
+      write(100,'(A)') 'External Forces'
+        write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
+      write(100,'(A)') 
+      
+      
+      close(100)
+      
       
       
     endsubroutine GeneralInfo
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
     subroutine ReadFile(NumRows, NumCols, condition, condition_value)
       
       integer :: i, j, stat1, stat2
@@ -130,7 +208,9 @@ module library
       close (20)
       
     end subroutine ReadFile
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap, xi_cor, yi_cor)
       
       implicit none
@@ -159,7 +239,9 @@ module library
       element_nodes = transpose(aaa)
       
     end subroutine SetElementNodes
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
     subroutine Jacobian( element_nodes, dN_dxi, dN_deta, Gp, xjacm, djacb, xjaci)
       implicit none
       
@@ -289,7 +371,9 @@ module library
     !  return
     !  
     !end function xjaci
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
     subroutine DerivativesXY(Gp,InvJaco,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy, HesXY)
       
       implicit none
@@ -346,8 +430,10 @@ module library
           2.0*InvJaco(2,2)*InvJaco(1,2)*Hesxieta(2,inode)+InvJaco(1,2)*InvJaco(1,2)*Hesxieta(1,inode)
       end do
       
-    end subroutine DerivativesXY
-    
+    end subroutine DerivativesXY 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine invmtx(a,deter,b)
       
       ! This routine inverts a square matrix A -> Mat(ndofn,ndofn). The
@@ -402,8 +488,10 @@ module library
         return
       endif
       
-    end subroutine invmtx
-    
+    end subroutine invmtx 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine sqrtma(mainp,maout)
       
       ! Square root of matrix. In the case NDOFN = 3, it is assumed that this
@@ -425,8 +513,10 @@ module library
         maout(3,3) = sqrt(abs(mainp(3,3)))
       endif
       
-    end subroutine sqrtma
-    
+    end subroutine sqrtma 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    !
     subroutine sqrtm2(mainp,maout)
       
       ! Square root of a 2 x 2 matrix (from a 3 x 3 matrix)
@@ -476,7 +566,9 @@ module library
       end if
       
     end subroutine sqrtm2
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine gather(lnods, vecgl, veclo)
       !        gather(vecgl,veclo,lnods,ndofn,nnode)
       !   call gather(coord,elcod,lnods(1,ielem),2,nnode)
@@ -505,8 +597,10 @@ module library
         end do
       end do
       
-    end subroutine gather
-    
+    end subroutine gather 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     function elemSize(InvJacobian)
       
       implicit none
@@ -524,7 +618,9 @@ module library
       return
       
     end function elemsize
-
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
       
       implicit none
@@ -683,8 +779,10 @@ module library
         end do
       end do
       
-    end subroutine Galerkin_Init_Cond
-    
+    end subroutine Galerkin_Init_Cond 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
       !***************************************************************************
@@ -759,8 +857,9 @@ module library
       end if
       
     end subroutine pertur
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine TauMat(hmaxi,tauma)
       
       !Matrix of intrinsic time scales, computed as
@@ -876,8 +975,9 @@ module library
       end if
       
     end subroutine TauMat
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    !
     subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
       
@@ -958,8 +1058,9 @@ module library
       end do
       
     end subroutine Stabilization
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine VinculBVs(condition,  BVs, nofix, ifpre, presc )
       
       implicit none
@@ -1005,8 +1106,9 @@ module library
           write(*,*) 'Exceeded DoF'
         end select
     end subroutine VinculBVs
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine BandWidth( )
       !use stdlib_linalg, only: diag
       
@@ -1047,7 +1149,9 @@ module library
       write(*,"(A15,9X,I6,1X,A9)")' - ledimAK:     ', ldAKban,' '
       
     end subroutine BandWidth
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, ugl_pre, A_F)
       
       implicit none
@@ -1113,8 +1217,9 @@ module library
       end do
       
     end subroutine TimeContribution
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
       implicit none
@@ -1197,10 +1302,6 @@ module library
       
     end subroutine GlobalSystem
     
-    
-    
-    
-    
     !subroutine AssembleK(K, ke, node_id_map, ndDOF)
 
     !  implicit none
@@ -1279,10 +1380,9 @@ module library
 
     !end subroutine ApplyBoundCond
    
-    
-   
-   
-   
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine Assemb_Glob_Mat(lnods,Ke,A_K)
       !subroutine Assemb_Glob_Mat(ielem,lnods,Ke,A_K)
       !*****************************************************************************
@@ -1326,7 +1426,9 @@ module library
 
       return
     end subroutine Assemb_Glob_Mat
-
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine Assemb_Glob_Vec( nodeIDmap, fe, F_global)
       
       implicit none
@@ -1343,8 +1445,10 @@ module library
         
       end do
       
-    end subroutine Assemb_Glob_Vec
-    
+    end subroutine Assemb_Glob_Vec 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !
     subroutine ApplyBVs(nofix,ifpre,presc,rigid,gload)
       !                                   ,A_K ,A_F
       !        vincul(rigid,gload,treac,nofix,ifpre,presc)
@@ -1396,152 +1500,17 @@ module library
       
       return
       
-    end subroutine ApplyBVs
-    
-    subroutine MKLfactoResult( routine_name, num )
-      implicit none
-      
-      character(*), intent(in)  :: routine_name
-      integer,      intent(in)  :: num
-      character(len=34) :: text
-      character(len=44) :: text2
-      integer           :: val
-      external          :: xerbla
-      
-      text  = '   *FACTORIZATION DONE WITH STATUS'
-      text2 = '   *FACTORIZATION HAS BEEN COMPLETED, BUT U('
-      if ( num .eq. 0 ) then
-        !print*, ' '
-        write(*, 101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
-      elseif(num .lt. 0 )then
-        val = abs(num)
-        print*, ' '
-        write(*, 102) '    THE',val,'-TH PARAMETER HAD AN ILLEGAL VALUE.'
-        call xerbla( routine_name, num )
-      elseif(num .gt. 0 )then
-        print*, ' '
-        write(*, 103) text2,num,',',num,') = 0.0. Then U IS EXACTLY SINGULAR.'
-        print"(A)",'   DIVISION BY 0 WILL OCCUR IF USE THE FACTOR U FOR SOLVING A SYSTEM OF LINEAR EQUATIONS.'
-        print*, ' '
-        call xerbla( routine_name, num )
-        print*, ' ~ ~ ~ Stopping the execution'
-        print*, ' '
-        !stop
-      endif
-      print*, ' '
-
-      101 format (A, 1x, I1, A)
-      102 format (A, I4, A)
-      103 format (A, I3, A, I3, A)
-    end subroutine MKLfactoResult
-    
-    !subroutine MKLCondNumber(norm, ab, ipiv)
-    !  implicit none
-    !  
-    !  double precision, dimension(ldAKban ,ntotv ), intent(in) :: ab
-    !  integer, dimension(ntotv), intent(in) :: ipiv
-    !  character(*), intent(in)              :: norm         !must be 1 or I
-    !  !double precision          :: work(*)
-    !  double precision, allocatable, dimension(:) :: work
-    !  integer, dimension(ntotv) :: iwork
-    !  double precision          :: rcond, val
-    !  integer                   :: orderMatrix
-    !  external                  :: xerbla, dgbcon
-    !  integer                   :: info
-    !  
-    !  allocate(work(max(1,3*ntotv)))
-    !  orderMatrix = ldAKban*ntotv   
-    !  
-    !  !val = dlangb(norm, orderMatrix, lowban, upban, ab, ldakban, work )
-    !  val = 23550.9023
-    !  call dgbcon( norm, orderMatrix, upban, lowban, ab, ldakban, ipiv, val, rcond, work, iwork, info )
-    !  
-    !  call xerbla('dgbcon',info)
-
-    !  print*,'Reciprocal of Condition Number', rcond 
-    !  print*,'Condition Number', 1./rcond 
-    !  
-    !  
-    !  
-    !end subroutine MKLCondNumber
-    
-    subroutine MKLsolverResult(routine_name, num )
-      implicit none
-      character(*), intent(in)  :: routine_name
-      integer,      intent(in)  :: num
-      integer :: val
-      character(len=30) :: text
-      character(len=35) :: text2
-      character(len=30) :: text3
-      external :: xerbla
-      text =  '   *SYSTEM SOLVED WITH STATUS'
-      text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
-      text3 = '   *THE LEADING MINOR OF ORDER'
-      if ( num .eq. 0 ) then
-        write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
-      elseif(num .lt. 0 )then
-        val = abs(num)
-        write(*,102) '    THE',val, text2
-        call xerbla( routine_name, num )
-      elseif(num .gt. 0 )then
-        print*, ' '
-        write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT'
-        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
-        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
-        print*, ' '
-        call xerbla( routine_name, num )
-        print*, ' ~ ~ ~ Stopping the execution'
-        print*, ' '
-        stop
-      endif
-      101 format (A, 1x, I1, A)
-      102 format (A, I3, A)
-      103 format (A30, I3, A)
-      !print*,' '
-    end subroutine MKLsolverResult
-    
-    
-    subroutine writeMatrix(Matrix, name1, Vector, name2)
-      implicit none
-      
-      character(len=*), parameter    :: fileplace = "Res/"
-      character(*) :: name1, name2
-      integer :: i, j, mrow, ncol
-      double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
-      !double precision, dimension(ntotv), intent(in) :: Vector
-      integer, dimension(ntotv), intent(in) :: Vector
-     
-     
-      mrow = size(Matrix,1)
-      ncol = size(Matrix,2)
-      open(unit=10, file= fileplace//name1, ACTION="write", STATUS="replace")
-     
-      do i=1,mrow
-        write(10, 100)( Matrix(i,j) ,j=1,ncol)
-      end do
-      close(10)
-     
-      open(unit=20, file= fileplace//name2, ACTION="write", STATUS="replace")
-      do i=1,ncol
-        !write(unit2, 100) Vector(i,1)
-        write(20, 200) Vector(i)
-      end do
-      close(20)
-      write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
-      
-      
-      100 format (900E15.5)
-      200 format (900I7)
-      
-    end subroutine writeMatrix
-    
+    end subroutine ApplyBVs 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine source_term(basis, xi_cor, yi_cor, source)
       implicit none
       
       !***********************************************************!
       !The source term is given by:                               !
       !                                                           !
-      !              u = grad(r^{2n/3}*sin(2ntheta/3))            !
+      !              u = grad(r^{2n/3}*sin((2n/3)*theta))         !
       ! where:                                                    !
       ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
       !                                                           !
@@ -1700,23 +1669,24 @@ module library
       cc = (n_val/3.0) - (1.0/2.0)
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       do inode = 1, nnodes  
-       
+        
         xcor = coord(1,inode)
         ycor = coord(2,inode)
        
        !exact solution
         bb    = ((xcor**2 + ycor**2))
         dd    = ycor/xcor
-        ee    = datan(dd)
-        uxSol = aa * bb**cc * dsin(aa*ee)
-        uySol = aa * bb**cc * dcos(aa*ee)
+        ee    = atan(dd)
+        uxSol = aa * bb**cc * sin(aa*ee)
+        uySol = aa * bb**cc * cos(aa*ee)
         
         !FEM solution
         x_FEM = solution_T(1,ndofn*inode-2)
         y_FEM = solution_T(1,ndofn*inode-1)
         
         !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
-        error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+        !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+        error = error + (y_FEM - uySol)**2 
         !print*, 'error', error  
         
         !Write to plotting file 
@@ -1728,7 +1698,7 @@ module library
      
     end subroutine Convergence
     !
-    !*************************************************************************
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine Res_Matlab(solution)
       
@@ -1812,7 +1782,149 @@ module library
       906 format(4(E15.5, 3x))
       
     end subroutine Res_Matlab
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine MKLfactoResult( routine_name, num )
+      implicit none
+      
+      character(*), intent(in)  :: routine_name
+      integer,      intent(in)  :: num
+      character(len=34) :: text
+      character(len=44) :: text2
+      integer           :: val
+      external          :: xerbla
+      
+      text  = '   *FACTORIZATION DONE WITH STATUS'
+      text2 = '   *FACTORIZATION HAS BEEN COMPLETED, BUT U('
+      if ( num .eq. 0 ) then
+        !print*, ' '
+        write(*, 101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
+      elseif(num .lt. 0 )then
+        val = abs(num)
+        print*, ' '
+        write(*, 102) '    THE',val,'-TH PARAMETER HAD AN ILLEGAL VALUE.'
+        call xerbla( routine_name, num )
+      elseif(num .gt. 0 )then
+        print*, ' '
+        write(*, 103) text2,num,',',num,') = 0.0. Then U IS EXACTLY SINGULAR.'
+        print"(A)",'   DIVISION BY 0 WILL OCCUR IF USE THE FACTOR U FOR SOLVING A SYSTEM OF LINEAR EQUATIONS.'
+        print*, ' '
+        call xerbla( routine_name, num )
+        print*, ' ~ ~ ~ Stopping the execution'
+        print*, ' '
+        !stop
+      endif
+      print*, ' '
+
+      101 format (A, 1x, I1, A)
+      102 format (A, I4, A)
+      103 format (A, I3, A, I3, A)
+    end subroutine MKLfactoResult
     
+    !subroutine MKLCondNumber(norm, ab, ipiv)
+    !  implicit none
+    !  
+    !  double precision, dimension(ldAKban ,ntotv ), intent(in) :: ab
+    !  integer, dimension(ntotv), intent(in) :: ipiv
+    !  character(*), intent(in)              :: norm         !must be 1 or I
+    !  !double precision          :: work(*)
+    !  double precision, allocatable, dimension(:) :: work
+    !  integer, dimension(ntotv) :: iwork
+    !  double precision          :: rcond, val
+    !  integer                   :: orderMatrix
+    !  external                  :: xerbla, dgbcon
+    !  integer                   :: info
+    !  
+    !  allocate(work(max(1,3*ntotv)))
+    !  orderMatrix = ldAKban*ntotv   
+    !  
+    !  !val = dlangb(norm, orderMatrix, lowban, upban, ab, ldakban, work )
+    !  val = 23550.9023
+    !  call dgbcon( norm, orderMatrix, upban, lowban, ab, ldakban, ipiv, val, rcond, work, iwork, info )
+    !  
+    !  call xerbla('dgbcon',info)
+
+    !  print*,'Reciprocal of Condition Number', rcond 
+    !  print*,'Condition Number', 1./rcond 
+    !  
+    !  
+    !  
+    !end subroutine MKLCondNumber
+    
+    subroutine MKLsolverResult(routine_name, num )
+      implicit none
+      character(*), intent(in)  :: routine_name
+      integer,      intent(in)  :: num
+      integer :: val
+      character(len=30) :: text
+      character(len=35) :: text2
+      character(len=30) :: text3
+      external :: xerbla
+      text =  '   *SYSTEM SOLVED WITH STATUS'
+      text2 = '-TH PARAMETER HAD AN ILLEGAL VALUE.'
+      text3 = '   *THE LEADING MINOR OF ORDER'
+      if ( num .eq. 0 ) then
+        write(*,101) text, num, ', THE EXECUTION IS SUCCESSFUL.'
+      elseif(num .lt. 0 )then
+        val = abs(num)
+        write(*,102) '    THE',val, text2
+        call xerbla( routine_name, num )
+      elseif(num .gt. 0 )then
+        print*, ' '
+        write(*, 103) text3,num,' (THEREFORE THE MATRIX A ITSELF) IS NOT'
+        print*,'   POSITIVE-DEFINITE. THE FACTORIZATION COULD NOT BE COMPLETED. '
+        print*,'   THIS MAY INDICATE AN ERROR IN FORMING THE MATRIX A.'
+        print*, ' '
+        call xerbla( routine_name, num )
+        print*, ' ~ ~ ~ Stopping the execution'
+        print*, ' '
+        stop
+      endif
+      101 format (A, 1x, I1, A)
+      102 format (A, I3, A)
+      103 format (A30, I3, A)
+      !print*,' '
+    end subroutine MKLsolverResult
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine writeMatrix(Matrix, name1, Vector, name2)
+      implicit none
+      
+      character(len=*), parameter    :: fileplace = "Res/"
+      character(*) :: name1, name2
+      integer :: i, j, mrow, ncol
+      double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
+      !double precision, dimension(ntotv), intent(in) :: Vector
+      integer, dimension(ntotv), intent(in) :: Vector
+     
+     
+      mrow = size(Matrix,1)
+      ncol = size(Matrix,2)
+      open(unit=10, file= fileplace//name1, ACTION="write", STATUS="replace")
+     
+      do i=1,mrow
+        write(10, 100)( Matrix(i,j) ,j=1,ncol)
+      end do
+      close(10)
+     
+      open(unit=20, file= fileplace//name2, ACTION="write", STATUS="replace")
+      do i=1,ncol
+        !write(unit2, 100) Vector(i,1)
+        write(20, 200) Vector(i)
+      end do
+      close(20)
+      write(*,*) 'files: ', name1,' and ', name2, ' written succesfully on Res/'
+      
+      
+      100 format (900E15.5)
+      200 format (900I7)
+      
+    end subroutine writeMatrix 
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine PostProcess(solution)
       
       implicit none
@@ -1827,113 +1939,106 @@ module library
       solution_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
-      
+     
       print*, ' '
       print*, '!============== Output files ==================!'
       
-      !if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-        extension1 = ".post.msh"
-        extension2 = ".post.res"
-        open(unit=555, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
-        
-        write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
-        write(555,"(A)") '#2D Convection-Diffusion-Reaction'
-        write(555,900) '#Element tipe: ', ElemType,'/',ElemType
-        
-        
-        write(555,"(A)")'Coordinates'
-        write(555,"(A)") '#   No        X           Y'
-        do ipoin = 1, nnodes
-          write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-        end do
-        write(555,"(A)") 'End Coordinates'
-        
-        
-        
-        write(555,"(A)") 'Elements'
-        do ielem=1,nelem
-          write(555,908) ielem,(lnods(ielem,inode),inode=1,nne)
-        end do
-        write(555,"(A)") 'End Elements'
-        
-        
-        close(555)
-        write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
-       
-      !elseif(activity == "res")then
-        open(unit=555, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
-        write(555,"(A)") 'GiD Post Results File 1.0'
-        write(555,"(A)") '#2D Convection-Diffusion-Reaction'
-        
-        ! se escribe el res de las componentes de la velocidad
-        select case(ndofn)
-          case(1)
-            write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
-            write(555,"(A)") 'ComponentNames "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             ux '
-            !  se escribe el res para el caso escalar de un grado de libertad
-            write(555,914)
-            do ipoin = 1, nnodes
-              write(555,916) ipoin, solution(ipoin, 1)
-            end do
-            !An alternative work around is by explicitly designate the 
-            !elements to be read using an io-implied-do
-            !Something like
-            !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
-            write(555,"(A)") 'End Values'
-          case(2)
-            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
-            write(555,"(A)") 'ComponentNames "u" "v" "--" "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             ux ','               uy '
-            do ipoin = 1, nnodes
-              write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-            end do
-            write(555,"(A)") 'End Values'
-          case(3)
-            write(555,"(A)") 'Result "DoF" "Concentration" 0 Vector OnNodes'
-            write(555,"(A)") 'ComponentNames "u" "v" "w" "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             ux ','               uy'
-            do ipoin = 1, nnodes
-              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
-            end do
-            write(555,"(A)") 'End Values'
-            write(555,"(A)") 'Result "P" "Preassure" 0 Scalar OnNodes'
-            write(555,"(A)") 'ComponentNames "" '
-            write(555,"(A)") 'Values'
-            write(555,*) '#',   'No    ','             p '
-            !  se escribe el res para el caso escalar de un grado de libertad
-            write(555,914)
-            ii=1
-            do ipoin = 3, nnodes*3,3
-              write(555,916) ii, solution_T(1,ipoin)
-              ii=ii+1
-            end do
-            write(555,"(A)") 'End Values'
-            write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.res','written succesfully in Pos/'
-        end select
-        
-        close(555)
-      !else
-        !write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" '
-        !close(555)
-        !stop
-      !end if
-    
+      extension1 = ".post.msh"
+      extension2 = ".post.res"
+      open(unit=555, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
+      
+      write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+      write(555,"(A)") '#2D Convection-Diffusion-Reaction'
+      write(555,900) '#Element tipe: ', ElemType,'/',ElemType
+      
+      
+      write(555,"(A)")'Coordinates'
+      write(555,"(A)") '#   No        X           Y'
+      do ipoin = 1, nnodes
+        write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+      end do
+      write(555,"(A)") 'End Coordinates'
+      
+      
+      
+      write(555,"(A)") 'Elements'
+      do ielem=1,nelem
+        write(555,908) ielem,(lnods(ielem,inode),inode=1,nne)
+      end do
+      write(555,"(A)") 'End Elements'
+      
+      
+      close(555)
+      write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
+      
+      
+      open(unit=555, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
+      write(555,"(A)") 'GiD Post Results File 1.0'
+      write(555,"(A)") '#2D Convection-Diffusion-Reaction'
+      
+      ! se escribe el res de las componentes de la velocidad
+      select case(ndofn)
+        case(1)
+          write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
+          write(555,"(A)") 'ComponentNames "" '
+          write(555,"(A)") 'Values'
+          write(555,*) '#',   'No    ','             ux '
+          !  se escribe el res para el caso escalar de un grado de libertad
+          write(555,914)
+          do ipoin = 1, nnodes
+            write(555,916) ipoin, solution(ipoin, 1)
+          end do
+          write(555,"(A)") 'End Values'
+          
+        case(2)
+          write(555,"(A)") 'Result "DoF" "EM field" 0 Vector OnNodes'
+          write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
+          write(555,"(A)") 'Values'
+          write(555,*) '#',   'No    ','             ex ','               ey '
+          do ipoin = 1, nnodes
+            write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+          end do
+          write(555,"(A)") 'End Values'
+          
+        case(3)
+          write(555,"(A)") 'Result "DoF" "EM  field" 0 Vector OnNodes'
+          write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
+          write(555,"(A)") 'Values'
+          write(555,*) '#',   'No    ','             ex ','               ey'
+          do ipoin = 1, nnodes
+            write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+          end do
+          write(555,"(A)") 'End Values'
+          write(555,"(A)") 'Result "P" "Multiplier" 0 Scalar OnNodes'
+          write(555,"(A)") 'ComponentNames "" '
+          write(555,"(A)") 'Values'
+          write(555,*) '#',   'No    ','             p '
+          !  se escribe el res para el caso escalar de un grado de libertad
+          write(555,914)
+          ii=1
+          do ipoin = 3, nnodes*3,3
+            write(555,916) ii, solution_T(1,ipoin)
+            ii=ii+1
+          end do
+          write(555,"(A)") 'End Values'
+          write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.res','written succesfully in Pos/'
+      end select
+      
+      close(555)
       
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-      906 format(I7,2(3x,f9.4)) !format for msh
+      906 format(I7,4x,2(f15.5,3x)) !format for msh
       908 format(10(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E15.5)  !format for scalar case
       918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
       919 format(I7,2(4x,E15.5)) !format for res velocity
-    
+     
     end subroutine PostProcess
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine GID_PostProcess(solution, activity, step_value, interval, time_final)
       
       implicit none
@@ -1972,7 +2077,6 @@ module library
         write(100,"(A)") 'End Elements'
         close(100)
         print"(A11,A19,A30)", ' Mesh file ',File_PostProcess//'.post.msh', 'written succesfully in Pos/ '
-      ! if(status.eq.0)then continue 
       elseif(activity == "res")then
        
         if(step_value == 0)then
@@ -1996,9 +2100,6 @@ module library
             do ipoin = 1, nnodes
               write(200,916) ipoin, solution(ipoin, 1)
             end do
-            !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
-            !Something like
-            !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
           case(2)
             write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
@@ -2014,9 +2115,6 @@ module library
             write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             Ex ','               Ey'
-           ! do ipoin = 1, nnodes
-           !   write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
-           ! end do
             do ipoin = 1, nnodes
               write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
             end do
