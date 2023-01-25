@@ -6,6 +6,7 @@ module param
   character(len=14) :: InitElemType
   character(len=2)  :: refiType
   character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
+  character(len=2)  :: testNo
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
@@ -36,13 +37,13 @@ module param
       character(len=*), parameter   :: fileplace = "./"
       !character(len=2), intent(out) :: refiType
       !integer         , intent(out) :: initElem, initNodes
-      integer                       :: ielem, jpoin, idime, i,j, stat
+      integer                       ::  stat
       
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100) InitElemType, ProbType, DimPr, initElem, initNodes, nne, ndofn, totGp, maxband, &
       refiType, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
-      Cu, mu, ell, i_exp, n_val, File_PostProcess, error_name, coord_name, conec_name
+      Cu, mu, ell, i_exp, n_val, testNo, File_PostProcess, error_name, coord_name, conec_name
      
       allocate( difma(ndofn,ndofn,DimPr,DimPr) )
       allocate( conma(ndofn,ndofn,DimPr) )
@@ -144,7 +145,7 @@ module param
       100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 11x, A2,/, 2/,&         !geometry
       &          11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/, 2/,&               !time
       &          2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/,& !stabi
-      &          4(11x,A10,/),/)                                                 !out file
+      &          11x,A2,/, 4(11x,A10,/),/)                                       !out file
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
