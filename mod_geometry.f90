@@ -25,7 +25,7 @@ use param
       
       integer :: ielem, jpoin, idime, i,j, stat
       character(len=12) :: bbbb 
-      character(len=80) :: msg
+      character(len=180) :: msg
       character(len=*), parameter  :: fileplace = "./"
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
       integer          :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
@@ -42,23 +42,30 @@ use param
       lnods = 0.0
       coord = 0.0
       
-      do i=1,75
-        read(5,*) !se salta todas las lineas del inpuyt file hasta la lista de nodos
+      do i=1,76
+      read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       end do
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) ielem,(lnods(ielem,j), j =1,nne)
         if ( stat /= 0 )then
-          print*,stat
-          print*, msg
+          print*, ' ' 
+          print*, 'error in read mesh module geometry' 
+          print'(A9,I3)','iostat= ',stat
+          print'(A8,1x,A180)','iomsg= ',msg
+          print*, 'error >>>> It must increase the skip lines in module geometry (line 45)'
+          print*, ' ' 
+          stop
         end if
       end do
       do i=1,nnodes !number of total nodes
         read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
         IF ( stat /= 0 )then
-          print*,stat
+          print*,'iostat= ',stat
           print*, msg
         end if
       end do
+      
+      close(5)
       
       if(refiType.eq.'NO')then
         ElemType = InitElemType
@@ -100,7 +107,7 @@ use param
         
         print*, ' '
         print*,'!================= REFINMENT INFO ===============!'
-        write(*,"(A23,2x,a12,3X,A1)") ' - Refinment type:         ', bbbb,''
+        write(*,"(A23,2x,a12,3X,A1)") ' - Refinement type:        ', bbbb,''
         write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelew,'   '
         write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', npoif, ' '
         
@@ -109,7 +116,6 @@ use param
         write(*,'(A)')' --From PARA: none refinment selected-- '
       end if
       
-      close(5)
      
       101 continue
       
