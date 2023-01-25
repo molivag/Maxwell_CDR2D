@@ -35,11 +35,11 @@ i_exp    = 4.0              !Exponent of characteristic mesh size 3,4,5 or 6.   
 n_val    = 1.0              !n parameter in exact solution
 
 # > > > > > > > Output Files
-testNo   = 03
-Postpro  = CB_Ldom_T3
-Error    = CB_errorT3
-Cordi    = LdomCBcord
-Conecti  = LdomCBcone  
+testNo   = 03		    !data file with input parameters in each iteration Res/results
+Postpro  = CB_Ldom_T3	    !Matlab and GiD file
+Error    = CB_errorT3	    !Matlab file
+Cordi    = LdomCBcord	    !Matlab file
+Conecti  = LdomCBcone  	    !Matlab file
  
 # > > > > > > > Physical Properties
 #DIFMA_11                !Diffusion tensor
