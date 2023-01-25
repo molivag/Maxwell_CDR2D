@@ -25,10 +25,10 @@ implicit none
   !--------------- Input Data ---------------!
   call cpu_time(start)
   call inputData
-  call GeneralInfo
   
   !--------------- Geometry -----------------!
   call readMesh
+  call GeneralInfo
 
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)
