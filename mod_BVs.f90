@@ -248,7 +248,7 @@ module BoundVal
             d = d+3
            
           else if(x.eq.xmiddle)then
-            if(y .e. ymiddle)then
+            if(y .eq. ymiddle)then
               ux = 0.0
               uy = 0.0
               write(200,10) i, 1, 1, 1                           !central corner  (0,0)
