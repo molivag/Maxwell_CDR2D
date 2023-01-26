@@ -1153,13 +1153,14 @@ module library
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, ugl_pre, A_F)
+      use sourceTerm
       
       implicit none
       
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in):: hes_xixi, hes_xieta, hes_etaeta
-      double precision, dimension(ndofn)        :: source
+      double precision, dimension(ndofn)        :: EMsource
       double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -1194,12 +1195,11 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(basis, xi_cor, yi_cor, source)
+          call source_term(basis, xi_cor, yi_cor, EMsource)
           
-          !call source_term(igaus, source)
-          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
-          !call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
 
           select case(theta)
             case(2)
@@ -1222,11 +1222,13 @@ module library
     !
     subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
+      use sourceTerm
+      
       implicit none
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
-      double precision, dimension(ndofn)        :: source
+      double precision, dimension(ndofn)        :: EMsource
       double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -1279,11 +1281,10 @@ module library
           !print*, ' '
           !print"(A11,I2,A2,2(f7.5,2x))", 'GaussPoint', igaus,': ',ngaus(igaus,1), ngaus(igaus,2)
           
-          call source_term(basis, xi_cor, yi_cor, source)
-          call Galerkin(dvol, basis, dN_dxy, source, Ke, Ce, Fe) !amate lo llame Ke
+          call source_term(basis, xi_cor, yi_cor, EMsource)
+          call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
-          !call Stabilization(dvol, basis, dN_dxy, HesXY, source, tauma, Ke, Fe)
+          if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
         end do
         !stop
         
@@ -1504,88 +1505,6 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine source_term(basis, xi_cor, yi_cor, source)
-      implicit none
-      
-      !***********************************************************!
-      !The source term is given by:                               !
-      !                                                           !
-      !              u = grad(r^{2n/3}*sin((2n/3)*theta))         !
-      ! where:                                                    !
-      ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
-      !                                                           !
-      ! and                                                       !
-      !         f = Lu  ;   where L is the diferential operator   !
-      !                                                           !
-      !***********************************************************!
-      
-      double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
-      integer :: ibase
-      real    :: n
-      double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
-      double precision :: x, y, param_stab1
-      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
-      double precision :: itan, senn, coss
-      double precision, dimension(ndofn), intent(out)  :: source
-      
-      
-      param_stab1 = Cu*(helem**2/ell**2)
-      n = n_val
-      x = 0.0
-      y = 0.0
-      
-      do ibase = 1, nne 
-        x = x + basis(ibase)*xi_cor(ibase)
-        y = y + basis(ibase)*yi_cor(ibase)
-        !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
-      end do
-      
-      !terms for derivatives
-      aa   = (2.0/27.0)*n
-      bb   = (x**2 + y**2) 
-      cc   = (n/3.0 - 5.0/2.0)
-      dd   = (8.0*n**2 - 24.0*n + 27.0) 
-      ee   = (2.0/3.0)*n
-      ff   = (y/x) 
-      gg   = 4.0*(n-3.0)*n
-      hh   = (x**2 - y**2)  
-      ii   = (4.0*n**2 - 6.0*n + 9.0) 
-      jj   = (2.0*n**2 - 9.0*n + 9.0) 
-      kk   = (8.0*x*y)*(n-3.0)*n 
-      itan = datan(ff) 
-      senn = dsin(ee*itan)
-      coss = dcos(ee*itan)
-      
-      !Derivatives in x-direction
-      dey_dydx = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
-      dex_dy2  =-aa * bb**cc *( (x*x*ii - 2.0*y*y*jj)*senn - kk*coss )  
-      dex_dx2  = aa * bb**cc *( (2.0*x*x*jj - y*y*ii)*senn - kk*coss )
-      dey_dxdy = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
-      
-      !Derivatives in y-direction
-      dey_dx2  = aa * bb**cc *( (2.0*x*x*jj - y*y*ii)*coss + kk*senn )
-      dex_dxdy = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )
-      dex_dydx = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )  
-      dey_dy2  =-aa * bb**cc *( (x*x*ii - 2.0*y*y*jj)*coss + kk*senn ) 
-      
-      !Source Term computation
-      source(1) = mu*( dey_dydx - dex_dy2 + param_stab1*( dex_dx2 + dey_dxdy) )
-      source(2) = mu*(-dey_dx2 + dex_dxdy + param_stab1*( dex_dydx+ dey_dy2 ) )
-      
-      if(ndofn.eq.3)then
-        source(3) = force(ndofn)
-      elseif(ndofn.eq.2)then
-        continue
-      else
-        print*, 'Source term is a bidimensional field, not enough DoF'
-      end if
-      
-      ! print*, ' Se imprime el termino de fuente '
-      ! do i =1,ndofn
-      !   print*, source(i)
-      ! end do
-      
-    end subroutine source_term
     
     !subroutine source_term(basis, xi_cor, yi_cor, source)
     !  
@@ -1650,53 +1569,6 @@ module library
     !  
     !end subroutine source_term
     
-    subroutine Convergence(solution, x, y, exact_x, exact_y, error)
-      implicit none
-      
-      double precision, dimension(ntotv,1), intent(in) :: solution
-      double precision, dimension(nnodes), intent(in)  :: x, y
-      double precision                                 :: aa, bb, cc, dd, ee, xcor, ycor
-      double precision                                 :: x_FEM, y_FEM, uxSol, uySol
-      integer                                          :: inode
-      double precision, dimension(1, ntotv)            :: solution_T
-      double precision, dimension(nnodes), intent(out) :: exact_y, exact_x
-      double precision, intent(out)                    :: error
-      
-      solution_T = transpose(solution)
-      error = 0.0
-      
-      aa = (2.0/3.0)*n_val
-      cc = (n_val/3.0) - (1.0/2.0)
-      !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-      do inode = 1, nnodes  
-        
-        xcor = coord(1,inode)
-        ycor = coord(2,inode)
-       
-       !exact solution
-        bb    = ((xcor**2 + ycor**2))
-        dd    = ycor/xcor
-        ee    = atan(dd)
-        uxSol = aa * bb**cc * sin(aa*ee)
-        uySol = aa * bb**cc * cos(aa*ee)
-        
-        !FEM solution
-        x_FEM = solution_T(1,ndofn*inode-2)
-        y_FEM = solution_T(1,ndofn*inode-1)
-        
-        !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
-        !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-        error = error + (y_FEM - uySol)**2 
-        !print*, 'error', error  
-        
-        !Write to plotting file 
-        exact_x(inode) = uxSol 
-        exact_y(inode) = uySol
-        
-      end do
-      error = sqrt(error/float(nnodes))
-     
-    end subroutine Convergence
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -1707,13 +1579,14 @@ module library
       character(len=*), parameter    :: fileplace = "Res/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       
-      double precision, dimension(1, ntotv)   :: solution_T
-      double precision, dimension(1,nnodes)   :: xcoor, ycoor
-      double precision, dimension(nnodes)     :: exact_y, exact_x
-      double precision, dimension(nnodes)     :: x, y
-      character(len=12)                       :: extension
-      integer                                 :: ipoin, ielem, inode
-      double precision                        :: error, xmax
+      double precision, dimension(1, ntotv) :: solution_T
+      double precision, dimension(1,nnodes) :: xcoor, ycoor
+      double precision, dimension(nnodes)   :: x, y
+      double precision, dimension(nnodes)   :: exact_y, exact_x
+      double precision     :: aa, bb, cc, dd, ee
+      double precision     :: error, xmax, x_FEM, y_FEM, uxSol, uySol
+      character(len=12)    :: extension
+      integer              :: ipoin, ielem, inode
       
       
       extension ="_matlab.txt"
@@ -1721,11 +1594,36 @@ module library
       solution_T = transpose(solution)
       xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
       ycoor = spread(coord(2,:),dim = 1, ncopies= 1)
-      
+      error = 0.0
       x  = xcoor(1,:)
       y  = ycoor(1,:)
       
-      call Convergence(solution, x, y, exact_x, exact_y,  error)
+      aa = (2.0/3.0)*n_val
+      cc = (n_val/3.0) - (1.0/2.0)
+      !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
+      do inode = 1, nnodes  
+        
+       !exact solution
+        bb    = ((x(inode)**2 + y(inode)**2))
+        dd    = y(inode)/x(inode)
+        ee    = atan(dd)
+        uxSol = aa * bb**cc * sin(aa*ee)
+        uySol = aa * bb**cc * cos(aa*ee)
+        
+        !FEM solution
+        x_FEM = solution_T(1,ndofn*inode-2)
+        y_FEM = solution_T(1,ndofn*inode-1)
+        
+        !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
+        error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+        !print*, 'error', error  
+        
+        !Write to plotting file 
+        exact_x(inode) = uxSol 
+        exact_y(inode) = uySol
+        
+      end do
+      error = sqrt(error/float(nnodes))
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
