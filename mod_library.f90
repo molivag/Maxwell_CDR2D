@@ -30,6 +30,7 @@ module library
         write(*,'(A)') '> > >Error in stabilization method'
       endif
       
+      
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
@@ -46,6 +47,23 @@ module library
       write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', initnevab,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', initntotv,'   '
+      
+      if(refiType.eq.'NO')then
+        write(*,"(A23,2x,a6,3X,A1)") ' - Refinement type:        ', '  NONE',''
+      elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
+        if(refitype.eq.'PS')then
+          bbbb = 'Powell-Sabin'
+        else
+          bbbb = 'Cross-Box'
+        end if
+          print*, ' '
+          print*,'!================= REFINMENT INFO ===============!'
+          write(*,"(A23,2x,a12,3X,A1)") ' - Refinement type:        ', bbbb,''
+          write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
+          write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
+      else
+        write(*,'(A)') '> > >Error in refinment type'
+      endif
       
       print*, ' '
       print*,'!========== STABILIZATION PARAMETERS ==========!'
@@ -159,8 +177,7 @@ module library
       end do
         write(100,'(A)') 
       write(100,'(A)') 'External Forces'
-        write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
-      write(100,'(A)') 
+      write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
       
       
       close(100)
@@ -177,7 +194,7 @@ module library
       integer, intent(in)            :: NumRows, NumCols
       character(len=*), parameter    :: fileplace = "./"
       character (len=9)              :: FileName1, FileName2
-      character(len=80) :: msg
+      character(len=180) :: msg
       integer, dimension(NumRows,NumCols-ndofn), intent (out) :: condition
       double precision, dimension(NumRows,ndofn),intent (out) :: condition_value
       
@@ -192,6 +209,8 @@ module library
         print*, ' '
         print*,'!============ STATUS READING BOUND VAL. ============!'
         print "(A38,I2)", "- Status while reading ifPre file is: ", stat1
+        print*, ' '
+        print'(A8,1x,A180)','iomsg= ',msg
       else
         continue
       end if
@@ -199,6 +218,8 @@ module library
       read(20,*,iostat=stat2,iomsg=msg) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
       if (stat2.ne.0) then
         print "(A38,I2)", "- Status while reading BoVal file is: ", stat2
+        print*, ' '
+        print'(A8,1x,A180)','iomsg= ',msg
       else
         continue
       end if
