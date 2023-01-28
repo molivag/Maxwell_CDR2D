@@ -24,7 +24,6 @@ use param
       implicit none
       
       integer :: ielem, jpoin, idime, i,j, stat
-      character(len=12) :: bbbb 
       character(len=180) :: msg
       character(len=*), parameter  :: fileplace = "./"
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
@@ -95,30 +94,9 @@ use param
         nelem  = nelew 
         nne    = nnodw
         
-        if(refiType.eq.'NO')then
-          bbbb = '    NONE'
-        elseif(refiType.eq.'PS')then
-          bbbb = 'Powell-Sabin'
-        elseif(refiType.eq.'CB')then
-          bbbb = 'Cross-Box'
-        else
-          write(*,'(A)') '> > >Error in refinment type'
-        endif
-        
-        print*, ' '
-        print*,'!================= REFINMENT INFO ===============!'
-        write(*,"(A23,2x,a12,3X,A1)") ' - Refinement type:        ', bbbb,''
-        write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelew,'   '
-        write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', npoif, ' '
-        
-      else
-        continue
-        write(*,'(A)')' --From PARA: none refinment selected-- '
       end if
-      
      
       101 continue
-      
       
       nevab = ndofn*nne
       ntotv = ndofn*nnodes
