@@ -17,7 +17,9 @@ module BoundVal
       
       implicit none
       
+      double precision, parameter :: pi = 4*atan(1.d0)
       character(len=*), parameter :: fileplace ="./"
+      
       integer :: ierror, a ,b, c, d, e, f,i 
       double precision :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
       double precision :: aa, cc
@@ -33,8 +35,6 @@ module BoundVal
       d = 0
       e = 0
       f = 0
-      
-      !u(x) = u1/x1 - x0
       
       xmin = minval(coord(1,:)) !the smallest number in x column
       xmax = maxval(coord(1,:)) !the greatest number in x column
@@ -133,38 +133,8 @@ module BoundVal
               write(300,40)   0.0, 0.0
             d = d+2
            
-            !else if(x.eq.xmiddle)then
-            !  !print*,'coordinate', coord(1,i)
-            !  !print*,' ' 
-            !  !print*, 'x  = ', x
-            !  !
-            !  !print*, 'y_ = ', y
-            !  !print*, ' ' 
-            !  
-            !  if(y .gt. ymin)then
-            !    !print*, 'y = ', y
-            !    write(100,60) i, 1,1, real(0), real(0)     !middle top boundary
-            !    e = e+2
-            !  end if
-            !  
-            !else if(y.eq.ymiddle)then
-            !  !print*,'coordinate', coord(1,i)
-            !  !print*,' ' 
-            !  !print*, 'x  = ', x
-            !  !
-            !  !print*, 'y_ = ', y
-            !  !print*, ' ' 
-            !  
-            !  if(x .lt. xmax)then
-            !    !print*, 'y = ', y
-            !    write(100,60) i, 1,1, real(0), real(0)     !middle top boundary
-            !    e = e+2
-            !  end if
-            
           end if
           
-          
-          !end if
           nBVs = a+b+c+d+e
          
         end do
@@ -183,19 +153,19 @@ module BoundVal
           
           if(y.eq.ymax) then
             if(x.eq.xmax)then
-              ux = aa*(2.0)**cc *sind(30.0*n_val) 
-              uy = aa*(2.0)**cc *cosd(30.0*n_val)
+              ux = aa*(2.0)**cc *sin(n_val*(pi/6.0)) 
+              uy = aa*(2.0)**cc *cos(n_val*(pi/6.0))
               write(200,10) i, 1, 1, 1
               write(300,20)   ux, uy, 0.0                        !Right top Corner
               
             elseif(x.eq.xmin)then
-              ux = aa*(2.0)**cc *sind(-30.0*n_val) 
-              uy = aa*(2.0)**cc *cosd(-30.0*n_val)
+              ux = aa*(2.0)**cc *sin(-n_val*(pi/6.0)) 
+              uy = aa*(2.0)**cc *cos(-n_val*(pi/6.0))
               write(200,10) i, 1, 1, 1
               write(300,20)   ux, uy, 0.0                        !Left top Corner
               
             else
-              ux = aa*(x**2 + 1.0)**cc *sind(aa*datan(1.0/x))
+              ux = aa*(x**2 + 1.0)**cc *sin(aa*datan(1.0/x))
               write(200,10) i, 1, 0, 1
               write(300,20)   ux, uy, 0.0                        !Top boundary
             end if
@@ -208,19 +178,19 @@ module BoundVal
             
           else if(y.eq.ymin)then
             if(x.eq.xmin)then
-              ux = aa*(2.0)**cc *sind(30.0*n_val) 
-              uy = aa*(2.0)**cc *cosd(30.0*n_val)
+              ux = aa*(2.0)**cc *sin(n_val*(pi/6.0))
+              uy = aa*(2.0)**cc *cos(n_val*(pi/6.0))
               write(200,10) i, 1, 1, 1
               write(300,20)   ux, uy, 0.0                        !Left bottom Corner
              
             elseif(x.eq.xmiddle)then
-              ux = aa*(1.0)**cc * sind(60.0*n_val)
-              uy = aa*(1.0)**cc * cosd(60.0*n_val)
+              ux = aa*(1.0)**cc * sin(n_val*(pi/3.0))
+              uy = aa*(1.0)**cc * cos(n_val*(pi/3.0))
               write(200,10) i, 1, 1, 1
               write(300,20)   ux, uy, 0.0                        !central bottom Corner (0,-1)
               
             else
-              ux = aa*(x**2+1.0)**cc *sind(aa*datan(-1.0/x))
+              ux = aa*(x**2+1.0)**cc *sin(aa*datan(-1.0/x))
               write(200,10) i, 1, 0, 1                           !Bottom boundary
               write(300,20)   ux, uy, 0.0
               
@@ -229,7 +199,7 @@ module BoundVal
             
           else if(x.eq.xmax)then
             if(y.gt.ymiddle)then
-              uy = aa*(1.0+y**2)**cc *cosd(aa*datan(y))  
+              uy = aa*(1.0+y**2)**cc *cos(aa*datan(y))  
               write(200,10) i, 0, 1, 1                           !Right boundary
               write(300,20)   ux, uy, 0.0
               
@@ -242,7 +212,7 @@ module BoundVal
             endif
             c = c+3
           else if (x.eq.xmin)then
-              uy = aa *(1.0+y**2)**cc *cosd(aa*datan(-y))  
+              uy = aa *(1.0+y**2)**cc *cos(aa*datan(-y))  
               write(200,10) i, 0, 1, 1                           !Left boundary
               write(300,20)   ux, uy, 0.0
             d = d+3
@@ -255,7 +225,7 @@ module BoundVal
               write(300,20)   ux, uy, 0.0
               
             elseif(y .gt. ymin)then
-              uy = aa*(y**2)**cc *cosd(60*n_val)
+              uy = aa*(y**2)**cc *cos(n_val*(pi/3.0))
               write(200,10) i, 0, 1, 1                           !central vertical boundary (x=0)
               write(300,20)   ux, uy, 0.0
             end if
@@ -276,11 +246,12 @@ module BoundVal
         nBVs = nBVs/3
         nBVscol = 7 
         
+        
       end if
       
       close(100)
       
-      10 format(I6,1x,3(1x,I2))
+      10 format(I6,2x,3(1x,I2))
       20 format(3(e15.7,2x))
       30 format(f12.5)
       40 format(2(f12.5,2x))
