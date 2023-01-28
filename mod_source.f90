@@ -58,15 +58,15 @@ module sourceTerm
       
       !Derivatives in x-direction
       dey_dydx = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
-      dex_dy2  =-aa * bb**cc *( (x*x*ii - 2.0*y*y*jj)*senn - kk*coss )  
-      dex_dx2  = aa * bb**cc *( (2.0*x*x*jj - y*y*ii)*senn - kk*coss )
+      dex_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*senn - kk*coss )  
+      dex_dx2  = aa * bb**cc *( (2.0*(x**2)*jj - (y**2)*ii)*senn - kk*coss )
       dey_dxdy = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
       
       !Derivatives in y-direction
-      dey_dx2  = aa * bb**cc *( (2.0*x*x*jj - y*y*ii)*coss + kk*senn )
+      dey_dx2  = aa * bb**cc *( (2.0*(x**2)*jj - (y**2)*ii)*coss + kk*senn )
       dex_dxdy = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )
       dex_dydx = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )  
-      dey_dy2  =-aa * bb**cc *( (x*x*ii - 2.0*y*y*jj)*coss + kk*senn ) 
+      dey_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*coss + kk*senn ) 
       
       !Source Term computation
       EMsource(1) = mu*( dey_dydx - dex_dy2 + param_stab1*( dex_dx2 + dey_dxdy) )
