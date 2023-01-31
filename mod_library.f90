@@ -11,9 +11,11 @@ module library
       character(len=*), parameter :: fileplace = "Res/results/"
       character(len=5) :: file_name 
       character(len=24):: date
-      character(len=4) :: aaaa
-      character(len=12) :: bbbb 
-      
+      character(len=4) :: aaaa, cccc
+      character(len=12) :: bbbb
+      character(len=16) :: dddd
+      double precision :: delta_t
+
       integer :: i,j, k, l
       
       if(kstab.eq.3 .or. kstab.eq.5)then
@@ -25,12 +27,11 @@ module library
       elseif(kstab.eq.1)then
         aaaa = 'SUPG'
       elseif(kstab.eq.0)then
-        aaaa = 'NONE'
+        aaaa = 'MAVF'
       else
         write(*,'(A)') '> > >Error in stabilization method'
       endif
-      
-      
+     
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
@@ -79,35 +80,57 @@ module library
       write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
       write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-      end do
-        print*,' '
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      end do
-        print*,' '
-      print*,'External Forces'
-        write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
-      print*, ' '
+      
+      if(theta.ne.0)then
+        delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
+        write(*,*) ' '
+        print*,'!============ TIME DISCRETIZATION ============!'
+        if((theta.eq.1).or.(theta.eq.2))then
+          if(theta.eq.1)then
+            cccc = 'BDF1'
+          else
+            cccc = 'BDF2'
+          endif
+          write(*,"(A19,8X,A,1X,A10)") ' - Method Selected:        ', cccc,' '
+        elseif(theta.eq.3)then
+          dddd = 'Cranck-Nicholson'
+          write(*,"(A23,2x,a16,3X,A1)") ' - Method Selected:        ', dddd,' '
+        endif
+        write(*,"(A19,4X,F10.3,1X,A10)") ' - Initial time:          ', time_ini,' '
+        write(*,"(A19,4X,F10.3,1X,A10)") ' - Final time:            ', time_fin,' '
+        write(*,"(A19,8X,I5,1X,A10)")    ' - Number of steps:       ', max_time,' '
+        write(*,"(A21,7X,F10.6,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
+      endif
+      
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !end do
+      !  print*,' '
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !  print*,' '
+      !print*,'External Forces'
+      !  write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      !print*, ' '
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
@@ -1223,9 +1246,12 @@ module library
           !call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
 
           select case(theta)
-            case(2)
+            case(1) !BDF1
               Fe_time = Fe + matmul(Ce,time_cont)
-            case(3)
+            case(2) !BDF2
+              print*, 'BDF2 not available yet '
+              stop
+            case(3) !Crank-Nicholson
               rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
               Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
           end select
@@ -1259,7 +1285,7 @@ module library
       double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ, aaa
+      double precision                          :: dvol, hmaxi, detJ!, aaa
       
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
@@ -1319,8 +1345,8 @@ module library
         
       end do
       
-      aaa = maxval(coord(1,:))*2**(-i_exp) 
-      if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
+      !aaa = maxval(coord(1,:))*2**(-i_exp) 
+      !if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
       
     end subroutine GlobalSystem
     
@@ -1958,27 +1984,31 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine GID_PostProcess(solution, activity, step_value, interval, time_final)
+    subroutine GID_PostProcess(solution, activity, step_value, interval)
       
       implicit none
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(*), intent(in)                :: activity
-      integer, intent(in)                     :: step_value
-      real, intent(in)                        :: interval, time_final
+      integer     , intent(in)                :: step_value
+      real        , intent(in)                :: interval
+      character(len=10)                       :: extension1, extension2
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin, ii
+      integer                                 :: inode, ipoin, ielem, ii
       
       solution_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
-      print*, '!====== Output files ======'
+      extension1 = ".post.msh"
+      extension2 = ".post.res"
       
-      if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-        open(unit=100, file= fileplace//File_PostProcess, ACTION="write", STATUS="replace")
+      !print*, '!====== Output files ======'
+      
+      if(activity == "msh")then !quitar este if y acomodar el numero de unidad 
+        open(unit=100, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
         
         write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
         write(100,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -1990,30 +2020,29 @@ module library
         end do
         write(100,"(A)") 'End Coordinates'
         write(100,"(A)") 'Elements'
-        do ipoin = 1, nelem
-          write(100,908) lnods(ipoin,:)
+        do ielem=1,nelem
+          write(100,908) ielem,(lnods(ielem,inode),inode=1,nne)
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A19,A30)", ' Mesh file ',File_PostProcess//'.post.msh', 'written succesfully in Pos/ '
+        print"(A11,A19,A30)", ' Mesh file ',File_PostProcess//extension1, 'written succesfully in Pos/ '
+        
       elseif(activity == "res")then
-       
         if(step_value == 0)then
-          open(unit=200, file= fileplace//File_PostProcess, ACTION="write", STATUS="replace")
+          open(unit=200, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
           write(200,"(A)") '#2D Convection-Diffusion-Reaction'
         else
           continue
         endif
-        open(unit=200, file= fileplace//File_PostProcess, ACTION="write", STATUS="old", position="append")
-        
-        ! se escribe el res de las componentes de la velocidad
+        open(unit=200, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="old", position="append")
+        ! se escribe el res de las componentes del campo electrico
         select case(ndofn)
           case(1)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Scalar OnNodes'
+            write(200,"(A29, I3, A)") 'Result "DoF" "EM field" ', step_value,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             Ex '
+            write(200,*) '#',   'No    ','             ex '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(200,914)
             do ipoin = 1, nnodes
@@ -2021,24 +2050,24 @@ module library
             end do
             write(200,"(A)") 'End Values'
           case(2)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
-            write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
+            write(200,"(A29, I3, A)") 'Result "DoF" "EM field" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "ex" "ey" "ez" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             Ex ','               Ey '
+            write(200,*) '#',   'No    ','             ex ','               ey '
             do ipoin = 1, nnodes
               write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
             end do
             write(200,"(A)") 'End Values'
           case(3)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
-            write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
+            write(200,"(A24, I3, A)") 'Result "DoF" "EM field" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "ex" "ey" "ez" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             Ex ','               Ey'
+            write(200,*) '#',   'No    ','             ex ','               ey'
             do ipoin = 1, nnodes
               write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
             end do
             write(200,"(A)") 'End Values'
-            write(200,"(A22, I3, A)") 'Result "P" "Preassure"', step_value,' Scalar OnNodes'
+            write(200,"(A24, I3, A)") 'Result "P" "Multiplier" ', step_value,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','     p '
@@ -2058,9 +2087,9 @@ module library
       end if
       close(200)
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
-      if(interval == time_final) then
-        print*, ' '
-        print"(1x, A26,A30)", File_PostProcess//'.post.res', 'written succesfully in Pos/ '
+      
+      if(interval.eq.time_fin) then
+        print"(1x, A26,A30)", File_PostProcess//extension2, 'written succesfully in Pos/ '
       endif
       
       
@@ -2069,9 +2098,9 @@ module library
       906 format(I7,2(3x,f9.4)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
-      916 format(I7,2x,F12.5)  !format for scalar case
+      916 format(I7,2x,E15.5)  !format for scalar case
       918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
-      919 format(I7,3(4x,F20.10)) !format for res velocity
+      919 format(I7,2(4x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
    
