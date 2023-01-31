@@ -57,31 +57,29 @@ implicit none
   S_nrhs  = 1
   !workdim = max(1,3*S_n)
 
-
   !-------- Problem Type Definition --------!
-  if(ProbType .eq. 'trans')then
+  if(ProbType .eq. 'trans')then !transient case
     
     call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
-    &                    time_ini, time_fin, max_time, nofix, ifpre, presc, &
-    &                    S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
+    &                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
    
     !---------- Memory Relase -----------!
-    DEALLOCATE( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
-    DEALLOCATE(hes_xixi, hes_xieta, hes_etaeta) 
+    deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+    deallocate(hes_xixi, hes_xieta, hes_etaeta) 
   
-  else
+  else !static case
     
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !---------- Memory Relase -----------!
-    DEALLOCATE( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
-    DEALLOCATE(hes_xixi, hes_xieta, hes_etaeta) 
+    deallocate( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
+    deallocate(hes_xixi, hes_xieta, hes_etaeta) 
     
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
     !allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
-
+    
     print*, ' '
     print*, '!================ MKL Solver ==================!'
     AK_LU = A_K     !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
