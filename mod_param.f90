@@ -2,18 +2,15 @@ module param
   
   implicit none
 
-  character(len=5)  :: ProbType
-  character(len=14) :: InitElemType
-  character(len=2)  :: refiType
   character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
-  character(len=2)  :: testNo
+  character(len=4)  :: InitElemType, ProbType
+  character(len=2)  :: refiType, testNo
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
+  integer           :: x_0, y_0, x_1, y_1
   real              :: hnatu, patau, time_ini, time_fin, u0cond
   real              :: Cu,mu, ell, helem, i_exp, n_val
-  !integer,          allocatable, dimension(:,:)     :: lnods, lnodsRef
-  !double precision, allocatable, dimension(:,:)     :: coord, coordRef
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -33,17 +30,27 @@ module param
       implicit none
       
       double precision  :: param_stab1, param_stab2 
-      character(len=80)             :: msg
+      character(len=180)            :: msg
       character(len=*), parameter   :: fileplace = "./"
-      !character(len=2), intent(out) :: refiType
-      !integer         , intent(out) :: initElem, initNodes
       integer                       ::  stat
       
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
-      read(5, 100) InitElemType, ProbType, DimPr, initElem, initNodes, nne, ndofn, totGp, maxband, &
-      refiType, theta, time_ini, time_fin,max_time,u0cond, kstab, ktaum, patau, hnatu, &
-      Cu, mu, ell, i_exp, n_val, testNo, File_PostProcess, error_name, coord_name, conec_name
+      read(5, 100,iostat=stat,iomsg=msg) InitElemType, ProbType, DimPr, ndofn, totGp,&
+      initElem, initNodes, nne, refiType, theta, time_ini, time_fin,max_time, u0cond,&
+      kstab, ktaum, patau, hnatu, Cu, mu, ell,i_exp, n_val, testNo, File_PostProcess,&
+      error_name, coord_name, conec_name, x_0, y_0, x_1, y_1
+      
+      if (stat.ne.0) then
+        print*, ' '
+        print*,'!============ STATUS READING INPUT FILE. ============!'
+        print "(A38,I4)", "- Status while reading input file is: ", stat
+        print*, ' '
+        print'(A8,1x,A180)','iomsg = ',msg
+      else
+        continue
+      end if
+     
      
       allocate( difma(ndofn,ndofn,DimPr,DimPr) )
       allocate( conma(ndofn,ndofn,DimPr) )
@@ -87,38 +94,50 @@ module param
         
       elseif(ndofn.eq.3)then
         
-        read(5,103) &
+        read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,1), difma(1,2,1,1), difma(1,3,1,1), &
         difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1), &
         difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
-        read(5,103) &
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        
+        read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
         difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2), &
         difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
-        read(5,103) &
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        
+        read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
         difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1), &
         difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
-        read(5,103) &
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        
+        read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
         difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2), &
         difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
-           
-        read(5,103) &
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        
+        read(5,103,iostat=stat,iomsg=msg) &
         conma(1,1,1), conma(1,2,1), conma(1,3,1), &
         conma(2,1,1), conma(2,2,1), conma(2,3,1), &
         conma(3,1,1), conma(3,2,1), conma(3,3,1)
-        read(5,103) &
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        
+        read(5,103,iostat=stat,iomsg=msg) &
         conma(1,1,2), conma(1,2,2), conma(1,3,2), &
         conma(2,1,2), conma(2,2,2), conma(2,3,2), &
         conma(3,1,2), conma(3,2,2), conma(3,3,2)
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
         
-        read(5,103) &
+        read(5,103,iostat=stat,iomsg=msg) &
         reama(1,1), reama(1,2), reama(1,3), &
         reama(2,1), reama(2,2), reama(2,3), &
         reama(3,1), reama(3,2), reama(3,3)
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
         
-       read(5,107) force(1), force(2), force(3)
+       read(5,107,iostat=stat,iomsg=msg) force(1), force(2), force(3)
+        !if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
        
         difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
         difma(2,2,1,1) = difma(2,2,1,1)*mu
@@ -142,10 +161,11 @@ module param
       initnevab = ndofn*nne
       initntotv = ndofn*initNodes
       
-      100 format(7/ 11x, A14,/ ,11x, A5,/, 7(11x,I5,/), 11x, A2,/, 2/,&         !geometry
-      &          11x,I5,/, 2(11x,f7.2,/),11x,I3,/,11x,f7.2,/, 2/,&               !time
+      100 format(7/ 11x, A4,/ ,11x, A4,/, 3(11x,I5,/), 2/,&                      !model parameters
+      &          3(11x,I7,/), 11x,A2,/      ,2/,&                                !geometry
+      &          11x,I1,/, 2(11x,f7.2,/),11x,I7,/,11x,f7.2,/, 2/,&               !time
       &          2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/,& !stabi
-      &          11x,A2,/, 4(11x,A10,/),/)                                       !out file
+      &          11x,A2,/, 4(11x,A10,/), 2/, 4(11x,I7,/), / )                     !source location
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
