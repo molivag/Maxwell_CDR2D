@@ -5,7 +5,7 @@ use param
 
   double precision, allocatable, dimension(:,:)     :: coord !, coordRef
   integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
-  character(len=14) :: ElemType
+  character(len=4) :: ElemType
   integer           :: nelem, nnodes, nevab, ntotv
 
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
@@ -41,7 +41,7 @@ use param
       lnods = 0.0
       coord = 0.0
       
-      do i=1,76
+      do i=1,83
       read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       end do
       do i=1,nelem
@@ -304,7 +304,7 @@ use param
             lnodw(nelew+3,3)=lnod_add(ielem,5)
             nelew=nelew+3
             
-            ElemType = 'Triangle'
+            ElemType = 'TRIA'
             
           endif
         else

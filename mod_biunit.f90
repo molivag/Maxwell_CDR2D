@@ -17,7 +17,7 @@ module biunit
       weigp = 0.0
       
       Select case(ElemType) 
-        case('Quadrilateral')
+        case('QUAD')
           if(totGp.eq.1)then 
             ngaus(1,1) = 0.0
             ngaus(1,2) = 0.0
@@ -68,10 +68,11 @@ module biunit
             weigp(8,1) = 40.0/81.0
             weigp(9,1) = 64.0/81.0
           else
+            PRINT*,' '
             write(*,*) 'Invalid number of Gauss points for this element (Q1)'   
             stop
           end if
-        case("Triangle") 
+        case('TRIA') 
           if(totGp.eq.1) then
             ngaus(1,1) = 1.0/3.0
             ngaus(1,2) = 1.0/3.0
@@ -113,11 +114,13 @@ module biunit
             weigp(6,1) = 0.1323941527885 
             weigp(7,1) = 0.225
           else
-            write(*,*) 'Invalid number of Gauss poooints for this element (P1)'   
+            PRINT*, ' ' 
+            write(*,*) 'Invalid number of Gauss poooints for element (P1)'   
             stop
           end if
         case DEFAULT
-          print*, 'En GaussQuadrature'
+          PRINT*, ' ' 
+          print*, 'In GaussQuadrature'
           write(*,*) 'Invalid type of element.'
           stop
       end select
@@ -163,7 +166,7 @@ module biunit
       dN_deta = 0.0
       
       select case(ElemType)
-        case('Quadrilateral')
+        case('QUAD')
           if(nne.eq.4) then
             
             do j=1,totGp 
@@ -350,10 +353,11 @@ module biunit
               hes_tt(9,j) = 2.0*(-1.0+xi**2) 
             end do
           else
+          print*, ' '
           write(*,*) 'Invalid number of nodes in element. Q must be 4 or 9'
           stop
           end if
-        case('Triangle')
+        case('TRIA')
           if(nne.eq.3) then
             do j = 1, totGP
              
@@ -421,10 +425,12 @@ module biunit
               
             end do
           else
+          print*, ' '
           write(*,*) 'Invalid number of nodes in element. P must be 3 or 6'
           stop
           end if
         case DEFAULT
+          print*, ' '
           print*, 'In ShapeFucntions'
           write(*,*) 'Invalid type of element. Must be Q or P'
           stop
