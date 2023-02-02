@@ -32,13 +32,15 @@ module library
         write(*,'(A)') '> > >Error in stabilization method'
       endif
      
+      if(ProbType.ne.'TIME')ProbType = 'STAT'
+     
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
-      write(*,"(A19,4x,a13,3X,A1)") ' - Element type:           ', InitElemType,''
+      write(*,"(A19,7x,a5,3X,A1)") ' - Element type:           ', InitElemType,''
       write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
       write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
       write(*,"(A19,4X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
@@ -54,14 +56,14 @@ module library
       elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
         if(refitype.eq.'PS')then
           bbbb = 'Powell-Sabin'
-        else
+        elseif(refiType.eq.'CB')then
           bbbb = 'Cross-Box'
         end if
           print*, ' '
           print*,'!================= REFINMENT INFO ===============!'
-          write(*,"(A23,2x,a12,3X,A1)") ' - Refinement type:        ', bbbb,''
-          write(*,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
-          write(*,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
+          write(*,"(A23,2x,a12,3X,A1)") ' - Refinement type:    ', bbbb,''
+          write(*,"(A23,2X,I6,1X,A10)") ' - Final elements:     ', nelem,'   '
+          write(*,"(A23,2X,I6,1X,A10)") ' - Final nodes:        ', nnodes, ' '
       else
         write(*,'(A)') '> > >Error in refinment type'
       endif
@@ -81,7 +83,7 @@ module library
       write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
       
       
-      if(theta.ne.0)then
+      if(ProbType.eq.'TIME')then
         delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
         write(*,*) ' '
         print*,'!============ TIME DISCRETIZATION ============!'
@@ -100,37 +102,36 @@ module library
         write(*,"(A19,4X,F10.3,1X,A10)") ' - Final time:            ', time_fin,' '
         write(*,"(A19,8X,I5,1X,A10)")    ' - Number of steps:       ', max_time,' '
         write(*,"(A21,7X,F10.6,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
+      else
+        continue
       endif
       
-      !print*, ' '
-      !print*,'!============ TENSOR COEFFICIENTS  ============!'
-      !print*, 'Diffusion'
-      !do i = 1,dimPr
-      !  do j = 1,DimPr
-      !    print"(A,2I1)", 'k_',i,j
-      !    do k = 1,ndofn
-      !      print"(e15.5,1x,e15.5, 1x, e15.5)",( difma(k,l,i,j), l=1,ndofn)
-      !    end do
-      !    !print*,' '
-      !  end do
-      !end do
-      !print*, ' '  
-      !print*, 'Convection'
-      !do k = 1, DimPr
-      !  print"(A,2I1)",'A_',k
-      !  do i = 1, ndofn
-      !    write(*, "(f10.3, 1x, f10.3, 1x, f10.3)")( conma(i,j,k) ,j=1, ndofn)
-      !  end do
-      !end do
-      !  print*,' '
-      !print*,'Reaction'
-      !do i=1,ndofn
-      !  write(*,"(f10.3, 1x, f10.3, 1x, f10.3)" )( reama(i,j) ,j=1,ndofn)
-      !end do
-      !  print*,' '
-      !print*,'External Forces'
-      !  write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
-      !print*, ' '
+      print*, ' '
+      print*,'!============ TENSOR COEFFICIENTS  ============!'
+      print*, 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+      end do
+        print*,' '
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
+      end do
+      print*, ' '
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
@@ -180,7 +181,7 @@ module library
         do j = 1,DimPr
           write(100,"(A,2I1)") 'k_',i,j
           do k = 1,ndofn
-            write(100,"(e15.5,1x,e15.5, 1x, e15.5)") ( difma(k,l,i,j), l=1,ndofn)
+            write(100,"(f15.7,1x,f15.7, 1x, f15.7)") ( difma(k,l,i,j), l=1,ndofn)
           end do
           !print*,' '
         end do
@@ -199,8 +200,8 @@ module library
         write(100,"(f10.3, 1x, f10.3, 1x, f10.3)" ) ( reama(i,j) ,j=1,ndofn)
       end do
         write(100,'(A)') 
-      write(100,'(A)') 'External Forces'
-      write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
+      !write(100,'(A)') 'External Forces'
+      !write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
       
       
       close(100)
@@ -1154,7 +1155,7 @@ module library
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine BandWidth( )
-      !use stdlib_linalg, only: diag
+      !this routine computes the bandwidth 
       
       implicit none
       
@@ -1173,12 +1174,7 @@ module library
         nband = iband
       end do
       nband=(nband+1)*ndofn-1
-      if(nband.ge.maxband) then      !Puedo poner a maxband como variable local (solo se usa aqui) si lo hago debe ir como dummy var
-        !                            en subroutine globaK y en bandwidth. Tambien ldakban puede pasar a ldA y ponerla como out pues
-        !                            se usa en global assemb y aout no vale la pena ponerla como global.
-        write(*,'(a,i5,a)') ' >>> Hay que aumentar MAXBAND a ',nband+1,' !!!'
-        stop
-      end if
+      
       upban  = nband
       lowban = nband
       totban = lowban + upban + 1
@@ -1186,7 +1182,6 @@ module library
       
       print*, ' '
       print*,'!================ Bandwidth Info ==============!'
-      
       write(*,"(A15,9X,I6,1X,A9)")' - UpBand:      ', upban,'   '
       write(*,"(A15,9X,I6,1X,A9)")' - LowBand:     ', lowban,'  '
       write(*,"(A15,9X,I6,1X,A9)")' - TotBand:     ', totban,'  '
@@ -1877,6 +1872,7 @@ module library
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       character(len=10)                       :: extension1, extension2
+      character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: ipoin, ii, ielem, inode
@@ -1890,9 +1886,14 @@ module library
       
       extension1 = ".post.msh"
       extension2 = ".post.res"
+      if(ElemType.eq.'QUAD')then
+        Elem_Type = 'Quadrilateral'
+      elseif(ElemType.eq.'TRIA')then
+        Elem_Type = 'Triangle'
+      endif
       open(unit=555, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
       
-      write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+      write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
       write(555,900) '#Element tipe: ', ElemType,'/',ElemType
       
@@ -1994,6 +1995,7 @@ module library
       integer     , intent(in)                :: step_value
       real        , intent(in)                :: interval
       character(len=10)                       :: extension1, extension2
+      character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
       integer                                 :: inode, ipoin, ielem, ii
@@ -2005,12 +2007,19 @@ module library
       extension1 = ".post.msh"
       extension2 = ".post.res"
       
+      
+      if(ElemType.eq.'QUAD')then
+        Elem_Type = 'Quadrilateral'
+      elseif(ElemType.eq.'TRIA')then
+        Elem_Type = 'Triangle'
+      endif
+      
       !print*, '!====== Output files ======'
       
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad 
         open(unit=100, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
         
-        write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', ElemType, 'Nnode', nne
+        write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
         write(100,"(A)") '#2D Convection-Diffusion-Reaction'
         write(100,900) '#Element tipe: ', ElemType,'/',ElemType
         write(100,"(A)")'Coordinates'
