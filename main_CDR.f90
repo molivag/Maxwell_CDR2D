@@ -58,7 +58,7 @@ implicit none
   !workdim = max(1,3*S_n)
 
   !-------- Problem Type Definition --------!
-  if(ProbType .eq. 'trans')then !transient case
+  if(ProbType .eq. 'TIME')then !transient case
     
     call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
     &                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
