@@ -1626,7 +1626,8 @@ module library
       double precision, dimension(nnodes)   :: x, y
       double precision, dimension(nnodes)   :: exact_y, exact_x
       double precision     :: aa, bb, cc, dd, ee
-      double precision     :: error, xmax, x_FEM, y_FEM, uxSol, uySol
+      double precision     :: sum_error, error, xmax, x_FEM, y_FEM, uxSol, uySol
+      double precision     :: fi, psi, der_fi, der_psi
       character(len=12)    :: extension
       integer              :: ipoin, ielem, inode
       
@@ -1636,36 +1637,74 @@ module library
       solution_T = transpose(solution)
       xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
       ycoor = spread(coord(2,:),dim = 1, ncopies= 1)
-      error = 0.0
       x  = xcoor(1,:)
       y  = ycoor(1,:)
       
-      aa = (2.0/3.0)*n_val
-      cc = (n_val/3.0) - (1.0/2.0)
-      !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-      do inode = 1, nnodes  
-        
-       !exact solution
-        bb    = ((x(inode)**2 + y(inode)**2))
-        dd    = y(inode)/x(inode)
-        ee    = atan(dd)
-        uxSol = aa * bb**cc * sin(aa*ee)
-        uySol = aa * bb**cc * cos(aa*ee)
-        
-        !FEM solution
-        x_FEM = solution_T(1,ndofn*inode-2)
-        y_FEM = solution_T(1,ndofn*inode-1)
-        
-        !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
-        error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-        !print*, 'error', error  
-        
-        !Write to plotting file 
-        exact_x(inode) = uxSol 
-        exact_y(inode) = uySol
-        
-      end do
-      error = sqrt(error/float(nnodes))
+      error = 0.0
+      sum_error = 0.0
+      exact_x = 0.0
+      exact_y = 0.0
+      uxSol = 0.0 
+      uySol = 0.0
+      
+      select case(simul)
+        case(1)
+          bb = 0.0
+          dd = 0.0
+          ee = 0.0 
+          aa = (2.0/3.0)*n_val
+          cc = (n_val/3.0) - 1.0
+          !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
+          do inode = 1, nnodes  
+            
+           !exact solution
+            bb    = ((x(inode)**2 + y(inode)**2))
+            dd    = y(inode)/x(inode)
+            ee    = atan(dd)
+            uxSol = aa * bb**cc * ( x(inode)*sin(aa*ee) - y(inode)*cos(aa*ee) )
+            uySol = aa * bb**cc * ( y(inode)*sin(aa*ee) + x(inode)*cos(aa*ee) )
+            
+            !FEM solution
+            x_FEM = solution_T(1,ndofn*inode-2)
+            y_FEM = solution_T(1,ndofn*inode-1)
+            
+            !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
+            !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+            sum_error = sum_error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            !print*, 'error', error  
+            
+            !Write to plotting file 
+            exact_x(inode) = uxSol 
+            exact_y(inode) = uySol
+            
+          end do
+        case(2)
+          do inode = 1, nnodes  !simple Function
+           
+            !exact solution
+            fi      = (x(inode)-x(inode)**2)
+            psi     = (y(inode)-y(inode)**2)
+            der_fi  = (1.0-2.0*x(inode))
+            der_psi = (1.0-2.0*y(inode))
+            uxSol   = fi*der_psi
+            uySol   = -(psi*der_fi)
+            
+            !FEM solution
+            x_FEM = solution_T(1,ndofn*inode-2)
+            y_FEM = solution_T(1,ndofn*inode-1)             
+           
+            !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
+            !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+            sum_error = sum_error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            !error = error + (x_FEM - ex_x)**2 + (y_FEM - ex_y)**2 
+            
+            !Write to plotting file 
+            exact_x(inode) = uxSol
+            exact_y(inode) = uySol
+            
+          end do
+    end select
+      error = sqrt(sum_error/nnodes)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
@@ -1827,7 +1866,7 @@ module library
       !print*,' '
     end subroutine MKLsolverResult
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !--------------------------------------------------------------------------------  
     !
     subroutine writeMatrix(Matrix, name1, Vector, name2)
       implicit none

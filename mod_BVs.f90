@@ -142,111 +142,180 @@ module BoundVal
         nBVscol = 5
         
       elseif(ndofn .eq. 3)then
-        aa = (2.0/3.0)*n_val
-        cc = (n_val/3.0) - (1.0/2.0)
-        
-        do i = 1, nnodes
-          x=coord(1,i)
-          y=coord(2,i)
-          ux = 0.0 
-          uy = 0.0 
-          
-          if(y.eq.ymax) then
-            if(x.eq.xmax)then
-              ux = aa*(2.0)**cc *sin(n_val*(pi/6.0)) 
-              uy = aa*(2.0)**cc *cos(n_val*(pi/6.0))
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                        !Right top Corner
-              
-            elseif(x.eq.xmin)then
-              ux = aa*(2.0)**cc *sin(-n_val*(pi/6.0)) 
-              uy = aa*(2.0)**cc *cos(-n_val*(pi/6.0))
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                        !Left top Corner
-              
-            else
-              ux = aa*(x**2 + 1.0)**cc *sin(aa*datan(1.0/x))
-              write(200,10) i, 1, 0, 1
-              write(300,20)   ux, uy, 0.0                        !Top boundary
-            end if
-            
-            !if(x.eq.xmiddle)then
-            !  write(200,10) i, 1, 1, 1
-            !  write(300,20)   1.0, 0.0, 0.0                     !middle top preasure boundary
-            !end if
-            a = a+3
-            
-          else if(y.eq.ymin)then
-            if(x.eq.xmin)then
-              ux = aa*(2.0)**cc *sin(n_val*(pi/6.0))
-              uy = aa*(2.0)**cc *cos(n_val*(pi/6.0))
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                        !Left bottom Corner
-             
-            elseif(x.eq.xmiddle)then
-              ux = aa*(1.0)**cc * sin(n_val*(pi/3.0))
-              uy = aa*(1.0)**cc * cos(n_val*(pi/3.0))
-              write(200,10) i, 1, 1, 1
-              write(300,20)   ux, uy, 0.0                        !central bottom Corner (0,-1)
-              
-            else
-              ux = aa*(x**2+1.0)**cc *sin(aa*datan(-1.0/x))
-              write(200,10) i, 1, 0, 1                           !Bottom boundary
-              write(300,20)   ux, uy, 0.0
-              
-            end if
-            b = b+3
-            
-          else if(x.eq.xmax)then
-            if(y.gt.ymiddle)then
-              uy = aa*(1.0+y**2)**cc *cos(aa*datan(y))  
-              write(200,10) i, 0, 1, 1                           !Right boundary
-              write(300,20)   ux, uy, 0.0
-              
-            elseif(y.eq.ymiddle)then
+        select case(simul)
+          case(1)
+            aa = (2.0/3.0)*n_val
+            cc = (n_val/3.0) - (1.0/2.0)
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
               ux = 0.0 
-              uy = aa*(1.0 )**cc
-              write(200,10) i, 1, 1, 1                           !middle right corner
-              write(300,20)   ux, uy, 0.0
-              
-            endif
-            c = c+3
-          else if (x.eq.xmin)then
-              uy = aa *(1.0+y**2)**cc *cos(aa*datan(-y))  
-              write(200,10) i, 0, 1, 1                           !Left boundary
-              write(300,20)   ux, uy, 0.0
-            d = d+3
-           
-          else if(x.eq.xmiddle)then
-            if(y .eq. ymiddle)then
-              ux = 0.0
-              uy = 0.0
-              write(200,10) i, 1, 1, 1                           !central corner  (0,0)
-              write(300,20)   ux, uy, 0.0
-              
-            elseif(y .gt. ymin)then
-              uy = aa*(y**2)**cc *cos(n_val*(pi/3.0))
-              write(200,10) i, 0, 1, 1                           !central vertical boundary (x=0)
-              write(300,20)   ux, uy, 0.0
-            end if
-            e = e+3
-           
-          else if(y.eq.ymiddle)then
-            if(x .gt. xmiddle)then
-              ux = 0.0
-              write(200,10) i, 1, 0, 1
-              write(300,20)   ux, uy, 0.0                        !horizontal boundary at the middle
-            end if
-           
-            f = f+3
-          end if
-          nBVs = a+b+c+d+e+f
-         
-        end do
-        nBVs = nBVs/3
-        nBVscol = 7 
+              uy = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then
+                  ux = aa*(2.0)**cc *sin(n_val*(pi/6.0)) 
+                  uy = aa*(2.0)**cc *cos(n_val*(pi/6.0))
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0                        !Right top Corner
+                  
+                elseif(x.eq.xmin)then
+                  ux = aa*(2.0)**cc *sin(-n_val*(pi/6.0)) 
+                  uy = aa*(2.0)**cc *cos(-n_val*(pi/6.0))
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0                        !Left top Corner
+                  
+                else
+                  ux = aa*(x**2 + 1.0)**cc *sin(aa*datan(1.0/x))
+                  write(200,10) i, 1, 0, 1
+                  write(300,20)   ux, uy, 0.0                        !Top boundary
+                end if
+                
+                !if(x.eq.xmiddle)then
+                !  write(200,10) i, 1, 1, 1
+                !  write(300,20)   1.0, 0.0, 0.0                     !middle top preasure boundary
+                !end if
+                a = a+3
+                
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then
+                  ux = aa*(2.0)**cc *sin(n_val*(pi/6.0))
+                  uy = aa*(2.0)**cc *cos(n_val*(pi/6.0))
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0                        !Left bottom Corner
+                 
+                elseif(x.eq.xmiddle)then
+                  ux = aa*(1.0)**cc * sin(n_val*(pi/3.0))
+                  uy = aa*(1.0)**cc * cos(n_val*(pi/3.0))
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0                        !central bottom Corner (0,-1)
+                  
+                else
+                  ux = aa*(x**2+1.0)**cc *sin(aa*datan(-1.0/x))
+                  write(200,10) i, 1, 0, 1                           !Bottom boundary
+                  write(300,20)   ux, uy, 0.0
+                  
+                end if
+                b = b+3
+                
+              else if(x.eq.xmax)then
+                if(y.gt.ymiddle)then
+                  uy = aa*(1.0+y**2)**cc *cos(aa*datan(y))  
+                  write(200,10) i, 0, 1, 1                           !Right boundary
+                  write(300,20)   ux, uy, 0.0
+                  
+                elseif(y.eq.ymiddle)then
+                  ux = 0.0 
+                  uy = aa*(1.0 )**cc
+                  write(200,10) i, 1, 1, 1                           !middle right corner
+                  write(300,20)   ux, uy, 0.0
+                  
+                endif
+                c = c+3
+              else if (x.eq.xmin)then
+                  uy = aa *(1.0+y**2)**cc *cos(aa*datan(-y))  
+                  write(200,10) i, 0, 1, 1                           !Left boundary
+                  write(300,20)   ux, uy, 0.0
+                d = d+3
+               
+              else if(x.eq.xmiddle)then
+                if(y .eq. ymiddle)then
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1                           !central corner  (0,0)
+                  write(300,20)   ux, uy, 0.0
+                  
+                elseif(y .gt. ymin)then
+                  uy = aa*(y**2)**cc *cos(n_val*(pi/3.0))
+                  write(200,10) i, 0, 1, 1                     !central vertical boundary (x=0)
+                  write(300,20)   ux, uy, 0.0
+                end if
+                e = e+3
+               
+              else if(y.eq.ymiddle)then
+                if(x .gt. xmiddle)then
+                  ux = 0.0
+                  write(200,10) i, 1, 0, 1
+                  write(300,20)   ux, uy, 0.0                 !horizontal boundary at the middle
+                end if
+               
+                f = f+3
+              end if
+            end do
+            nBVs = nBVs/3
+            nBVscol = 7 
+          case(2)
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux = 0.0 
+              uy = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then
+                  ux = 0.0
+                  uy = (y - y**2)        !---->  malla 0-1
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                elseif(x.eq.xmin)then
+                  ux = 0.0
+                  uy = -(y-y**2)          !---->  malla 0-1
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                else
+                  ux = -(x - x**2)
+                  uy = 0.0                !---->  malla 0-1
+                  write(200,10) i, 1, 0, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                end if
+                
+                !if(x.eq.xhalf)then
+                !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)        !half top edge
+                !end if
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then
+                  ux = 0.0
+                  uy = -(y-y**2)          !---->  malla 0-1
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                elseif(x.eq.xmax)then
+                  ux = 0.0
+                  uy = (y - y**2)         !---->  malla 0-1
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                else
+                  ux = (x - x**2)
+                  uy = 0.0                !---->  malla 0-1
+                  write(200,10) i, 1,  0, 1
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                end if
+                
+              else if(x.eq.xmax)then
+                ux = 0.0                !---->  malla 0-1
+                uy = (y - y**2)
+                write(200,10) i, 0,  1, 1
+                write(300,20)   ux, uy, 0.0
+                c = c+1
+              else if (x.eq.xmin)then
+                ux = 0.0                !---->  malla 0-1
+                uy = -(y-y**2)
+                write(200,10) i, 0,  1, 1
+                write(300,20)   ux, uy, 0.0
+                d = d+1
+              end if
+            end do
+            nBVs = nBVs/3
+            nBVscol = 7 
+          case Default
+            print*,'From BVS'
+            stop
+        end select
         
-        
+        nBVs = a+b+c+d+e+f
       end if
       
       close(100)

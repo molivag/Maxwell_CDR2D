@@ -56,34 +56,48 @@ module sourceTerm
       senn = sin(ee*itan)
       coss = cos(ee*itan)
       
-      !Derivatives in x-direction
-      dey_dydx = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
-      dex_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*senn - kk*coss )  
-      dex_dx2  = aa * bb**cc *( (2.0*(x**2)*jj - (y**2)*ii)*senn - kk*coss )
-      dey_dxdy = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
-      
-      !Derivatives in y-direction
-      dey_dx2  = aa * bb**cc *( (2.0*(x**2)*jj - (y**2)*ii)*coss + kk*senn )
-      dex_dxdy = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )
-      dex_dydx = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )  
-      dey_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*coss + kk*senn ) 
-      
-      !Source Term computation
-      EMsource(1) = mu*( dey_dydx - dex_dy2 + param_stab1*( dex_dx2 + dey_dxdy) )
-      EMsource(2) = mu*(-dey_dx2 + dex_dxdy + param_stab1*( dex_dydx+ dey_dy2 ) )
-      
-      if(ndofn.eq.3)then
-        EMsource(3) = force(ndofn)
-      elseif(ndofn.eq.2)then
-        continue
-      else
-        print*, 'Source term is a bidimensional field, not enough DoF'
-      end if
-      
-      ! print*, ' Se imprime el termino de fuente '
-      ! do i =1,ndofn
-      !   print*, source(i)
-      ! end do
+      select case(simul)
+      case(1)
+        !Derivatives in x-direction
+        dey_dydx = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
+        dex_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*senn - kk*coss )  
+        dex_dx2  = aa * bb**cc *( (2.0*(x**2)*jj - (y**2)*ii)*senn - kk*coss )
+        dey_dxdy = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
+        
+        !Derivatives in y-direction
+        dey_dx2  = aa * bb**cc *( (2.0*(x**2)*jj - (y**2)*ii)*coss + kk*senn )
+        dex_dxdy = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )
+        dex_dydx = aa * bb**cc *( x*y*dd *senn + gg*hh *coss )  
+        dey_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*coss + kk*senn ) 
+        
+        !Source Term computation
+        EMsource(1) = mu*( dey_dydx - dex_dy2 + param_stab1*( dex_dx2 + dey_dxdy) )
+        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + param_stab1*( dex_dydx+ dey_dy2 ) )
+        
+        if(ndofn.eq.3)then
+          EMsource(3) = force(ndofn)
+        elseif(ndofn.eq.2)then
+          continue
+        else
+          print*, 'Source term is a bidimensional field, not enough DoF'
+        end if
+      case(2)
+        !Derivatives in x-direction
+        dey_dydx = 2.0-(4.0*y)
+        dex_dy2  = 0.0 
+        
+        !Derivatives in y-direction
+        dey_dx2  = 0.0
+        dex_dxdy = (4.0*x)-2
+        
+        EMsource(1) = mu*(dey_dydx - dex_dy2)
+        EMsource(2) = mu*(-dey_dx2  + dex_dxdy)
+        EMsource(3) = 0.0!force(ndofn)
+      case(3)
+        
+        EMsource(1) = 0.0
+        
+      end select
       
     end subroutine source_term
 
