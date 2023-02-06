@@ -41,7 +41,7 @@ use param
       lnods = 0.0
       coord = 0.0
       
-      do i=1,83
+      do i=1,84
       read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       end do
       do i=1,nelem

@@ -5,7 +5,7 @@ module param
   character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
   character(len=4)  :: InitElemType, ProbType
   character(len=2)  :: refiType, testNo
-  integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time
+  integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   integer           :: x_0, y_0, x_1, y_1
@@ -36,7 +36,7 @@ module param
       
       open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
-      read(5, 100,iostat=stat,iomsg=msg) InitElemType, ProbType, DimPr, ndofn, totGp,&
+      read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,&
       initElem, initNodes, nne, refiType, theta, time_ini, time_fin,max_time, u0cond,&
       kstab, ktaum, patau, hnatu, Cu, mu, ell,i_exp, n_val, testNo, File_PostProcess,&
       error_name, coord_name, conec_name, x_0, y_0, x_1, y_1
@@ -161,7 +161,7 @@ module param
       initnevab = ndofn*nne
       initntotv = ndofn*initNodes
       
-      100 format(7/ 11x, A4,/ ,11x, A4,/, 3(11x,I5,/), 2/,&                      !model parameters
+      100 format(7/ 11x, A4,/ ,11x, A4,/, 4(11x,I5,/), 2/,&                      !model parameters
       &          3(11x,I7,/), 11x,A2,/      ,2/,&                                !geometry
       &          11x,I1,/, 2(11x,f7.2,/),11x,I7,/,11x,f7.2,/, 2/,&               !time
       &          2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/,& !stabi
