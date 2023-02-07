@@ -1618,6 +1618,7 @@ module library
       
       implicit none
       
+      double precision, parameter :: pi = 4*atan(1.d0)
       character(len=*), parameter    :: fileplace = "Res/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       
@@ -1627,9 +1628,9 @@ module library
       double precision, dimension(nnodes)   :: exact_y, exact_x
       double precision     :: aa, bb, cc, dd, ee
       double precision     :: sum_error, error, xmax, x_FEM, y_FEM, uxSol, uySol
-      double precision     :: fi, psi, der_fi, der_psi
+      double precision     :: fi, psi, der_fi, der_psi, w, h, voltage
       character(len=12)    :: extension
-      integer              :: ipoin, ielem, inode
+      integer              :: ipoin, ielem, inode, k
       
       
       extension ="_matlab.txt"
@@ -1649,11 +1650,11 @@ module library
       
       select case(simul)
         case(1)
+          aa = (2.0/3.0)*n_val
           bb = 0.0
+          cc = (n_val/3.0) - 1.0
           dd = 0.0
           ee = 0.0 
-          aa = (2.0/3.0)*n_val
-          cc = (n_val/3.0) - 1.0
           !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
           do inode = 1, nnodes  
             
@@ -1670,7 +1671,7 @@ module library
             
             !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
             !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            sum_error = sum_error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error = error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
             !print*, 'error', error  
             
             !Write to plotting file 
@@ -1695,7 +1696,7 @@ module library
            
             !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
             !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            sum_error = sum_error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error = error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
             !error = error + (x_FEM - ex_x)**2 + (y_FEM - ex_y)**2 
             
             !Write to plotting file 
@@ -1703,29 +1704,61 @@ module library
             exact_y(inode) = uySol
             
           end do
-    end select
-      error = sqrt(sum_error/nnodes)
+        case(3)
+          w = maxval(coord(1,:))
+          h = maxval(coord(2,:))
+          voltage = 0.0
+          do inode = 1, nnodes  !simple Function
+           
+            !exact solution
+            do k = 1,5
+              aa   = ((2.0*k-1.0)*pi*x(inode))/w 
+              bb   = ((2.0*k-1.0)*pi*y(inode))/w 
+              cc   = ((2.0*k-1.0)*pi*h)/w 
+              dd   = (2*k-1) 
+              voltage = voltage + (sin(aa)*sinh(bb))/dd * sinh(cc)
+            end do
+            uxSol = 4.0/pi * voltage
+            
+            !FEM solution
+            x_FEM = solution_T(1,ndofn*inode)
+           
+            !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
+            error = error + ( (uxSol - x_FEM)**2 ) 
+            
+            !Write to plotting file 
+            exact_x(inode) = uxSol
+          end do
+          
+      end select
+      error = sqrt(error/nnodes)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
       
       
-      do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+      if((simul.eq.1).or.(simul.eq.2))then
+        do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+         
+          write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
+          &              exact_x(ipoin), exact_y(ipoin)
+          !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
+          !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
+          
+        end do
+      elseif((simul.eq.3).or.(simul.eq.4))then 
        
-        write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
-        &              exact_x(ipoin), exact_y(ipoin)
-        !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
-        !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
-        
-      end do
-      
-      
-      !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
-      !do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-      !  write(111,906) solution_T(1, ipoin), exact_x(ipoin)
-      !end do
-      !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+        !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
+        do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+          write(111,906) solution_T(1, ipoin), exact_x(ipoin)
+        end do
+      else
+        print*, 'In Res_Matlab, Problem type not defined'
+        stop
+      end if
+        !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
       !print*, ' '
+      
       !print*, '!====== Matlab file ======'
       write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
       
@@ -1964,7 +1997,7 @@ module library
       ! se escribe el res de las componentes de la velocidad
       select case(ndofn)
         case(1)
-          write(555,"(A)") 'Result "DoF" "Concentration" 0 Scalar OnNodes'
+          write(555,"(A)") 'Result "Ex" "EM Field" 0 Scalar OnNodes'
           write(555,"(A)") 'ComponentNames "" '
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ux '
@@ -1976,7 +2009,7 @@ module library
           write(555,"(A)") 'End Values'
           
         case(2)
-          write(555,"(A)") 'Result "DoF" "EM field" 0 Vector OnNodes'
+          write(555,"(A)") 'Result "EM Field" "EM field" 0 Vector OnNodes'
           write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ex ','               ey '
@@ -1986,7 +2019,7 @@ module library
           write(555,"(A)") 'End Values'
           
         case(3)
-          write(555,"(A)") 'Result "DoF" "EM  field" 0 Vector OnNodes'
+          write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
           write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ex ','               ey'
@@ -1994,7 +2027,7 @@ module library
             write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
           end do
           write(555,"(A)") 'End Values'
-          write(555,"(A)") 'Result "P" "Multiplier" 0 Scalar OnNodes'
+          write(555,"(A)") 'Result "Multiplier" "Multiplier" 0 Scalar OnNodes'
           write(555,"(A)") 'ComponentNames "" '
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             p '
