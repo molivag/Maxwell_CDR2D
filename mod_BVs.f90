@@ -51,8 +51,7 @@ module BoundVal
       
       
       
-      if(ndofn .eq. 1) then
-        
+      if(ndofn.eq.1) then
         do i =1, nnodes
           x=coord(1,i)
           y=coord(2,i)
@@ -240,10 +239,13 @@ module BoundVal
                
                 f = f+3
               end if
+              
+              nBVs = a+b+c+d+e+f
             end do
             nBVs = nBVs/3
             nBVscol = 7 
-          case(2)
+            
+          case(2)               !Cuadratic function
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -252,74 +254,76 @@ module BoundVal
               if(y.eq.ymax) then
                 if(x.eq.xmax)then
                   ux = 0.0
-                  uy = (y - y**2)        !---->  malla 0-1
+                  uy = (y - y**2)                       !Upper Right Boundary
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 elseif(x.eq.xmin)then
                   ux = 0.0
-                  uy = -(y-y**2)          !---->  malla 0-1
+                  uy = -(y-y**2)                        !Upper Left Boundary
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 else
                   ux = -(x - x**2)
-                  uy = 0.0                !---->  malla 0-1
+                  uy = 0.0                              !Upper Boundary 
                   write(200,10) i, 1, 0, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 end if
                 
                 !if(x.eq.xhalf)then
-                !  write(100,50) i, 1, 1, 1, real(0), real(0), real(0)        !half top edge
+                !  write(200,10) i, 1, 0, 1
+                !  write(300,20)   ux, uy, 0.0
                 !end if
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then
                   ux = 0.0
-                  uy = -(y-y**2)          !---->  malla 0-1
+                  uy = -(y-y**2)                        !Down Left Border
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 elseif(x.eq.xmax)then
                   ux = 0.0
-                  uy = (y - y**2)         !---->  malla 0-1
+                  uy = (y - y**2)                       !Down Right Border
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 else
                   ux = (x - x**2)
-                  uy = 0.0                !---->  malla 0-1
+                  uy = 0.0                              !Down Border
                   write(200,10) i, 1,  0, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 end if
                 
               else if(x.eq.xmax)then
-                ux = 0.0                !---->  malla 0-1
+                ux = 0.0                                !Right Boundary
                 uy = (y - y**2)
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
               else if (x.eq.xmin)then
-                ux = 0.0                !---->  malla 0-1
+                ux = 0.0                                !left Boundary
                 uy = -(y-y**2)
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 d = d+1
               end if
+              
+              nBVs = a+b+c+d
             end do
-            nBVs = nBVs/3
             nBVscol = 7 
+            
           case Default
-            print*,'From BVS'
+            print*,'From BVS, case 3 and 4 are for 1 DoF'
             stop
         end select
-        
-        nBVs = a+b+c+d+e+f
+       
       end if
       
       close(100)
-      
+     
       10 format(I6,2x,3(1x,I2))
       20 format(3(e15.7,2x))
       30 format(f12.5)
