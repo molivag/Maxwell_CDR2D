@@ -15,7 +15,6 @@ module library
       character(len=12) :: bbbb
       character(len=16) :: dddd
       double precision :: delta_t
-
       integer :: i,j, k, l
       
       if(kstab.eq.3 .or. kstab.eq.5)then
@@ -210,7 +209,7 @@ module library
       
     endsubroutine GeneralInfo
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     ! 
     subroutine ReadFile(NumRows, NumCols, condition, condition_value)
       
@@ -254,7 +253,7 @@ module library
       
     end subroutine ReadFile
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     ! 
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap, xi_cor, yi_cor)
       
@@ -285,7 +284,7 @@ module library
       
     end subroutine SetElementNodes
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     ! 
     subroutine Jacobian( element_nodes, dN_dxi, dN_deta, Gp, xjacm, djacb, xjaci)
       implicit none
@@ -371,53 +370,8 @@ module library
       return
       
     end subroutine Jacobian
-    
-    !function djacb(xjacm)
-    !  
-    !  implicit none
-    !  
-    !  double precision :: djacb
-    !  double precision, dimension(2,2), intent(in)  :: xjacm
-    !  integer :: idime, jdime 
-    !  !m22det =   A(1,1)*A(2,2) - A(1,2)*A(2,1)
-    !  do idime=1,2
-    !    write(*,"(f10.5, 1x, f10.5)" )( xjacm(idime,jdime) ,jdime=1,2)
-    !  end do
-    !  
-    !  djacb  = xjacm(1,1)*xjacm(2,2) - xjacm(1,2)*xjacm(2,1)
-    !  print"(A8,f15.5)", 'det Jaco: ',djacb 
-    !  if(djacb.lt.1.e-8)then
-    !    write(*,*)'Element with non-positive Jacobian'
-    !  end if
-    ! 
-    !  return
-    !  
-    !end function djacb
     !
-    !function xjaci(detJ,xjacm)
-    !  
-    !  implicit none
-    !  
-    !  double precision, parameter :: EPS = 1.0E-10
-    !  double precision, dimension(DimPr, DimPr), intent(in) :: xjacm
-    !  double precision, intent(in)                          :: detJ
-    !  
-    !  
-    !  if (abs(detJ) .le. EPS) then
-    !    xjaci = 0.0! 0.0D0
-    !    return
-    !  end if
-    !  
-    !  xjaci(1,1)= xjacm(2,2)/detJ
-    !  xjaci(2,2)= xjacm(1,1)/detJ
-    !  xjaci(1,2)=-xjacm(1,2)/detJ
-    !  xjaci(2,1)=-xjacm(2,1)/detJ
-    !  
-    !  return
-    !  
-    !end function xjaci
-    !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     ! 
     subroutine DerivativesXY(Gp,InvJaco,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy, HesXY)
       
@@ -477,7 +431,7 @@ module library
       
     end subroutine DerivativesXY 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine invmtx(a,deter,b)
       
@@ -535,7 +489,7 @@ module library
       
     end subroutine invmtx 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine sqrtma(mainp,maout)
       
@@ -560,7 +514,7 @@ module library
       
     end subroutine sqrtma 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    !------------------------------------------------------------------------------------------- 
     !
     subroutine sqrtm2(mainp,maout)
       
@@ -612,7 +566,7 @@ module library
       
     end subroutine sqrtm2
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine gather(lnods, vecgl, veclo)
       !        gather(vecgl,veclo,lnods,ndofn,nnode)
@@ -644,7 +598,7 @@ module library
       
     end subroutine gather 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     function elemSize(InvJacobian)
       
@@ -664,7 +618,7 @@ module library
       
     end function elemsize
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
       
@@ -686,17 +640,11 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
-                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ' ,difma(idofn,jdofn,i,j)
-                  !call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
-                  !diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
-                  !print"(A8, f10.5)",'Product ', cte * difma(idofn,jdofn,i,j)
-                  !print*, '- - - - - - - - - - - - - - - - - - -'
                 end do
               end do
               convec=0.0
               do i=1,2
-                !print*,conma(idofn,jdofn,i)
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
@@ -707,94 +655,13 @@ module library
           end do
           !Fe(ievab) = Fe(ievab) + basis(inode) * source(idofn) * dvol
           Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * source(idofn) * dvol
-          !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
       
     end subroutine Galerkin
-   
-    !subroutine param_stab(idofn, jdofn, i, j, cte)       
-    !  !***********************************************************!
-    !  !                                                           !
-    !  ! Subroutine which check the dofn, x and y position in the  !
-    !  ! diffusion tensor and take the coefficient to multiply     !
-    !  ! the term of the PDE to its corresponding coeff.           !
-    !  !                                                           !
-    !  ! coeficients:                                              !
-    !  !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
-    !  !                                                           !
-    !  !  λ represents the magnetic permeability µ                 !
-    !  !  (call it mu in the code)                                 !
-    !  !                                                           !
-    !  ! h = 2^-i ; computed as in the paper                       !
-    !  !***********************************************************!
-    !  
-    !  implicit none
-    !  
-    !  integer, intent(in) :: idofn, jdofn, i, j
-    !  double precision, intent(out) :: cte
-    !  
-    !  cte = 0.0 
-    !  
-    !  if(idofn.eq.1)then
-    !    if(jdofn.eq.1)then
-    !      if(i==1 .and. j==1)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      end if
-    !     
-    !      if(i==2 .and. j==2)then
-    !        cte = mu
-    !      endif
-    !      
-    !    elseif(jdofn==2)then
-    !      if(i==1 .and. j==2)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      end if
-    !      
-    !      if(i==2.and.j==1)then
-    !        cte = mu
-    !      end if
-    !    end if
-    !    
-    !  elseif(idofn==2)then
-    !    if(jdofn.eq.1)then
-    !      if(i==1 .and. j==2)then
-    !        cte = mu
-    !      end if
-    !      
-    !      if(i==2 .and. j==1)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      endif
-    !     
-    !    elseif(jdofn==2)then
-    !      if(i==1 .and. j==1)then
-    !        cte = mu
-    !      end if
-    !      
-    !      if(i==2.and.j==2)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      end if
-    !    end if
-    !    
-    !  elseif(idofn==3 .and. jdofn==3)then
-    !    if( i==j )then
-    !      cte = ell**2/mu
-    !    endif
-    !    
-    !  else
-    !    continue
-    !  end if
-    !  !close(10)
-    !  
-    !  
-    !  !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-    !  !Next lines are to taste the 
-    !  !print*, 'hmaxi,', h
-    !  !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
-    !  !print*, 'ell^2/µ', ell**2/mu
-    !  
-    !end subroutine param_stab
-    
+    !
+    !-------------------------------------------------------------------------------------------    
+    !
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
      
       !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
@@ -826,7 +693,7 @@ module library
       
     end subroutine Galerkin_Init_Cond 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
       
@@ -903,7 +770,7 @@ module library
       
     end subroutine pertur
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine TauMat(hmaxi,tauma)
       
@@ -1009,8 +876,6 @@ module library
         tauma(ndofn,ndofn) = 0.0
        
       else if(ktaum.eq.3) then
-        !call param_stab(1,1,1,1,cte)
-        !a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         tauma(1,1) = a
         tauma(2,2) = a
@@ -1021,7 +886,7 @@ module library
       
     end subroutine TauMat
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+    !------------------------------------------------------------------------------------------- 
     !
     subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
@@ -1036,10 +901,6 @@ module library
       double precision              :: prod1, prod2, prod3
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
-      
-      ! integer :: nnode,ndofn,nevab,kstab,n_ini
-      !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
-      !common/proper/difma,conma,reama,force
       
       ievab = 0
       !print*, 'in'
@@ -1062,8 +923,6 @@ module library
             prod3=0.0
             do k=1,2
               do l=1,2
-                !call param_stab(jdofn,idofn,k,l,cte)
-                !prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
                 prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
               end do
             end do
@@ -1104,13 +963,12 @@ module library
       
     end subroutine Stabilization
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine VinculBVs(condition,  BVs, nofix, ifpre, presc )
       
       implicit none
       
-      !integer, intent(in)      :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
       integer, intent(in) :: condition( nBvs, nBVscol-ndofn)
       double precision, intent(in) :: BVs( nBvs, ndofn)
       integer             :: i, j
@@ -1152,19 +1010,19 @@ module library
         end select
     end subroutine VinculBVs
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine BandWidth( )
       !this routine computes the bandwidth 
       
       implicit none
       
-      integer :: iband, ielem, inode, ipoin, jnode, jpoin, nband       ! , C, D
+      integer :: iband, ielem, inode, ipoin, jnode, jpoin, nband
       
       iband=0
       do ielem =1, nelem
         do inode = 1, nne
-          ipoin = lnods(ielem,inode) !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
+          ipoin = lnods(ielem,inode)
           do jnode = 1, nne
             jpoin = lnods(ielem,jnode)
             iband = max(iband,abs(jpoin-ipoin))
@@ -1189,7 +1047,7 @@ module library
       
     end subroutine BandWidth
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, ugl_pre, A_F)
       use sourceTerm
@@ -1260,7 +1118,7 @@ module library
       
     end subroutine TimeContribution
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
@@ -1287,8 +1145,6 @@ module library
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
       
-      !duda: Fe se declaró como a(n) y en la rutina assembleF como a(n,1)
-      !      pero compila y ejecuta bien. ¿Poooor?
       
       A_K = 0.0
       A_F = 0.0
@@ -1298,20 +1154,11 @@ module library
         Fe = 0.0    !Fe(nevab)
         Ce = 0.0    !elemental capacity matrix (not used in static case)
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
-        !do-loop: compute element stiffness matrix Ke
-        !print*, ' '
-        !print*, 'element:', ielem
-        !print"(A7,9(i3,1x))", 'nodes: ', nodeIDmap
-        !print"(A7)", 'corNodes: '
-        !do i = 1,nne
-        !  print"(2(1x,f7.4))", element_nodes(i,1), element_nodes(i,2)
-        !end do
+        
+        
+        
         do igaus = 1, TotGp
-        !print*, 'gauss point:', igaus
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = djacb(Jaco)
-          !Jinv = xjaci(detJ,Jaco)
           dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
           hmaxi = elemSize(Jinv)
@@ -1320,12 +1167,8 @@ module library
           end do
           call TauMat(hmaxi,tauma)
           
-          !print*, ' '
-          !print"(A11,I2,A2,2(f7.5,2x))", 'GaussPoint', igaus,': ',ngaus(igaus,1), ngaus(igaus,2)
-          
           call source_term(basis, xi_cor, yi_cor, EMsource)
           call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
-          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
         end do
         !stop
@@ -1334,97 +1177,14 @@ module library
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
         
-        
-        
-        !call AssembleK(A_K, ke, node_id_map, 3) ! assemble global K
-        
       end do
       
       !aaa = maxval(coord(1,:))*2**(-i_exp) 
       !if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
       
     end subroutine GlobalSystem
-    
-    !subroutine AssembleK(K, ke, node_id_map, ndDOF)
-
-    !  implicit none
-    !  real(8), dimension(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes),intent(in out)  :: K 
-    !  !  Global Stiffnes matrix debe 
-    !  !  llevar inout por que entra como variable (IN) 
-    !  !  pero en esta funcion se modifica (out)
-    !  real(8), dimension(2*nUne, 2*nUne), intent(in)   :: ke
-    !  integer, dimension(nUne,1), intent(in)           :: node_id_map
-    !  integer, intent(in)                              :: ndDOF 
-    !  integer :: i, j, row_node, row, col_node, col !nodal Degrees of Freedom
-    !  
-    !  do i = 1, nUne
-    !    row_node = node_id_map(i,1)
-    !    row = ndDOF*row_node - (ndDOF-1)
-    !    
-    !    do j = 1, nUne
-    !      col_node = node_id_map(j,1)
-    !      col = ndDOF*col_node - (ndDOF-1)
-    !      K(row:row+ndDOF-1, col:col+ndDOF-1) =  K(row:row+ndDOF-1, col:col+ndDOF-1) + &
-    !      ke((i-1)*ndDOF+1:i*ndDOF,(j-1)*ndDOF+1:j*ndDOF)
-    !    enddo
-    !    
-    !  enddo
-    !  
-    !  return
-    !  
-    !end subroutine AssembleK
-   
-    !subroutine ApplyBoundCond( NoBV, Fbcsvp, A_K, Sv )
-    !  ! - - - - - - - - - - * * * * * * * * * * - - - - - - - 
-    !  ! Set velocity (u) and preasure (p) boundary condition by penalty method
-    !  ! - - - - - - - - - - * * * * * * * * * * - - - - - - - - - -
-    !  implicit none
-    !                      !Dof
-    !  integer , dimension(NoBV,Dof), intent(in) :: Fbcsvp
-    !  double precision, dimension(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes),intent(in out) :: A_K  !Global Stiffnes matrix
-    !  double precision, dimension(2*n_nodes+n_pnodes, 1), intent(in out) :: Sv
-    !  double precision :: param, coeff
-    !  integer          :: preasure_row, NoBV, i, component, node_id, pnode_id
-    !  
-    !  !Esencialmente la siguiente instruccion hace: A_K(1*2-1,:) = A_K(1,:) Es decir, obtene el valor maximo de
-    !  !la primera fila de la matriz global K (A_K). No le veo el caso pero lo dejamos asi.
-    !  param = maxval(A_K(int(Fbcsvp(1,1))*2-1,:))
-    !  coeff = abs(param) * 1.0E7
-
-    !  print*, 'param', param
-    !  print*, 'coeff', coeff
-    !  
-    !  preasure_row = 2*n_nodes
-
-    !  do i =1, NoBV
-    !    !print*, 'iteration', i
-    !    node_id   = Fbcsvp(i,1) !se pone este int() pq la 1a y 2a col de Fbcsvp esta leida como integer pero 
-    !    !print*, 'node_id', node_id
-    !    component = Fbcsvp(i,2)!la matriz completa esta declarada como real en esta subroutina y en el main.
-    !    !print*, 'component', component
-    !    !print*, shape(Fbcsvp)
-    !    !print*, Fbcsvp(i,:)
-    !    if ( component .le. 2 ) then
-    !      !print*, 'component of Boundary value', component
-    !      !print*,'La pausa', 2*node_id-2+component,' ', 2*node_id-2 +component
-    !      !read(*,*)
-    !      A_K(2*node_id-2+component, 2*node_id-2 +component) = coeff
-    !      Sv( 2*node_id-2+component, 1) = Fbcsvp(i,3)*coeff 
-    !    else                                                     
-    !      pnode_id = pnodes(node_id,2)
-    !      !print*, 'pnode_id', pnode_id 
-    !      !print*, 'preasure_row', preasure_row
-    !      A_K(preasure_row+pnode_id, preasure_row + pnode_id) = coeff
-    !      !print*, preasure_row+pnode_id, preasure_row + pnode_id
-    !      Sv(preasure_row+pnode_id,1) = Fbcsvp(i,3)*coeff 
-    !      !el tres es por que en la columna 3 esta el valor de la condicon de forntera
-    !    end if
-    !  end do
-
-    !end subroutine ApplyBoundCond
-   
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine Assemb_Glob_Mat(lnods,Ke,A_K)
       !subroutine Assemb_Glob_Mat(ielem,lnods,Ke,A_K)
@@ -1433,7 +1193,7 @@ module library
       !    Fa l'assembly de les matrius de CDR de cada elemento en la matriu global
       !
       !*****************************************************************************
-
+      
       implicit none
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
       double precision, intent(in) :: Ke(nevab,nevab)
@@ -1453,10 +1213,6 @@ module library
             do jdofn=1,ndofn
               jevab=(jnode-1)*ndofn+jdofn
               jtotv=(jpoin-1)*ndofn+jdofn
-
-              !jband=jtotv-itotv+1      ------> Original de retpla
-              !A_K(jband,itotv)=A_K(jband,itotv) + ...
-
               !jband= upban +1 +itotv-jtotv    !Algoritmo de recuperacion para LAPACK
               jband = itotv-jtotv + totban
               if (jband.ge.1)then
@@ -1466,11 +1222,10 @@ module library
           end do
         end do
       end do
-
       return
     end subroutine Assemb_Glob_Mat
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine Assemb_Glob_Vec( nodeIDmap, fe, F_global)
       
@@ -1490,7 +1245,7 @@ module library
       
     end subroutine Assemb_Glob_Vec 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    !-------------------------------------------------------------------------------------------    
     !
     subroutine ApplyBVs(nofix,ifpre,presc,rigid,gload)
       !                                   ,A_K ,A_F
@@ -1545,74 +1300,7 @@ module library
       
     end subroutine ApplyBVs 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    !
-    
-    !subroutine source_term(basis, xi_cor, yi_cor, source)
-    !  
-    !  implicit none     !interpolating X and Y
-    !  
-    !  !***********************************************************!
-    !  !The source term is given by:                               !
-    !  !                                                           !
-    !  !              u = (fi*psi',-fi'*psi)                       !
-    !  !                                                           !
-    !  !   f = Lu       ;   where L is the diferential operator    !
-    !  !                                                           !
-    !  !***********************************************************!
-    !  
-    !  double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
-    !  double precision :: dey_dydx, dex_dy2, dey_dx2, dex_dxdy
-    !  double precision :: x, y
-    !  integer :: ii
-    !  double precision, dimension(ndofn), intent(out)  :: source
-    !  
-    !  !En cada llamada de esta funcion entrara basis con diferente gauss point
-    !  
-    !  x = 0.0
-    !  y = 0.0
-    !  
-    !  !x= matmul(basis,xi_cor)
-    !  do ii = 1, nne 
-    !    x = x + basis(ii)*xi_cor(ii)
-    !    y = y + basis(ii)*yi_cor(ii)
-    !    !print"(3(1x,f10.7))",  basis(ii), yi_cor(ii), basis(ii)*yi_cor(ii)
-    !  end do
-    !  
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' xi1', xi_cor(1), 'x1', basis(1)*xi_cor(1)
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' xi2', xi_cor(2), 'x2', basis(2)*xi_cor(2)
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' xi3', xi_cor(3), 'x3', basis(3)*xi_cor(3)
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' xi4', xi_cor(4), 'x4', basis(4)*xi_cor(4)
-    !  !print"(A9,f10.5)",'x_gaus = ', x
-    !  !
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N1', basis(1),' yi1', yi_cor(1), 'y1', basis(1)*yi_cor(1)
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N2', basis(2),' yi2', yi_cor(2), 'y2', basis(2)*yi_cor(2)
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N3', basis(3),' yi3', yi_cor(3), 'y3', basis(3)*yi_cor(3)
-    !  !print"(A4,1x,f9.5,1x,A4,1x,f10.5,1x, A3, f10.5)",  '  N4', basis(4),' yi4', yi_cor(4), 'y4', basis(4)*yi_cor(4)
-    !  !print"(A9,f10.5)",'y_gaus = ', y
-    !  
-    !  !Derivatives in x-direction
-    !  dey_dydx = 2.0-(4.0*y)
-    !  dex_dy2  = 0.0 
-    !  
-    !  !Derivatives in y-direction
-    !  dey_dx2  = 0.0
-    !  dex_dxdy = (4.0*x)-2
-    !  
-    !  if(ndofn.eq.3)then
-    !    source(1) = mu*(dey_dydx - dex_dy2)
-    !    source(2) = mu*(-dey_dx2  + dex_dxdy)
-    !    source(3) = 0.0
-    !  elseif(ndofn.eq.2)then
-    !    source(2) = mu*(-dey_dx2  + dex_dxdy)
-    !  else
-    !    source(1) = mu*(dey_dydx - dex_dy2)
-    !  endif
-    !  
-    !end subroutine source_term
-    
-    !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine Res_Matlab(solution)
       
@@ -1748,7 +1436,6 @@ module library
         end do
       elseif((simul.eq.3).or.(simul.eq.4))then 
        
-        !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
         do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
           write(111,906) solution_T(1, ipoin), exact_x(ipoin)
         end do
@@ -1756,8 +1443,6 @@ module library
         print*, 'In Res_Matlab, Problem type not defined'
         stop
       end if
-        !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-      !print*, ' '
       
       !print*, '!====== Matlab file ======'
       write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
@@ -1795,7 +1480,7 @@ module library
       
     end subroutine Res_Matlab
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine MKLfactoResult( routine_name, num )
       implicit none
@@ -1828,10 +1513,11 @@ module library
         !stop
       endif
       print*, ' '
-
+      
       101 format (A, 1x, I1, A)
       102 format (A, I4, A)
       103 format (A, I3, A, I3, A)
+      
     end subroutine MKLfactoResult
     
     !subroutine MKLCondNumber(norm, ab, ipiv)
@@ -1935,7 +1621,7 @@ module library
       
     end subroutine writeMatrix 
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine PostProcess(solution)
       
@@ -2055,7 +1741,7 @@ module library
      
     end subroutine PostProcess
     !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !-------------------------------------------------------------------------------------------
     !
     subroutine GID_PostProcess(solution, activity, step_value, interval)
       
