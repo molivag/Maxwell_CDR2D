@@ -1653,6 +1653,7 @@ module library
           aa = (2.0/3.0)*n_val
           bb = 0.0
           cc = (n_val/3.0) - 1.0
+          !cc = (n_val/3.0) - (1.0/2.0)
           dd = 0.0
           ee = 0.0 
           !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
@@ -1660,10 +1661,19 @@ module library
             
            !exact solution
             bb    = ((x(inode)**2 + y(inode)**2))
-            dd    = y(inode)/x(inode)
-            ee    = atan(dd)
+            
+            
+            if(abs(x(inode)).ne.0.01.and.abs(x(inode)).le.1.0e-4)then
+              dd    = y(inode)/x(inode)
+              ee    = atan(dd)
+            else
+              ee    = pi/2.0
+            end if
+              
             uxSol = aa * bb**cc * ( x(inode)*sin(aa*ee) - y(inode)*cos(aa*ee) )
             uySol = aa * bb**cc * ( y(inode)*sin(aa*ee) + x(inode)*cos(aa*ee) )
+            !uxSol = aa * bb**cc * sin(aa*ee)
+            !uySol = aa * bb**cc * cos(aa*ee)
             
             !FEM solution
             x_FEM = solution_T(1,ndofn*inode-2)
