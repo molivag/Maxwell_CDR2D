@@ -258,7 +258,6 @@ module library
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap, xi_cor, yi_cor)
       
       implicit none
-      
       ! number of element for each elem integral in loop of K global
       integer,intent(in)                                   :: elm_num 
       integer                                              :: i,j,global_node_id
@@ -1092,7 +1091,7 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(basis, xi_cor, yi_cor, EMsource)
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           
           call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
@@ -1140,7 +1139,7 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ!, aaa
       
-      integer                                   :: igaus, ibase, ielem
+      integer                                   :: igaus, ibase, ielem, ii, jj
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
@@ -1155,21 +1154,21 @@ module library
         Ce = 0.0    !elemental capacity matrix (not used in static case)
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         
-        
-        
         do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          dvol  = detJ *  weigp(igaus,1)
           hmaxi = elemSize(Jinv)
+          
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call TauMat(hmaxi,tauma)
-          
-          call source_term(basis, xi_cor, yi_cor, EMsource)
+          !if(kstab.ne.0)then
+          !  call TauMat(hmaxi,tauma)
+          !  call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          !endif
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
-          if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
         end do
         !stop
         
