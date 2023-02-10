@@ -4,7 +4,7 @@ module sourceTerm
   contains
     
     
-    subroutine source_term(basis, xi_cor, yi_cor, EMsource)
+    subroutine source_term(ielem, basis, xi_cor, yi_cor, EMsource)
       implicit none
       
       !***********************************************************!
@@ -20,6 +20,7 @@ module sourceTerm
       !***********************************************************!
       
       double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
+      integer                        , intent(in) :: ielem
       integer :: ibase
       real    :: n
       double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
@@ -30,10 +31,19 @@ module sourceTerm
       
       
       param_stab1 = Cu*(helem**2/ell**2)
+      EMsource = 0.0
       n = n_val
       x = 0.0
       y = 0.0
       
+      if(ANY(sourceLocation.eq.ielem))then
+        print'(A22,I7)', 'Source contribution ', ielem
+        continue
+      else
+        EMsource = 0.0
+        goto 100
+      endif
+     
       do ibase = 1, nne 
         x = x + basis(ibase)*xi_cor(ibase)
         y = y + basis(ibase)*yi_cor(ibase)
@@ -98,6 +108,8 @@ module sourceTerm
         EMsource(1) = 0.0
         
       end select
+      
+      100 continue 
       
     end subroutine source_term
 
