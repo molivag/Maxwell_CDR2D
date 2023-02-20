@@ -21,7 +21,7 @@ module BoundVal
       character(len=*), parameter :: fileplace ="./"
       
       integer :: ierror, a ,b, c, d, e, f,i 
-      double precision :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
+      double precision :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy, mult
       double precision :: aa, cc
       integer, intent(out) :: nBVs, nBVscol
       
@@ -223,7 +223,7 @@ module BoundVal
                   write(200,10) i, 1, 1, 1                           !central corner  (0,0)
                   write(300,20)   ux, uy, 0.0
                   
-                elseif(y .gt. ymin)then
+                elseif((y .gt. ymin).and.(y.lt.0.0))then
                   uy = aa*(y**2)**cc *cos(n_val*(pi/3.0))
                   write(200,10) i, 0, 1, 1                     !central vertical boundary (x=0)
                   write(300,20)   ux, uy, 0.0
@@ -245,22 +245,129 @@ module BoundVal
             nBVs = nBVs/3
             nBVscol = 7 
             
-          case(2)               !Cuadratic function
+          case(2)               !Test 1 Houston L-domain
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux  = 0.0 
+              uy  = 0.0 
+              mult= 0.0
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then
+                  ux =-exp(x)*(y*cos(y) + sin(y))  !-3.756049227 
+                  uy = exp(x)*y*sin(y)             !2.287355287
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, mult                       !Right top Corner
+                  a = a+1
+                elseif(x.eq.xmin)then
+                  ux =-exp(x)*(y*cos(y) + sin(y)) ! 0.508325986 
+                  uy = exp(x)*y*sin(y)            ! 2.287355287
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, mult                        !Left top Corner
+                  a = a+1
+                else
+                  ux = -1.3817732*exp(x)
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 0, 1
+                  write(300,20)   ux, uy, mult                        !Top boundary
+                  a = a+1
+                end if
+                
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then
+                  ux =-exp(x)*(y*cos(y) + sin(y))
+                  uy = exp(x)*y*sin(y)          
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, mult                        !Left bottom Corner
+                  b = b+1
+                elseif(x.eq.xmiddle)then
+                  ux =-exp(x)*(y*cos(y) + sin(y))
+                  uy = exp(x)*y*sin(y)           
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, mult                        !central bottom Corner (0,-1)
+                  b = b+1
+                else
+                  ux = 1.3817732*exp(x)
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 0, 1                           !Bottom boundary
+                  write(300,20)   ux, uy, mult
+                  b = b+1
+                end if
+                
+              else if(x.eq.xmax)then
+                if(y.gt.ymiddle)then
+                  uy = 2.718281828*y*sin(y) 
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 0, 1, 1                           !Right boundary
+                  write(300,20)   ux, uy, mult
+                  c = c+1
+                elseif(y.eq.ymiddle)then
+                  ux =-exp(x)*(y*cos(y) + sin(y))
+                  uy = exp(x)*y*sin(y)           
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 1, 1                           !middle right corner
+                  write(300,20)   ux, uy, mult
+                  c = c+1
+                endif
+                
+              else if (x.eq.xmin)then
+                  uy = 0.3678794412*y*sin(y) 
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 0, 1, 1                           !Left boundary
+                  write(300,20)   ux, uy, mult
+                  d = d+1
+              else if(x.eq.xmiddle)then
+                if(y .eq. ymiddle)then
+                  ux =-exp(x)*(y*cos(y) + sin(y))
+                  uy = exp(x)*y*sin(y)           
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 1, 1                           !central corner  (0,0)
+                  write(300,20)   ux, uy, mult
+                  d = d+1
+                elseif(y .gt. ymin.and.(y.lt.0.0))then
+                  uy = y*sin(y) 
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 0, 1, 1                    !central vertical boundary (x=0)
+                  write(300,20)   ux, uy, mult
+                  d = d+1
+                end if
+               
+              else if(y.eq.ymiddle)then
+                if(x .gt. xmiddle)then
+                  ux =-exp(x)*(y*cos(y) + sin(y))
+                  mult = sin(pi*(x-1.0)/2.0) * sin(pi*(y-1.0)/2.0)
+                  write(200,10) i, 1, 0, 1
+                  write(300,20)   ux, uy, mult                 !central horizontal boundary
+                  e = e+1
+                end if
+               
+              end if
+              
+              nBVs = a+b+c+d+e
+            end do
+            !nBVs = nBVs/3
+            nBVscol = 7 
+            
+          case(3)               !Cuadratic function
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
               ux = 0.0 
               uy = 0.0 
               if(y.eq.ymax) then
-                if(x.eq.xmax)then
-                  ux = 0.0
-                  uy = (y - y**2)                       !Upper Right Boundary
+                if(x.eq.xmax)then                       !Upper Right Corner
+                  ux = (x-x**2)*(1.0-2.0*y)
+                  uy =-(1.0-2.0*x)*(y-y**2)
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
-                elseif(x.eq.xmin)then
-                  ux = 0.0
-                  uy = -(y-y**2)                        !Upper Left Boundary
+                elseif(x.eq.xmin)then                  !Upper Left Corner
+                  ux = (x-x**2)*(1.0-2.0*y)
+                  uy =-(1.0-2.0*x)*(y-y**2)
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
@@ -272,20 +379,16 @@ module BoundVal
                   a = a+1
                 end if
                 
-                !if(x.eq.xhalf)then
-                !  write(200,10) i, 1, 0, 1
-                !  write(300,20)   ux, uy, 0.0
-                !end if
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then
-                  ux = 0.0
-                  uy = -(y-y**2)                        !Down Left Border
+                  ux = (x-x**2)*(1.0-2.0*y)
+                  uy =-(1.0-2.0*x)*(y-y**2)
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 elseif(x.eq.xmax)then
-                  ux = 0.0
-                  uy = (y - y**2)                       !Down Right Border
+                  ux = (x-x**2)*(1.0-2.0*y)
+                  uy =-(1.0-2.0*x)*(y-y**2)
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
@@ -298,13 +401,13 @@ module BoundVal
                 end if
                 
               else if(x.eq.xmax)then
-                ux = 0.0                                !Right Boundary
+                ux = 0.0                                !Right Boundary Corner
                 uy = (y - y**2)
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
               else if (x.eq.xmin)then
-                ux = 0.0                                !left Boundary
+                ux = 0.0                                !Left Boundary Corner
                 uy = -(y-y**2)
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
@@ -323,6 +426,11 @@ module BoundVal
       end if
       
       close(100)
+      
+      
+      print*, 'No. of Bound Val', nBVS 
+      
+      
      
       10 format(I6,2x,3(1x,I2))
       20 format(3(e15.7,2x))
