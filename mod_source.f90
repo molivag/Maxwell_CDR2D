@@ -19,17 +19,20 @@ module sourceTerm
       !                                                           !
       !***********************************************************!
       
+      double precision, parameter :: pi = 4*atan(1.d0)
+      
       double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
       integer :: ibase
       real    :: n
       double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
-      double precision :: x, y, param_stab1
-      double precision :: aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
+      double precision :: dp_dx, dp_dy, d2p_dx2, d2p_dy2
+      double precision :: x, y, alpha, beta, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
       double precision :: itan, senn, coss
-      double precision, dimension(ndofn), intent(out)  :: EMsource
+      double precision, dimension(ndofn), intent(out) :: EMsource
       
       
-      param_stab1 = Cu*(helem**2/ell**2)
+      beta  = Cu*(helem**2/ell**2)
+      alpha = ell**2/mu
       n = n_val
       x = 0.0
       y = 0.0
@@ -71,17 +74,37 @@ module sourceTerm
         dey_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*coss + kk*senn ) 
         
         !Source Term computation
-        EMsource(1) = mu*( dey_dydx - dex_dy2 + param_stab1*( dex_dx2 + dey_dxdy) )
-        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + param_stab1*( dex_dydx+ dey_dy2 ) )
+        EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
+        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
+        EMsource(3) = force(3)
         
-        if(ndofn.eq.3)then
-          EMsource(3) = force(ndofn)
-        elseif(ndofn.eq.2)then
-          continue
-        else
-          print*, 'Source term is a bidimensional field, not enough DoF'
-        end if
       case(2)
+        !Derivatives in x-direction
+        dey_dydx = exp(x) * ( sin(y) + y*cos(y) )
+        dex_dy2  = exp(x) * (3.0*sin(y)+ y*cos(y) )
+        dex_dx2  =-exp(x) * ( sin(y) + y*cos(y) )
+        dey_dxdy = exp(x) * ( sin(y) + y*cos(y) )
+        
+        !Derivatives in y-direction
+        dey_dx2  = exp(x) * y*sin(y)
+        dex_dxdy = exp(x) * ( y*sin(y) - 2.0*cos(y) )
+        dex_dydx = exp(x) * ( y*sin(y) - 2.0*cos(y) )
+        dey_dy2  = exp(x) * ( 2.0*cos(y) - y*sin(y) )
+        
+        !Gradient of multiplier
+        dp_dx = 0.5*pi * sin(0.5*pi*(y-1.0)) * cos(0.5*pi*(x-1))
+        dp_dy = 0.5*pi * sin(0.5*pi*(x-1.0)) * cos(0.5*pi*(y-1))
+        
+        !Laplacian of multiplier
+        d2p_dx2 = -0.25*pi**2 * sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1))
+        d2p_dy2 = -0.25*pi**2 * sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1))
+        
+        !Source Term computation
+        EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) ) + dp_dx
+        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) ) + dp_dy
+        EMsource(3) = alpha * (d2p_dx2 + d2p_dy2)
+        
+      case(3)
         !Derivatives in x-direction
         dey_dydx = 2.0-(4.0*y)
         dex_dy2  = 0.0 
@@ -93,9 +116,27 @@ module sourceTerm
         EMsource(1) = mu*(dey_dydx - dex_dy2)
         EMsource(2) = mu*(-dey_dx2  + dex_dxdy)
         EMsource(3) = 0.0!force(ndofn)
-      case(3)
         
-        EMsource(1) = 0.0
+        !Source considering the DivDiv term
+        
+        ! !Derivatives in x-direction
+        ! dey_dydx = 2.0-(4.0*y)
+        ! dex_dy2  = 0.0 
+        ! dex_dx2  = (4.0*y)-2.0
+        ! dey_dxdy = 2.0-(4.0*y)
+        ! 
+        ! 
+        ! !Derivatives in y-direction
+        ! dey_dx2  = 0.0
+        ! dex_dxdy = (4.0*x)-2
+        ! dex_dydx = (4.0*x)-2
+        ! dey_dy2  = 2.0-4.0*x
+        ! 
+        ! 
+        ! EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
+        ! EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
+        ! EMsource(3) = force(3)
+        
         
       end select
       
