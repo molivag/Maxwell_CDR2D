@@ -1748,24 +1748,47 @@ module library
             
           end do
           
+        case(4) !new test of polynomial solution
+          do inode = 1, nnodes  !simple Function
+           
+            !exact solution
+            uxSol   = x**2(1.0-x**2)*(2*y**3 -3*y**2 +y)
+            uySol   =-(2*x**3 -3*x**2 +x)*y**2(1.0-y**2)
+            
+            !FEM solution
+            x_FEM = solution_T(1,ndofn*inode-2)
+            y_FEM = solution_T(1,ndofn*inode-1)             
+            p_FEM = solution_T(1,ndofn*inode)
+           
+            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error_p  = error_p  + (multi - p_FEM )**2
+            
+            !Write to plotting file 
+            exact_x(inode) = uxSol
+            exact_y(inode) = uySol
+            exact_p(inode) = multi
+            
+          end do
+          
       end select
       error_EM = sqrt(error_EM/nnodes)
       error_p = sqrt(error_p/nnodes)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
-      open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
+      !open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
       
       
       if((simul.eq.3).or.(simul.eq.2))then
         do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
          
-          write(112,906) solution(ipoin,1)
          ! write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
          ! &     solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin), exact_p(ipoin)
           
           write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
           &              exact_x(ipoin), exact_y(ipoin)
+          
+          !write(112,906) solution(ipoin,1)
         end do
         
       elseif((simul.eq.3).or.(simul.eq.4))then 

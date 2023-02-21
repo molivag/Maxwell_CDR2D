@@ -418,6 +418,71 @@ module BoundVal
             end do
             nBVscol = 7 
             
+          case(4)
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux = 0.0 
+              uy = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then                          !Upper Right Corner
+                  ux = x**2(1.0-x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2*x**3 -3*x**2 +x)*y**2(1.0-y**2)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                elseif(x.eq.xmin)then                      !Upper Left Corner
+                  ux = x**2(1.0-x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2*x**3 -3*x**2 +x)*y**2(1.0-y**2)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                else
+                  ux = -(x - x**2)
+                  uy = 0.0                                 !Upper Boundary 
+                  write(200,10) i, 1, 0, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                end if
+                
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then
+                  ux = x**2(1.0-x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2*x**3 -3*x**2 +x)*y**2(1.0-y**2)
+                  write(200,10) i, 1, 1, 1                 !Down Left Corner
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                elseif(x.eq.xmax)then
+                  ux = x**2(1.0-x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2*x**3 -3*x**2 +x)*y**2(1.0-y**2)
+                  write(200,10) i, 1, 1, 1                 !Down Right Corner
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                else
+                  ux =
+                  uy = 
+                  write(200,10) i, 1,  0, 1                !Down Border
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                end if
+                
+              else if(x.eq.xmax)then
+                ux = 
+                uy =
+                write(200,10) i, 0,  1, 1                  !Right Boundary
+                write(300,20)   ux, uy, 0.0
+                c = c+1
+              else if (x.eq.xmin)then
+                ux =
+                uy = 
+                write(200,10) i, 0,  1, 1                  !Left Boundary
+                write(300,20)   ux, uy, 0.0
+                d = d+1
+              end if
+              
+              nBVs = a+b+c+d
+            end do
+            nBVscol = 7 
           case Default
             print*,'From BVS, case 3 and 4 are for 1 DoF'
             stop

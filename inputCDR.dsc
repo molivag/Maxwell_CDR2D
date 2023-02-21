@@ -10,7 +10,7 @@ ProbType = T2ME             !Problem type TIME=transient, any other=static
 DimPr    = 2                !Dimension del problema
 ndofn    = 3                !Degrees of freedom
 totGp    = 3                !1,4,9 for Q, 1,3,7 for P
-simul    = 1                !1=Ldom; 2=cuadratic 3=electrostatic; 4=scattering
+simul    = 1                !1=LdomT2; 2=LdomT1; 3=cuadratic; 4=polynomial
 
 # > > > > > > >Geometry
 nelem    = 768              !Number of nodes

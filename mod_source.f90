@@ -137,6 +137,26 @@ module sourceTerm
         ! EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
         ! EMsource(3) = force(3)
         
+      case(4)
+        !Source considering the DivDiv term
+        
+        !Derivatives in x-direction
+        dey_dydx = 
+        dex_dy2  = 
+        dex_dx2  = 
+        dey_dxdy = 
+        
+        
+        !Derivatives in y-direction
+        dey_dx2  = 
+        dex_dxdy = 
+        dex_dydx = 
+        dey_dy2  = 
+        
+        
+        EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
+        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
+        EMsource(3) = force(3)
         
       end select
       
