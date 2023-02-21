@@ -132,6 +132,8 @@ module library
         write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
       end do
       print*, ' '
+      print*, 'External Forces'
+      write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
@@ -152,14 +154,14 @@ module library
       write(100,'(A)') " "
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
-      write(100,"(A19,4x,a13,3X,A1)") ' - Element type:           ', InitElemType,''
+      write(100,"(A13,4x,a13,3X,A1)") ' - Element type:           ', InitElemType,''
       write(100,"(A19,4X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
       write(100,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
       write(100,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
       write(100,'(A)')
       write(100,'(A)')'!================= REFINMENT INFO ===============!'
       write(100,"(A23,2x,a12,3X,A1)") ' - Refinement type:         ', bbbb,''
-      write(100,"(A23,4x,a13,3X,A1)") ' - Final element type:     ', ElemType,''
+      write(100,"(A14,4x,a13,3X,A1)") ' - Final element type:     ', ElemType,''
       write(100,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
       write(100,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
       write(100,'(A)') 
@@ -200,8 +202,8 @@ module library
         write(100,"(f10.3, 1x, f10.3, 1x, f10.3)" ) ( reama(i,j) ,j=1,ndofn)
       end do
         write(100,'(A)') 
-      !write(100,'(A)') 'External Forces'
-      !write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
+      write(100,'(A)') 'External Forces'
+      write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
       
       
       close(100)
@@ -1625,15 +1627,16 @@ module library
       double precision, dimension(1, ntotv) :: solution_T
       double precision, dimension(1,nnodes) :: xcoor, ycoor
       double precision, dimension(nnodes)   :: x, y
-      double precision, dimension(nnodes)   :: exact_y, exact_x
+      double precision, dimension(nnodes)   :: exact_y, exact_x, exact_p
       double precision     :: aa, bb, cc, dd, ee
-      double precision     :: sum_error, error, xmax, x_FEM, y_FEM, uxSol, uySol
-      double precision     :: fi, psi, der_fi, der_psi, w, h, voltage
-      character(len=12)    :: extension
-      integer              :: ipoin, ielem, inode, k
+      double precision     :: sum_error, error_EM, error_p, xmax, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
+      double precision     :: fi, psi, der_fi, der_psi
+      character(len=12)    :: extension, File_Solution
+      integer              :: ipoin, ielem, inode 
       
       
       extension ="_matlab.txt"
+      File_Solution ="globsolution"
       
       solution_T = transpose(solution)
       xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
@@ -1641,12 +1644,15 @@ module library
       x  = xcoor(1,:)
       y  = ycoor(1,:)
       
-      error = 0.0
+      error_EM  = 0.0
+      error_p = 0.0
       sum_error = 0.0
       exact_x = 0.0
       exact_y = 0.0
+      exact_p = 0.0
       uxSol = 0.0 
       uySol = 0.0
+      multi = 0.0
       
       select case(simul)
         case(1)
@@ -1681,7 +1687,7 @@ module library
             
             !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
             !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            error = error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
             !print*, 'error', error  
             
             !Write to plotting file 
@@ -1690,6 +1696,30 @@ module library
             
           end do
         case(2)
+          do inode = 1, nnodes  
+            
+           !exact solution
+            uxSol = -exp(x(inode)) * ( y(inode)*cos(y(inode)) + sin(y(inode)) )
+            uySol = exp(x(inode)) * y(inode) * sin(y(inode))
+            multi = sin(0.5*pi*(x(inode)-1.0)) * sin(0.5*pi*(y(inode)-1.0))
+            
+            !FEM solution
+            x_FEM = solution_T(1,ndofn*inode-2)
+            y_FEM = solution_T(1,ndofn*inode-1)
+            p_FEM = solution_T(1,ndofn*inode)
+            
+            !write(*,"(6(f15.5,1x))") uxSol, x_FEM, uySol, y_FEM, multi, p_FEM
+            !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
+            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error_p  = error_p + (multi - p_FEM )**2
+            !print*, 'error', error  
+            
+            !Write to plotting file 
+            exact_x(inode) = uxSol 
+            exact_y(inode) = uySol
+          end do
+          
+        case(3)
           do inode = 1, nnodes  !simple Function
            
             !exact solution
@@ -1698,64 +1728,46 @@ module library
             der_fi  = (1.0-2.0*x(inode))
             der_psi = (1.0-2.0*y(inode))
             uxSol   = fi*der_psi
-            uySol   = -(psi*der_fi)
-            
+            uySol   =-(psi*der_fi)
+             
             !FEM solution
             x_FEM = solution_T(1,ndofn*inode-2)
             y_FEM = solution_T(1,ndofn*inode-1)             
+            p_FEM = solution_T(1,ndofn*inode)
            
             !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
             !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            error = error + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
+            error_p  = error_p  + (multi - p_FEM )**2
             !error = error + (x_FEM - ex_x)**2 + (y_FEM - ex_y)**2 
             
             !Write to plotting file 
             exact_x(inode) = uxSol
             exact_y(inode) = uySol
+            exact_p(inode) = multi
             
-          end do
-        case(3)
-          w = maxval(coord(1,:))
-          h = maxval(coord(2,:))
-          voltage = 0.0
-          do inode = 1, nnodes  !simple Function
-           
-            !exact solution
-            do k = 1,5
-              aa   = ((2.0*k-1.0)*pi*x(inode))/w 
-              bb   = ((2.0*k-1.0)*pi*y(inode))/w 
-              cc   = ((2.0*k-1.0)*pi*h)/w 
-              dd   = (2*k-1) 
-              voltage = voltage + (sin(aa)*sinh(bb))/dd * sinh(cc)
-            end do
-            uxSol = 4.0/pi * voltage
-            
-            !FEM solution
-            x_FEM = solution_T(1,ndofn*inode)
-           
-            !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
-            error = error + ( (uxSol - x_FEM)**2 ) 
-            
-            !Write to plotting file 
-            exact_x(inode) = uxSol
           end do
           
       end select
-      error = sqrt(error/nnodes)
+      error_EM = sqrt(error_EM/nnodes)
+      error_p = sqrt(error_p/nnodes)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
       
       
-      if((simul.eq.1).or.(simul.eq.2))then
+      if((simul.eq.3).or.(simul.eq.2))then
         do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
          
-          write(111,906) solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1),&
-          &              exact_x(ipoin), exact_y(ipoin)
-          !write(*,"(4(f15.5,1x))") solution_T(1, ndofn*ipoin-2), exact_x(ipoin),&
-          !&                      solution_T(1,ndofn*ipoin-1), exact_y(ipoin)
+          write(112,906) solution(ipoin,1)
+         ! write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
+         ! &     solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin), exact_p(ipoin)
           
+          write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
+          &              exact_x(ipoin), exact_y(ipoin)
         end do
+        
       elseif((simul.eq.3).or.(simul.eq.4))then 
        
         !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
@@ -1770,7 +1782,7 @@ module library
       !print*, ' '
       
       !print*, '!====== Matlab file ======'
-      write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
+      write(*,"(A7,A23,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
       
       close(111)
       
@@ -1784,24 +1796,27 @@ module library
       do ipoin = 1, nnodes
         write(444,904) ipoin, x(ipoin), y(ipoin)
       end do
-      write(*,"(A7,A10,A5,A10,A29)") ' -File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
+      write(*,"(A7,A12,A5,A12,A29)") ' -File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
       print*, ' '
       
       close(333)
       close(444)
 
       open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
-      write(777,"(1x,E15.5)") error
+      write(777,"(1x,E15.5,3x, A)") error_EM,'%error in electric field'
+      write(777,"(1x,E15.5,3x, A)") error_p, '%error in multiplier'
       close(777)
 
       xmax = maxval(coord(1,:)) !the greatest number in x column
       print*, '!============== Error Estimation ==============!'
-      write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', xmax*2**(-i_exp), 'the error estimation is ', error 
+      write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', xmax*2**(-i_exp), 'the error estimation is '
+      write(*,"(A8,E13.5)")' -In u: ', error_EM
+      write(*,"(A8,E13.5)")' -in p: ', error_p
       print*, ' '
      
       902 format(1x,i5,10(1x,i5))
       904 format(I7,2(3x,f9.4) ) !format for msh
-      906 format(4(E15.5, 3x))
+      906 format(6(E15.5, 3x))
       
     end subroutine Res_Matlab
     !
@@ -1997,7 +2012,7 @@ module library
       
       
       close(555)
-      write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
+      write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
       
       
       open(unit=555, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
@@ -2049,7 +2064,7 @@ module library
             ii=ii+1
           end do
           write(555,"(A)") 'End Values'
-          write(*,"(A7,A19,A28)") ' -File ',File_PostProcess//'.post.res','written succesfully in Pos/'
+          write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//'.post.res','written succesfully in Pos/'
       end select
       
       close(555)
