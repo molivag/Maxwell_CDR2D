@@ -2,7 +2,7 @@ module param
   
   implicit none
 
-  character(len=10) :: File_PostProcess, error_name, coord_name, conec_name
+  character(len=12) :: File_PostProcess, error_name, coord_name, conec_name
   character(len=4)  :: InitElemType, ProbType
   character(len=2)  :: refiType, testNo
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
@@ -38,7 +38,7 @@ module param
       
       read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,&
       initElem, initNodes, nne, refiType, theta, time_ini, time_fin,max_time, u0cond,&
-      kstab, ktaum, patau, hnatu, Cu, mu, ell,i_exp, n_val, testNo, File_PostProcess,&
+      kstab, ktaum, patau, hnatu, Cu, ell, i_exp, n_val, mu, testNo, File_PostProcess,&
       error_name, coord_name, conec_name, x_0, y_0, x_1, y_1
       
       if (stat.ne.0) then
@@ -66,6 +66,7 @@ module param
      
       !Parameter of stabilization in augmented formulation
       param_stab1 = Cu*mu*(helem**2/ell**2)
+      !print*, param_stab1
       param_stab2 = ell**2 / mu
       
       if(ndofn.eq.1)then
@@ -164,8 +165,8 @@ module param
       100 format(7/ 11x, A4,/ ,11x, A4,/, 4(11x,I5,/), 2/,&                      !model parameters
       &          3(11x,I7,/), 11x,A2,/      ,2/,&                                !geometry
       &          11x,I1,/, 2(11x,f7.2,/),11x,I7,/,11x,f7.2,/, 2/,&               !time
-      &          2(11x,I5,/), 3(11x,F7.2,/), 1(11x,e15.5,/), 3(11x,F7.2,/), 2/,& !stabi
-      &          11x,A2,/, 4(11x,A10,/), 2/, 4(11x,I7,/), / )                     !source location
+      &          2(11x,I5,/), 6(11x,F7.2,/), 1(11x,e15.5,/),  2/,& !stabi
+      &          11x,A2,/, 4(11x,A12,/), 2/, 4(11x,I7,/), / )                     !source location
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
