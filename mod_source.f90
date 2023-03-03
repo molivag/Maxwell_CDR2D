@@ -141,17 +141,17 @@ module sourceTerm
         !Source considering the DivDiv term
         
         !Derivatives in x-direction
-        dey_dydx = 
-        dex_dy2  = 
-        dex_dx2  = 
-        dey_dxdy = 
+        dey_dydx =-2.0*(6.0*x**2 - 6.0*x + 1.0)*(y-1.0)*y*(2.0*y - 1.0)
+        dex_dy2  = 6*(x**2 - 2.0*x + 1.0)*(2.0*y-1.0)*x**2
+        dex_dx2  = 2.0*(6.0*x**2 - 6.0*x +1.0)*y*(2.0*y**2 - 3.0*y + 1.0)
+        dey_dxdy =-2.0*(6.0*x**2 - 6.0*x + 1.0)*(y-1.0)*y*(2.0*y - 1.0) 
         
         
         !Derivatives in y-direction
-        dey_dx2  = 
-        dex_dxdy = 
-        dex_dydx = 
-        dey_dy2  = 
+        dey_dx2  =-6.0*(2.0*x - 1.0)*(y**2 -2.0*y + 1.0)*y**2
+        dex_dxdy = 2.0*(x-1.0)*x*(2.0*x - 1.0)*(6.0*y**2 -6.0*y + 1.0)
+        dex_dydx = 2.0*(x-1.0)*x*(2.0*x - 1.0)*(6.0*y**2 -6.0*y + 1.0) 
+        dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
         
         
         EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
