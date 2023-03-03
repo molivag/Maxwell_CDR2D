@@ -106,34 +106,34 @@ module library
         continue
       endif
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-      end do
-        print*,' '
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
-      end do
-      print*, ' '
-      print*, 'External Forces'
-      write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !end do
+      !  print*,' '
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !print*, ' '
+      !print*, 'External Forces'
+      !write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
@@ -1625,12 +1625,12 @@ module library
       double precision, dimension(ntotv, 1), intent(in) :: solution
       
       double precision, dimension(1, ntotv) :: solution_T
-      double precision, dimension(1,nnodes) :: xcoor, ycoor
-      double precision, dimension(nnodes)   :: x, y
-      double precision, dimension(nnodes)   :: exact_y, exact_x, exact_p
-      double precision     :: aa, bb, cc, dd, ee
+      !double precision, dimension(1,nnodes) :: xcoor, ycoor
+      !double precision, dimension(nnodes)   :: x, y
+      double precision, dimension(nnodes)   :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
+      double precision     :: aa, bb, cc, dd, ee, x, y
       double precision     :: sum_error, error_EM, error_p, xmax, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
-      double precision     :: fi, psi, der_fi, der_psi
+      double precision     :: fi, psi, der_fi, der_psi, errL2_x, errL2_y, errL2_p
       character(len=12)    :: extension, File_Solution
       integer              :: ipoin, ielem, inode 
       
@@ -1639,10 +1639,10 @@ module library
       File_Solution ="globsolution"
       
       solution_T = transpose(solution)
-      xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
-      ycoor = spread(coord(2,:),dim = 1, ncopies= 1)
-      x  = xcoor(1,:)
-      y  = ycoor(1,:)
+      !xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
+      !ycoor = spread(coord(2,:),dim = 1, ncopies= 1)
+      !x  = xcoor(1,:)
+      !y  = ycoor(1,:)
       
       error_EM  = 0.0
       error_p = 0.0
@@ -1652,7 +1652,7 @@ module library
       exact_p = 0.0
       uxSol = 0.0 
       uySol = 0.0
-      multi = 0.0
+      multi = 1E-18
       
       select case(simul)
         case(1)
@@ -1664,20 +1664,22 @@ module library
           ee = 0.0 
           !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
           do inode = 1, nnodes  
+            x = coord(1,inode)
+            y = coord(2,inode)
             
            !exact solution
-            bb    = ((x(inode)**2 + y(inode)**2))
+            bb    = ((x**2 + y**2))
             
             
-            if(abs(x(inode)).ne.0.01.and.abs(x(inode)).le.1.0e-4)then
-              dd    = y(inode)/x(inode)
+            if(abs(x).ne.0.01.and.abs(x).le.1.0e-4)then
+              dd    = y/x
               ee    = atan(dd)
             else
               ee    = pi/2.0
             end if
               
-            uxSol = aa * bb**cc * ( x(inode)*sin(aa*ee) - y(inode)*cos(aa*ee) )
-            uySol = aa * bb**cc * ( y(inode)*sin(aa*ee) + x(inode)*cos(aa*ee) )
+            uxSol = aa * bb**cc * ( x*sin(aa*ee) - y*cos(aa*ee) )
+            uySol = aa * bb**cc * ( y*sin(aa*ee) + x*cos(aa*ee) )
             !uxSol = aa * bb**cc * sin(aa*ee)
             !uySol = aa * bb**cc * cos(aa*ee)
             
@@ -1697,11 +1699,13 @@ module library
           end do
         case(2)
           do inode = 1, nnodes  
+            x = coord(1,inode)
+            y = coord(2,inode)
             
            !exact solution
-            uxSol = -exp(x(inode)) * ( y(inode)*cos(y(inode)) + sin(y(inode)) )
-            uySol = exp(x(inode)) * y(inode) * sin(y(inode))
-            multi = sin(0.5*pi*(x(inode)-1.0)) * sin(0.5*pi*(y(inode)-1.0))
+            uxSol = -exp(x) * ( y*cos(y) + sin(y) )
+            uySol = exp(x) * y * sin(y)
+            multi = sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1.0))
             
             !FEM solution
             x_FEM = solution_T(1,ndofn*inode-2)
@@ -1721,12 +1725,14 @@ module library
           
         case(3)
           do inode = 1, nnodes  !simple Function
+            x = coord(1,inode)
+            y = coord(2,inode)
            
             !exact solution
-            fi      = (x(inode)-x(inode)**2)
-            psi     = (y(inode)-y(inode)**2)
-            der_fi  = (1.0-2.0*x(inode))
-            der_psi = (1.0-2.0*y(inode))
+            fi      = (x-x**2)
+            psi     = (y-y**2)
+            der_fi  = (1.0-2.0*x)
+            der_psi = (1.0-2.0*y)
             uxSol   = fi*der_psi
             uySol   =-(psi*der_fi)
              
@@ -1750,10 +1756,12 @@ module library
           
         case(4) !new test of polynomial solution
           do inode = 1, nnodes  !simple Function
-           
+            x = coord(1,inode)
+            y = coord(2,inode)
+            
             !exact solution
-            uxSol   = x**2(1.0-x**2)*(2*y**3 -3*y**2 +y)
-            uySol   =-(2*x**3 -3*x**2 +x)*y**2(1.0-y**2)
+            uxSol   = x**2 * (1.0-2.0*x + x**2)*(2*y**3 -3*y**2 +y)
+            uySol   =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(1.0-2.0*y + y**2)
             
             !FEM solution
             x_FEM = solution_T(1,ndofn*inode-2)
@@ -1767,19 +1775,25 @@ module library
             exact_x(inode) = uxSol
             exact_y(inode) = uySol
             exact_p(inode) = multi
-            
+            FEM_x(inode) = solution_T(1,ndofn*inode-2)
+            FEM_y(inode) = solution_T(1,ndofn*inode-1)
+            FEM_p(inode) = solution_T(1,ndofn*inode-0) 
           end do
           
       end select
       error_EM = sqrt(error_EM/nnodes)
       error_p = sqrt(error_p/nnodes)
+     
+      errL2_x=norm2(exact_x - FEM_x)/norm2(exact_x)
+      errL2_y=norm2(exact_y - FEM_y)/norm2(exact_y)
+      errL2_p=norm2(exact_p - FEM_p)/norm2(exact_p)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
       !open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
       
       
-      if((simul.eq.3).or.(simul.eq.2))then
+      !if((simul.eq.2).or.(simul.eq.3))then
         do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
          
          ! write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
@@ -1790,17 +1804,17 @@ module library
           
           !write(112,906) solution(ipoin,1)
         end do
-        
-      elseif((simul.eq.3).or.(simul.eq.4))then 
-       
-        !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
-        do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-          write(111,906) solution_T(1, ipoin), exact_x(ipoin)
-        end do
-      else
-        print*, 'In Res_Matlab, Problem type not defined'
-        stop
-      end if
+      !  
+      !elseif((simul.eq.3).or.(simul.eq.4))then 
+      ! 
+      !  !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
+      !  do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+      !    write(111,906) solution_T(1, ipoin), exact_x(ipoin)
+      !  end do
+      !else
+      !  print*, 'In Res_Matlab, Problem type not defined'
+      !  stop
+      !end if
         !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
       !print*, ' '
       
@@ -1817,7 +1831,7 @@ module library
       end do
       
       do ipoin = 1, nnodes
-        write(444,904) ipoin, x(ipoin), y(ipoin)
+        write(444,904) ipoin, coord(1,ipoin), coord(2,ipoin)
       end do
       write(*,"(A7,A12,A5,A12,A29)") ' -File ',coord_name, ' and ', conec_name, 'written succesfully in Res/ '
       print*, ' '
@@ -1828,6 +1842,9 @@ module library
       open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
       write(777,"(1x,E15.5,3x, A)") error_EM,'%error in electric field'
       write(777,"(1x,E15.5,3x, A)") error_p, '%error in multiplier'
+      write(777,"(1x,E15.5,3x, A)") errL2_x,'%error in ex'
+      write(777,"(1x,E15.5,3x, A)") errL2_y,'%error in ey'
+      write(777,"(1x,E15.5,3x, A)") errL2_p,'%error in multiplier'
       close(777)
 
       xmax = maxval(coord(1,:)) !the greatest number in x column
