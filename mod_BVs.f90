@@ -40,14 +40,14 @@ module BoundVal
       xmax = maxval(coord(1,:)) !the greatest number in x column
       ymin = minval(coord(2,:)) !the smallest number in y column
       ymax = maxval(coord(2,:)) !the greatest number in y column
-      xmiddle =  0.0 !xmax/2.0
-      ymiddle =  0.0 !ymax/2.0
-      !print*, 'xmin = ', xmin
-      !print*, 'xmax = ', xmax
-      !print*, 'ymin = ', ymin
-      !print*, 'ymax = ', ymax
-      !print*, 'xmiddle = ', xmiddle
-      !print*, 'ymiddle = ', ymiddle
+      xmiddle =  xmax/2.0
+      ymiddle =  ymin/2.0
+      print*, 'xmin = ', xmin
+      print*, 'xmax = ', xmax
+      print*, 'ymin = ', ymin
+      print*, 'ymax = ', ymax
+      print*, 'xmiddle = ', xmiddle
+      print*, 'ymiddle = ', ymiddle
       
       
       
@@ -55,37 +55,38 @@ module BoundVal
         do i =1, nnodes
           x=coord(1,i)
           y=coord(2,i)
+          ux = 0.0 
           if(y.eq.ymax) then
             if(x.eq.xmax)then                   !right top corner 
               write(200,10) i, 1
-              write(300,30) 1.0
+              write(300,30) ux 
             elseif(x.eq.xmin)then               !left top corner 
               write(200,10) i, 1
-              write(300,30) 1.0
+              write(300,30) ux 
             else
               write(200,10) i, 1                !Top boundary
-              write(300,30) 1.0
+              write(300,30) ux 
             end if
             a = a+1
           else if (y.eq.ymin)then
-            if(x.eq.xmin)then                   !right bottom corner  
+            if(x.eq.xmin)then                   !left bottom corner  
               write(200,10) i, 1
-              write(300,30) 0.0
-            elseif(x.eq.xmax)then               !left bottom corner
+              write(300,30) ux
+            elseif(x.eq.xmax)then               !right bottom corner
               write(200,10) i, 1
-              write(300,30) 0.0
+              write(300,30) ux
             else
               write(200,10) i, 1                !bottom boundary
-              write(300,30) 0.0 
+              write(300,30) ux
             end if
             b = b+1
           else if(x.eq.xmax)then                !right boundary
               write(200,10) i, 1
-              write(300,30) 0.0
+              write(300,30) ux
             c = c+1
           else if (x.eq.xmin)then               !left boundary
               write(200,10) i, 1
-              write(300,30) 0.0
+              write(300,30) ux
             d = d+1
            
           end if
@@ -100,34 +101,34 @@ module BoundVal
           x=coord(1,i)
           y=coord(2,i)
           if(y.eq.ymax) then 
-            if(x.eq.xmax)then                         
-              write(200,10) i, 1, 1
-              write(300,40)   1.0, 0.0
-            elseif(x.eq.xmin)then                     
-              write(200,10) i, 1, 1
-              write(300,40)   1.0, 0.0
-            else
-              write(200,10) i, 1, 1
-              write(300,40)   1.0, 0.0
-            end if
-            a = a+2
-          else if (y.eq.ymin)then
-            if(x.eq.xmin)then                         
-              write(200,10) i, 1, 1
-              write(300,40)   0.0, 0.0
-            elseif(x.eq.xmax)then                      
-              write(200,10) i, 1, 1
-              write(300,40)   0.0, 0.0
-            else
-              write(200,10) i, 1, 1
-              write(300,40)   0.0, 0.0
-            end if
-            b = b+2
-          else if(x.eq.xmax)then                      
-              write(200,10) i, 1, 1
-              write(300,40)   0.0, 0.0
-            c = c+2
-          else if (x.eq.xmin)then                     
+            if(x.eq.xmax)then                    !right top corner         
+              write(200,10) i, 1, 1                                    
+              write(300,40)   1.0, 0.0                                 
+            elseif(x.eq.xmin)then                !left top corner          
+              write(200,10) i, 1, 1                                    
+              write(300,40)   1.0, 0.0                                 
+            else                                                       
+              write(200,10) i, 1, 1              !Top boundary
+              write(300,40)   1.0, 0.0                                 
+            end if                                                     
+            a = a+2                                                    
+          else if (y.eq.ymin)then                                      
+            if(x.eq.xmin)then                    !left bottom corner       
+              write(200,10) i, 1, 1                                    
+              write(300,40)   0.0, 0.0                                 
+            elseif(x.eq.xmax)then                !right bottom corner       
+              write(200,10) i, 1, 1                                    
+              write(300,40)   0.0, 0.0                                 
+            else                                                       
+              write(200,10) i, 1, 1              !bottom boundary
+              write(300,40)   0.0, 0.0                                 
+            end if                                                     
+            b = b+2                                                    
+          else if(x.eq.xmax)then                 !right boundary           
+              write(200,10) i, 1, 1                                    
+              write(300,40)   0.0, 0.0                                 
+            c = c+2                                                    
+          else if (x.eq.xmin)then                !left boundary            
               write(200,10) i, 1, 1
               write(300,40)   0.0, 0.0
             d = d+2
@@ -380,34 +381,34 @@ module BoundVal
                 end if
                 
               else if(y.eq.ymin)then
-                if(x.eq.xmin)then
+                if(x.eq.xmin)then                     !left bottom corner  
                   ux = (x-x**2)*(1.0-2.0*y)
                   uy =-(1.0-2.0*x)*(y-y**2)
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
-                elseif(x.eq.xmax)then
+                elseif(x.eq.xmax)then                 !right bottom corner
                   ux = (x-x**2)*(1.0-2.0*y)
                   uy =-(1.0-2.0*x)*(y-y**2)
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
-                else
+                else                                  !Down Border
                   ux = (x - x**2)
-                  uy = 0.0                              !Down Border
+                  uy = 0.0
                   write(200,10) i, 1,  0, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 end if
                 
-              else if(x.eq.xmax)then
-                ux = 0.0                                !Right Boundary Corner
+              else if(x.eq.xmax)then                  !Right Boundary Corner
+                ux = 0.0
                 uy = (y - y**2)
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
-              else if (x.eq.xmin)then
-                ux = 0.0                                !Left Boundary Corner
+              else if (x.eq.xmin)then                 !Left Boundary Corner
+                ux = 0.0
                 uy = -(y-y**2)
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
@@ -419,6 +420,7 @@ module BoundVal
             nBVscol = 7 
             
           case(4)
+            print*, 'case',simul
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -458,24 +460,24 @@ module BoundVal
                   write(200,10) i, 1, 1, 1                 !Down Right Corner
                   write(300,20)   ux, uy, 0.0
                   b = b+1
-                else
+                else                                             !Down Border
                   ux = 0.0
                   uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
-                  write(200,10) i, 1,  0, 1                !Down Border
+                  write(200,10) i, 1,  0, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 end if
                 
-              else if(x.eq.xmax)then
+              else if(x.eq.xmax)then                              !Right Boundary
                 ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
                 uy = 0.0 
-                write(200,10) i, 0,  1, 1                  !Right Boundary
+                write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
-              else if (x.eq.xmin)then
+              else if (x.eq.xmin)then                             !Left Boundary
                 ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
                 uy = 0.0                                
-                write(200,10) i, 0,  1, 1                  !Left Boundary
+                write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 d = d+1
               end if
@@ -483,10 +485,146 @@ module BoundVal
               nBVs = a+b+c+d
             end do
             nBVscol = 7 
+            
+          case(5)
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux = 0.0 
+              uy = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then                          !Upper Right Corner
+                  ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                elseif(x.eq.xmin)then                      !Upper Left Corner
+                  ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                else
+                  ux = 0.0
+                  uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
+                  write(200,10) i, 1, 1, 1                 !Upper Boundary 
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                end if
+                
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then
+                  ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
+                  write(200,10) i, 1, 1, 1                 !Down Left Corner
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                elseif(x.eq.xmax)then
+                  ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
+                  uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
+                  write(200,10) i, 1, 1, 1                 !Down Right Corner
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                else
+                  ux = 0.0
+                  uy =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(-2.0*y+1.0+y**2)
+                  write(200,10) i, 1, 1, 1                !Down Border
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                end if
+                
+              else if(x.eq.xmax)then                       !Right Boundary
+                ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
+                uy = 0.0 
+                write(200,10) i, 1, 1, 1
+                write(300,20)   ux, uy, 0.0
+                c = c+1
+              else if (x.eq.xmin)then                      !Left Boundary
+                ux = x**2 * (-2.0*x+1.0+x**2)*(2*y**3 -3*y**2 +y)
+                uy = 0.0                                
+                write(200,10) i, 1,  1, 1
+                write(300,20)   ux, uy, 0.0
+                d = d+1
+              end if
+              
+              nBVs = a+b+c+d
+            end do
+            nBVscol = 7 
+            
+          case(6)
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux = 0.0 
+              uy = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then                          !Upper Right Corner
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                elseif(x.eq.xmin)then                      !Upper Left Corner
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                else
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1                 !Upper Boundary 
+                  write(300,20)   ux, uy, 0.0
+                  a = a+1
+                end if
+                
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1                 !Down Left Corner
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                elseif(x.eq.xmax)then
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1                 !Down Right Corner
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                else
+                  ux = 0.0
+                  uy = 0.0
+                  write(200,10) i, 1, 1, 1                !Down Border
+                  write(300,20)   ux, uy, 0.0
+                  b = b+1
+                end if
+                
+              else if(x.eq.xmax)then
+                ux = 0.0  
+                uy = 0.0 
+                write(200,10) i, 1, 1, 1                  !Right Boundary
+                write(300,20)   ux, uy, 0.0
+                c = c+1
+              else if (x.eq.xmin)then
+                ux = 0.0
+                uy = 0.0                                
+                write(200,10) i, 1,  1, 1                  !Left Boundary
+                write(300,20)   ux, uy, 0.0
+                d = d+1
+              end if
+              
+              nBVs = a+b+c+d
+            end do
+            nBVscol = 7 
+            
+            
+            
           case Default
             print*,'From BVS, case 3 and 4 are for 1 DoF'
             stop
         end select
+        
        
       end if
       
