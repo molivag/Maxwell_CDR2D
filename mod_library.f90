@@ -18,15 +18,17 @@ module library
 
       integer :: i,j, k, l
       
-      if(kstab.eq.3 .or. kstab.eq.5)then
-        aaaa = 'SGS'
-      elseif(kstab.eq.2)then
-        aaaa = 'GLS'
-      elseif(kstab.eq.4)then
-        aaaa = 'CG'
+      if(kstab.eq.0)then
+        aaaa = 'NONE'
       elseif(kstab.eq.1)then
         aaaa = 'SUPG'
-      elseif(kstab.eq.0)then
+      elseif(kstab.eq.2)then
+        aaaa = 'GLS'
+      elseif(kstab.eq.3 .or. kstab.eq.5)then
+        aaaa = 'SGS'
+      elseif(kstab.eq.4)then
+        aaaa = 'CG'
+      elseif(kstab.eq.6)then
         aaaa = 'MAVF'
       else
         write(*,'(A)') '> > >Error in stabilization method'
@@ -50,6 +52,8 @@ module library
       write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', initnevab,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', initntotv,'   '
+      write(*,"(A19,7X,f8.4,1X,A10)") ' - Element size:        ', 2**(-i_exp),'   '
+      write(*,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
       
       if(refiType.eq.'NO')then
         write(*,"(A23,2x,a6,3X,A1)") ' - Refinement type:        ', '  NONE',''
@@ -69,18 +73,25 @@ module library
       endif
       
       print*, ' '
-      print*,'!========== STABILIZATION PARAMETERS ==========!'
-      write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
-      write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
-      write(*,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
-      write(*,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
-      write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of length:   ', ell, '    '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
-      write(*,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 2**(-i_exp),'   '
-      write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
-      write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
+      if(kstab.eq.0)then
+        print*,'!========== STABILIZATION PARAMETERS ==========!'
+        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+      else
+        print*,'!========== STABILIZATION PARAMETERS ==========!'
+        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+        write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
+        write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
+      endif
+      
+      if(kstab.eq.6)then
+        print*,'!========== STABILIZATION PARAMETERS ==========!'
+        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+        write(*,"(A26,1X,e13.5,1X,A10)") ' - Reluctivity of medium  ', lambda, '  '
+        write(*,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
+        write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of length:   ', ell, '    '
+        write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*lambda*(helem**2/ell**2),'   '
+        write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):     ', ell**2 / lambda,'   '
+      endif
       
       
       if(ProbType.eq.'TIME')then
@@ -106,34 +117,40 @@ module library
         continue
       endif
       
-      !print*, ' '
-      !print*,'!============ TENSOR COEFFICIENTS  ============!'
-      !print*, 'Diffusion'
-      !do i = 1,dimPr
-      !  do j = 1,DimPr
-      !    print"(A,2I1)", 'k_',i,j
-      !    do k = 1,ndofn
-      !      print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
-      !    end do
-      !    !print*,' '
-      !  end do
-      !end do
-      !print*, ' '  
-      !print*, 'Convection'
-      !do k = 1, DimPr
-      !  print"(A,2I1)",'A_',k
-      !  do i = 1, ndofn
-      !    write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
-      !  end do
-      !end do
-      !  print*,' '
-      !print*,'Reaction'
-      !do i=1,ndofn
-      !  write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
-      !end do
-      !print*, ' '
-      !print*, 'External Forces'
-      !write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      print*, ' '
+      print*,'!============ TENSOR COEFFICIENTS  ============!'
+      print*, 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+      end do
+        print*,' '
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
+      end do
+      print*, ' '
+      print*, 'External Forces'
+      if(ndofn.eq.1)then
+        write(*,"(3(f10.3,1x))") force(1)
+      elseif(ndofn.eq.2)then
+        write(*,"(2(f10.3,1x))") force(1), force(2)
+      else
+        write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
@@ -150,30 +167,47 @@ module library
       
       write(100,'(A)')'- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
       write(100,'(A)')
-      write(100,'(A9,1x,A2)') 'test No: ',testNo
+      write(100,'(A8,1x,A14)') 'test No:',testNo
       write(100,'(A)') " "
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
-      write(100,"(A13,4x,a13,3X,A1)") ' - Element type:           ', InitElemType,''
-      write(100,"(A19,4X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
-      write(100,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
+      write(100,"(A19,7x,a4,3X,A1)") ' - Element type:           ', InitElemType,''
+      write(100,"(A19,5X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
+      write(100,"(A19,5X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
       write(100,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
-      write(100,'(A)')
-      write(100,'(A)')'!================= REFINMENT INFO ===============!'
-      write(100,"(A23,2x,a12,3X,A1)") ' - Refinement type:         ', bbbb,''
-      write(100,"(A14,4x,a13,3X,A1)") ' - Final element type:     ', ElemType,''
-      write(100,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
-      write(100,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
-      write(100,'(A)') 
-      write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-      write(100,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
-      write(100,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
-      write(100,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', mu, '  '
-      write(100,"(A26,1X,f5.1,1X,A10)") ' - Constante of length:   ', ell, '    '
-      write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
-      write(100,"(A26,1X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 2**(-i_exp),'   '
-      write(100,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*mu*(helem**2/ell**2),'   '
-      write(100,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / mu,'   '
+      write(100,"(A19,4X,f8.4,1X,A10)") ' - Mesh size 2^-i:        ', 2**(-i_exp),'   '
+      write(100,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:     ', hnatu,'   '
+      if(refiType.eq.'NO')then
+        write(100,"(A19,4x,a7,3X,A1)") ' - Refinement type:        ', '  NONE',''
+        write(100,'(A)')
+      elseif(refiType.ne.'NO')then
+        write(100,'(A)')'!================= REFINMENT INFO ===============!'
+        write(100,"(A22,1x,a12,3X,A1)") ' - Refinement type:         ', bbbb,''
+        write(100,"(A14,4x,a13,3X,A1)") ' - Final element type:     ', ElemType,''
+        write(100,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
+        write(100,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
+        write(100,'(A)') 
+      endif
+      if(kstab.eq.0)then
+        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''
+      else
+        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''
+        write(100,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:        ', ktaum,''
+        write(100,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:    ', patau, '  '
+        
+      endif
+      !write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
+      if(kstab.eq.6)then
+        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''
+        write(100,"(A26,1X,e13.5,1X,A10)") ' - Magnetic Permeability:  ', lambda, '  '
+        write(100,"(A26,2X,f5.2,1X,A10)") ' - Algorithmic constant:   ', Cu, ' '
+        write(100,"(A26,1X,f5.1,1X,A10)") ' - Constant of length:    ', ell, '    '
+        write(100,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*lambda*(helem**2/ell**2),'   '
+        write(100,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):       ', ell**2 / lambda,'   '
+      endif
       
       
       write(100,'(A)') 
@@ -203,7 +237,13 @@ module library
       end do
         write(100,'(A)') 
       write(100,'(A)') 'External Forces'
-      write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
+      if(ndofn.eq.1)then
+        write(100,"(1(f10.3,1x))") force(1)
+      elseif(ndofn.eq.2)then
+        write(100,"(2(f10.3,1x))") force(1), force(2)
+      else
+        write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
+      endif
       
       
       close(100)
@@ -741,46 +781,46 @@ module library
     !  if(idofn.eq.1)then
     !    if(jdofn.eq.1)then
     !      if(i==1 .and. j==1)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
+    !        !cte = Cu*lambda*(helem**2/ell**2)
     !      end if
     !     
     !      if(i==2 .and. j==2)then
-    !        cte = mu
+    !        cte = lambda
     !      endif
     !      
     !    elseif(jdofn==2)then
     !      if(i==1 .and. j==2)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
+    !        !cte = Cu*lambda*(helem**2/ell**2)
     !      end if
     !      
     !      if(i==2.and.j==1)then
-    !        cte = mu
+    !        cte = lambda
     !      end if
     !    end if
     !    
     !  elseif(idofn==2)then
     !    if(jdofn.eq.1)then
     !      if(i==1 .and. j==2)then
-    !        cte = mu
+    !        cte = lambda
     !      end if
     !      
     !      if(i==2 .and. j==1)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
+    !        !cte = Cu*lambda*(helem**2/ell**2)
     !      endif
     !     
     !    elseif(jdofn==2)then
     !      if(i==1 .and. j==1)then
-    !        cte = mu
+    !        cte = lambda
     !      end if
     !      
     !      if(i==2.and.j==2)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
+    !        !cte = Cu*lambda*(helem**2/ell**2)
     !      end if
     !    end if
     !    
     !  elseif(idofn==3 .and. jdofn==3)then
     !    if( i==j )then
-    !      cte = ell**2/mu
+    !      cte = ell**2/lambda
     !    endif
     !    
     !  else
@@ -792,8 +832,8 @@ module library
     !  !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
     !  !Next lines are to taste the 
     !  !print*, 'hmaxi,', h
-    !  !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
-    !  !print*, 'ell^2/µ', ell**2/mu
+    !  !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
+    !  !print*, 'ell^2/µ', ell**2/lambda
     !  
     !end subroutine param_stab
     
@@ -1236,8 +1276,8 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call source_term(basis, xi_cor, yi_cor, EMsource)
           
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           !call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
@@ -1325,10 +1365,10 @@ module library
           !print*, ' '
           !print"(A11,I2,A2,2(f7.5,2x))", 'GaussPoint', igaus,': ',ngaus(igaus,1), ngaus(igaus,2)
           
-          call source_term(basis, xi_cor, yi_cor, EMsource)
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          if(kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
         end do
         !stop
         
@@ -1602,13 +1642,13 @@ module library
     !  dex_dxdy = (4.0*x)-2
     !  
     !  if(ndofn.eq.3)then
-    !    source(1) = mu*(dey_dydx - dex_dy2)
-    !    source(2) = mu*(-dey_dx2  + dex_dxdy)
+    !    source(1) = lambda*(dey_dydx - dex_dy2)
+    !    source(2) = lambda*(-dey_dx2  + dex_dxdy)
     !    source(3) = 0.0
     !  elseif(ndofn.eq.2)then
-    !    source(2) = mu*(-dey_dx2  + dex_dxdy)
+    !    source(2) = lambda*(-dey_dx2  + dex_dxdy)
     !  else
-    !    source(1) = mu*(dey_dydx - dex_dy2)
+    !    source(1) = lambda*(dey_dydx - dex_dy2)
     !  endif
     !  
     !end subroutine source_term
@@ -1639,13 +1679,9 @@ module library
       File_Solution ="globsolution"
       
       solution_T = transpose(solution)
-      !xcoor = spread(coord(1,:),dim = 1, ncopies= 1)
-      !ycoor = spread(coord(2,:),dim = 1, ncopies= 1)
-      !x  = xcoor(1,:)
-      !y  = ycoor(1,:)
       
-      error_EM  = 0.0
-      error_p = 0.0
+      error_EM = 0.0
+      error_p  = 0.0
       sum_error = 0.0
       exact_x = 0.0
       exact_y = 0.0
@@ -1753,8 +1789,9 @@ module library
             exact_p(inode) = multi
             
           end do
-          
+         
         case(4) !new test of polynomial solution
+          115 continue
           do inode = 1, nnodes  !simple Function
             x = coord(1,inode)
             y = coord(2,inode)
@@ -1780,6 +1817,9 @@ module library
             FEM_p(inode) = solution_T(1,ndofn*inode-0) 
           end do
           
+        case(5)
+          print*,'Entra a case 5'
+          goto 115 
       end select
       error_EM = sqrt(error_EM/nnodes)
       error_p = sqrt(error_p/nnodes)
@@ -1793,7 +1833,7 @@ module library
       !open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
       
       
-      !if((simul.eq.2).or.(simul.eq.3))then
+      if(ndofn.eq.3)then
         do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
          
          ! write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
@@ -1802,21 +1842,17 @@ module library
           write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
           &              exact_x(ipoin), exact_y(ipoin)
           
-          !write(112,906) solution(ipoin,1)
         end do
-      !  
-      !elseif((simul.eq.3).or.(simul.eq.4))then 
-      ! 
-      !  !# # # # # # # # # # # # # # # # # 1 degree of freedom # # # # # # # # # # # # # 
-      !  do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-      !    write(111,906) solution_T(1, ipoin), exact_x(ipoin)
-      !  end do
-      !else
-      !  print*, 'In Res_Matlab, Problem type not defined'
-      !  stop
-      !end if
-        !# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-      !print*, ' '
+        
+      elseif(ndofn.eq.1)then 
+        do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+          write(111,906) solution(ipoin,1)
+          !write(111,906) solution_T(1, ipoin), exact_x(ipoin)
+        end do
+      else
+        print*, 'In Res_Matlab, Problem type not defined'
+        stop
+      end if
       
       !print*, '!====== Matlab file ======'
       write(*,"(A7,A23,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
@@ -1849,7 +1885,7 @@ module library
 
       xmax = maxval(coord(1,:)) !the greatest number in x column
       print*, '!============== Error Estimation ==============!'
-      write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', xmax*2**(-i_exp), 'the error estimation is '
+      !write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', xmax*2**(-i_exp), 'the error estimation is '
       write(*,"(A8,E13.5)")' -In u: ', error_EM
       write(*,"(A8,E13.5)")' -in p: ', error_p
       print*, ' '
@@ -1888,9 +1924,10 @@ module library
         print"(A)",'   DIVISION BY 0 WILL OCCUR IF USE THE FACTOR U FOR SOLVING A SYSTEM OF LINEAR EQUATIONS.'
         print*, ' '
         call xerbla( routine_name, num )
+        print*, ' ~ ~ ~ '
         print*, ' ~ ~ ~ Stopping the execution'
         print*, ' '
-        !stop
+        stop
       endif
       print*, ' '
 
