@@ -4,7 +4,7 @@ module sourceTerm
   contains
     
     
-    subroutine source_term(basis, xi_cor, yi_cor, EMsource)
+    subroutine source_term(ielem, basis, xi_cor, yi_cor, EMsource)
       implicit none
       
       !***********************************************************!
@@ -22,6 +22,7 @@ module sourceTerm
       double precision, parameter :: pi = 4*atan(1.d0)
       
       double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
+      integer                        , intent(in) :: ielem
       integer :: ibase
       real    :: n
       double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
@@ -31,8 +32,9 @@ module sourceTerm
       double precision, dimension(ndofn), intent(out) :: EMsource
       
       
-      beta  = Cu*(helem**2/ell**2)
-      alpha = ell**2/mu
+      EMsource = 0.0
+      beta  = Cu*lambda*(helem**2/ell**2)
+      alpha = ell**2/lambda
       n = n_val
       x = 0.0
       y = 0.0
@@ -74,8 +76,8 @@ module sourceTerm
         dey_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*coss + kk*senn ) 
         
         !Source Term computation
-        EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
-        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
+        EMsource(1) = lambda*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
+        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
         EMsource(3) = force(3)
         
       case(2)
@@ -100,8 +102,8 @@ module sourceTerm
         d2p_dy2 = -0.25*pi**2 * sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1))
         
         !Source Term computation
-        EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) ) + dp_dx
-        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) ) + dp_dy
+        EMsource(1) = lambda*( dey_dydx - dex_dy2) + beta*( dex_dx2 + dey_dxdy)  + dp_dx
+        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy) + beta*( dex_dydx+ dey_dy2 )  + dp_dy
         EMsource(3) = alpha * (d2p_dx2 + d2p_dy2)
         
       case(3)
@@ -113,8 +115,8 @@ module sourceTerm
         dey_dx2  = 0.0
         dex_dxdy = (4.0*x)-2
         
-        EMsource(1) = mu*(dey_dydx - dex_dy2)
-        EMsource(2) = mu*(-dey_dx2  + dex_dxdy)
+        EMsource(1) = lambda*(dey_dydx - dex_dy2)
+        EMsource(2) = lambda*(-dey_dx2  + dex_dxdy)
         EMsource(3) = 0.0!force(ndofn)
         
         !Source considering the DivDiv term
@@ -133,8 +135,8 @@ module sourceTerm
         ! dey_dy2  = 2.0-4.0*x
         ! 
         ! 
-        ! EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
-        ! EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
+        ! EMsource(1) = lambda*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
+        ! EMsource(2) = lambda*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
         ! EMsource(3) = force(3)
         
       case(4)
@@ -154,9 +156,55 @@ module sourceTerm
         dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
         
         
-        EMsource(1) = mu*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
-        EMsource(2) = mu*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
+        EMsource(1) = lambda*( dey_dydx - dex_dy2) - beta*dex_dx2  - beta*dey_dxdy
+        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy) - beta*dex_dydx - beta*dey_dy2  
         EMsource(3) = force(3)
+        
+      case(5) !stokes
+        
+        
+        !Derivatives in x-direction
+        dex_dx2  = 2.0*(6.0*x**2 - 6.0*x +1.0)*y*(2.0*y**2 - 3.0*y + 1.0)
+        dex_dy2  = 6*(x**2 - 2.0*x + 1.0)*(2.0*y-1.0)*x**2
+        
+        
+        !Derivatives in y-direction
+        dey_dx2  =-6.0*(2.0*x - 1.0)*(y**2 -2.0*y + 1.0)*y**2
+        dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
+        
+        
+        EMsource(1) = -lambda * ( dex_dx2 + dex_dy2 )
+        EMsource(2) = -lambda * ( dey_dx2 + dey_dy2 )
+        EMsource(3) = force(3)
+        
+      case(6)
+        !x = 0.0
+        !y = 0.0
+        
+        if(ANY(sourceLocation.eq.ielem))then
+          !print'(A22,I7)', 'Source contribution ', ielem
+          
+          if(ndofn.eq.1)then
+            print*,'element source',ielem
+            EMsource = force(1)
+          else
+            !Source Term computation
+            EMsource(1) = force(1)
+            EMsource(2) = force(2)
+            EMsource(3) = force(3)
+          endif
+          
+        else
+          EMsource = 0.0
+          !goto 100
+        endif
+        !do ibase = 1, nne 
+        !  x = x + basis(ibase)*xi_cor(ibase)
+        !  y = y + basis(ibase)*yi_cor(ibase)
+        !  !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
+        !end do
+        
+        !100 continue
         
       end select
       
