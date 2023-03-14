@@ -4,6 +4,7 @@ Pos/
 Res/
 Msh/
 VTK/
+Tests/
 *.exe
 *.x
 *.dat
