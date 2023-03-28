@@ -140,7 +140,7 @@ module sourceTerm
         ! EMsource(3) = force(3)
         
       case(4)
-        !Source considering the DivDiv term
+        !Source with NO DivDiv term
         
         !Derivatives in x-direction
         dey_dydx =-2.0*(6.0*x**2 - 6.0*x + 1.0)*(y-1.0)*y*(2.0*y - 1.0)
@@ -156,8 +156,8 @@ module sourceTerm
         dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
         
         
-        EMsource(1) = lambda*( dey_dydx - dex_dy2) - beta*dex_dx2  - beta*dey_dxdy
-        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy) - beta*dex_dydx - beta*dey_dy2  
+        EMsource(1) = lambda*( dey_dydx - dex_dy2)! - beta*dex_dx2  - beta*dey_dxdy
+        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy)! - beta*dex_dydx - beta*dey_dy2  
         EMsource(3) = force(3)
         
       case(5) !stokes
