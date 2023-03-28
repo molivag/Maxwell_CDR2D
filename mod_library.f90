@@ -708,11 +708,11 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine Galerkin(dvol, basis, dNdxy, source, Ke, Ce, Fe)
+    subroutine Galerkin(dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
       
       implicit none
       
-      double precision, intent(in) :: basis(nne), source(ndofn), dNdxy(DimPr,nne)
+      double precision, intent(in) :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty
@@ -747,96 +747,15 @@ module library
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
-          !Fe(ievab) = Fe(ievab) + basis(inode) * source(idofn) * dvol
-          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * source(idofn) * dvol
+          Fe(ievab) = Fe(ievab) + basis(inode) * EMsource(idofn) * dvol
           !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
       
     end subroutine Galerkin
-   
-    !subroutine param_stab(idofn, jdofn, i, j, cte)       
-    !  !***********************************************************!
-    !  !                                                           !
-    !  ! Subroutine which check the dofn, x and y position in the  !
-    !  ! diffusion tensor and take the coefficient to multiply     !
-    !  ! the term of the PDE to its corresponding coeff.           !
-    !  !                                                           !
-    !  ! coeficients:                                              !
-    !  !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
-    !  !                                                           !
-    !  !  λ represents the magnetic permeability µ                 !
-    !  !  (call it mu in the code)                                 !
-    !  !                                                           !
-    !  ! h = 2^-i ; computed as in the paper                       !
-    !  !***********************************************************!
-    !  
-    !  implicit none
-    !  
-    !  integer, intent(in) :: idofn, jdofn, i, j
-    !  double precision, intent(out) :: cte
-    !  
-    !  cte = 0.0 
-    !  
-    !  if(idofn.eq.1)then
-    !    if(jdofn.eq.1)then
-    !      if(i==1 .and. j==1)then
-    !        !cte = Cu*lambda*(helem**2/ell**2)
-    !      end if
-    !     
-    !      if(i==2 .and. j==2)then
-    !        cte = lambda
-    !      endif
-    !      
-    !    elseif(jdofn==2)then
-    !      if(i==1 .and. j==2)then
-    !        !cte = Cu*lambda*(helem**2/ell**2)
-    !      end if
-    !      
-    !      if(i==2.and.j==1)then
-    !        cte = lambda
-    !      end if
-    !    end if
-    !    
-    !  elseif(idofn==2)then
-    !    if(jdofn.eq.1)then
-    !      if(i==1 .and. j==2)then
-    !        cte = lambda
-    !      end if
-    !      
-    !      if(i==2 .and. j==1)then
-    !        !cte = Cu*lambda*(helem**2/ell**2)
-    !      endif
-    !     
-    !    elseif(jdofn==2)then
-    !      if(i==1 .and. j==1)then
-    !        cte = lambda
-    !      end if
-    !      
-    !      if(i==2.and.j==2)then
-    !        !cte = Cu*lambda*(helem**2/ell**2)
-    !      end if
-    !    end if
-    !    
-    !  elseif(idofn==3 .and. jdofn==3)then
-    !    if( i==j )then
-    !      cte = ell**2/lambda
-    !    endif
-    !    
-    !  else
-    !    continue
-    !  end if
-    !  !close(10)
-    !  
-    !  
-    !  !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-    !  !Next lines are to taste the 
-    !  !print*, 'hmaxi,', h
-    !  !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
-    !  !print*, 'ell^2/µ', ell**2/lambda
-    !  
-    !end subroutine param_stab
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine Galerkin_Init_Cond(dvol, basis, u0_cond, C0e, u0e)
      
       !Esta rutina proyecta la condicion inicial al dominio de elementos mediante Galerkin        
