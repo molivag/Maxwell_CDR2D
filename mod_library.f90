@@ -1223,6 +1223,90 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
+    !subroutine param_stab(idofn, jdofn, i, j, cte)       
+    !  !***********************************************************!
+    !  !                                                           !
+    !  ! Subroutine which check the dofn, x and y position in the  !
+    !  ! diffusion tensor and take the coefficient to multiply     !
+    !  ! the term of the PDE to its corresponding coeff.           !
+    !  !                                                           !
+    !  ! coeficients:                                              !
+    !  !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
+    !  !                                                           !
+    !  !  λ represents the magnetic permeability µ                 !
+    !  !  (call it mu in the code)                                 !
+    !  !                                                           !
+    !  ! h = 2^-i ; computed as in the paper                       !
+    !  !***********************************************************!
+    !  
+    !  implicit none
+    !  
+    !  integer, intent(in) :: idofn, jdofn, i, j
+    !  double precision, intent(out) :: cte
+    !  
+    !  cte = 0.0 
+    !  
+    !  if(idofn.eq.1)then
+    !    if(jdofn.eq.1)then
+    !      if(i==1 .and. j==1)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      end if
+    !     
+    !      if(i==2 .and. j==2)then
+    !        cte = mu
+    !      endif
+    !      
+    !    elseif(jdofn==2)then
+    !      if(i==1 .and. j==2)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      end if
+    !      
+    !      if(i==2.and.j==1)then
+    !        cte = mu
+    !      end if
+    !    end if
+    !    
+    !  elseif(idofn==2)then
+    !    if(jdofn.eq.1)then
+    !      if(i==1 .and. j==2)then
+    !        cte = mu
+    !      end if
+    !      
+    !      if(i==2 .and. j==1)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      endif
+    !     
+    !    elseif(jdofn==2)then
+    !      if(i==1 .and. j==1)then
+    !        cte = mu
+    !      end if
+    !      
+    !      if(i==2.and.j==2)then
+    !        !cte = Cu*mu*(helem**2/ell**2)
+    !      end if
+    !    end if
+    !    
+    !  elseif(idofn==3 .and. jdofn==3)then
+    !    if( i==j )then
+    !      cte = ell**2/mu
+    !    endif
+    !    
+    !  else
+    !    continue
+    !  end if
+    !  !close(10)
+    !  
+    !  
+    !  !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
+    !  !Next lines are to taste the 
+    !  !print*, 'hmaxi,', h
+    !  !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
+    !  !print*, 'ell^2/µ', ell**2/mu
+    !  
+    !end subroutine param_stab
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
       use sourceTerm

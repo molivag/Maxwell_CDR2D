@@ -42,6 +42,8 @@ module BoundVal
       ymax = maxval(coord(2,:)) !the greatest number in y column
       xmiddle =  xmax/2.0
       ymiddle =  ymin/2.0
+      print*, ' '
+      print*, '!================ Dimension of the domain ==============!'
       print*, 'xmin = ', xmin
       print*, 'xmax = ', xmax
       print*, 'ymin = ', ymin
@@ -595,7 +597,7 @@ module BoundVal
                 else
                   ux = 0.0
                   uy = 0.0
-                  write(200,10) i, 1, 1, 1                !Down Border
+                  write(200,10) i, 1, 1, 1                !Down Boundary
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 end if
@@ -631,7 +633,7 @@ module BoundVal
       close(100)
       
       
-      print*, 'No. of Bound Val', nBVS 
+      print*, 'Num. of Boundary nodes', nBVS 
       
       
      
