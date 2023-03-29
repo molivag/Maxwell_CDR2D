@@ -76,14 +76,7 @@ module library
       if(kstab.eq.0)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
-      else
-        print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
-        write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
-        write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
-      endif
-      
-      if(kstab.eq.6)then
+      elseif(kstab.eq.6)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
         write(*,"(A26,1X,e13.5,1X,A10)") ' - Reluctivity of medium  ', lambda, '  '
@@ -91,6 +84,11 @@ module library
         write(*,"(A26,1X,f5.1,1X,A10)") ' - Constante of length:   ', ell, '    '
         write(*,"(A26,1X,e13.5,1X,A10)") ' - Stab. param.1 (Cu):    ', Cu*lambda*(helem**2/ell**2),'   '
         write(*,"(A26,2X,e14.5,2X,A10)") ' - Stab. param.2 (ℓ):     ', ell**2 / lambda,'   '
+      else
+        print*,'!========== STABILIZATION PARAMETERS ==========!'
+        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+        write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
+        write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
       endif
       
       
@@ -117,40 +115,40 @@ module library
         continue
       endif
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-      end do
-        print*,' '
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
-      end do
-      print*, ' '
-      print*, 'External Forces'
-      if(ndofn.eq.1)then
-        write(*,"(3(f10.3,1x))") force(1)
-      elseif(ndofn.eq.2)then
-        write(*,"(2(f10.3,1x))") force(1), force(2)
-      else
-        write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
-      endif
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !end do
+      !  print*,' '
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !print*, ' '
+      !print*, 'External Forces'
+      !if(ndofn.eq.1)then
+      !  write(*,"(3(f10.3,1x))") force(1)
+      !elseif(ndofn.eq.2)then
+      !  write(*,"(2(f10.3,1x))") force(1), force(2)
+      !else
+      !  write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      !endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
@@ -1881,9 +1879,9 @@ module library
       open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
       write(777,"(1x,E15.5,3x, A)") error_EM,'%error in electric field'
       write(777,"(1x,E15.5,3x, A)") error_p, '%error in multiplier'
-      write(777,"(1x,E15.5,3x, A)") errL2_x,'%error in ex'
-      write(777,"(1x,E15.5,3x, A)") errL2_y,'%error in ey'
-      write(777,"(1x,E15.5,3x, A)") errL2_p,'%error in multiplier'
+      write(777,"(1x,E15.5,3x, A)") errL2_x,'%L2error in ex'
+      write(777,"(1x,E15.5,3x, A)") errL2_y,'%L2error in ey'
+      write(777,"(1x,E15.5,3x, A)") errL2_p,'%L2error in multiplier'
       close(777)
 
       xmax = maxval(coord(1,:)) !the greatest number in x column
