@@ -85,16 +85,20 @@ implicit none
     AK_LU = A_K     !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F     !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
    
-    !---------- Solving System of Equations by retpla solver -----------!
+    !---------- Solving System of Equations by INTEL MKL solver -----------!
     print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
     call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
     call MKLfactoResult('dgbtrf',info) 
     print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
+    !---------- Computing nodal unknowns ux_i, uy_i and p_i ---------------!
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
     !print*, ' '
     
-    !---------- Print and write results -----------!
+    !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
+    !call PostProEMfield(u_sol)
+    
+    !---------- Print and write results -----------------------------------!
     call PostProcess(u_sol) 
     call Res_Matlab(u_sol)
     !print*, ' '
@@ -102,7 +106,7 @@ implicit none
     !print*, 'Shape of Global F: ',shape(A_F)
     !print*, 'Shape of Solution: ',shape(u_sol)
     write(*,*)
-    !---------- Memory Relase -----------!
+    !---------- Memory Relase ---------------------------------------------!
     DEALLOCATE( A_F, A_K, AK_LU, u_sol)
     
   endif

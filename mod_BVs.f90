@@ -43,13 +43,13 @@ module BoundVal
       xmiddle =  xmax/2.0
       ymiddle =  ymin/2.0
       print*, ' '
-      print*, '!================ Dimension of the domain ==============!'
-      print*, 'xmin = ', xmin
-      print*, 'xmax = ', xmax
-      print*, 'ymin = ', ymin
-      print*, 'ymax = ', ymax
-      print*, 'xmiddle = ', xmiddle
-      print*, 'ymiddle = ', ymiddle
+      !print*, '!================ Dimension of the domain ==============!'
+      !print*, 'xmin = ', xmin
+      !print*, 'xmax = ', xmax
+      !print*, 'ymin = ', ymin
+      !print*, 'ymax = ', ymax
+      !print*, 'xmiddle = ', xmiddle
+      !print*, 'ymiddle = ', ymiddle
       
       
       
