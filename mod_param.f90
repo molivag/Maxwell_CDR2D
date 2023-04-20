@@ -2,7 +2,7 @@ module param
   
   implicit none
 
-  character(len=12) :: File_PostProcess, error_name, coord_name, conec_name
+  character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name
   character(len=14) :: testNo
   character(len=4)  :: InitElemType, ProbType
   character(len=2)  :: refiType
@@ -40,7 +40,7 @@ module param
       
       read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,elemSour,skipline,&
       initElem, initNodes, nne, hnatu, i_exp, refiType, theta, time_ini, time_fin, max_time, u0cond,&
-      kstab, ktaum, patau, n_val, Cu, ell, lambda, testNo, File_PostProcess,&
+      kstab, ktaum, patau, n_val, Cu, ell, lambda, testNo, File_Nodal_Vals,&
       error_name, coord_name, conec_name
       
       if (stat.ne.0) then
@@ -145,27 +145,27 @@ module param
       close(5)
       
       
-      if(kstab.eq.6)then
-        helem = 2**(-i_exp) 
-        !Parameter of stabilization in augmented formulation
-        param_stab1 = Cu*lambda*(helem**2/ell**2)
-        !print*, param_stab1
-        param_stab2 = ell**2 / lambda
-        
-        difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
-        difma(2,2,1,1) = difma(2,2,1,1)*lambda
-        difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
-        
-        difma(1,2,1,2) = difma(1,2,1,2)*param_stab1
-        difma(2,1,1,2) = difma(2,1,1,2)*lambda
-        
-        difma(1,2,2,1) = difma(1,2,2,1)*lambda
-        difma(2,1,2,1) = difma(2,1,2,1)*param_stab1
-        
-        difma(1,1,2,2) = difma(1,1,2,2)*lambda
-        difma(2,2,2,2) = difma(2,2,2,2)*param_stab1
-        difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
-      end if
+      !if(kstab.eq.6)then
+      !  helem = 2**(-i_exp) 
+      !  !Parameter of stabilization in augmented formulation
+      !  param_stab1 = Cu*lambda*(helem**2/ell**2)
+      !  !print*, param_stab1
+      !  param_stab2 = ell**2 / lambda
+      !  
+      !  difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
+      !  difma(2,2,1,1) = difma(2,2,1,1)*lambda
+      !  difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
+      !  
+      !  difma(1,2,1,2) = difma(1,2,1,2)*param_stab1
+      !  difma(2,1,1,2) = difma(2,1,1,2)*lambda
+      !  
+      !  difma(1,2,2,1) = difma(1,2,2,1)*lambda
+      !  difma(2,1,2,1) = difma(2,1,2,1)*param_stab1
+      !  
+      !  difma(1,1,2,2) = difma(1,1,2,2)*lambda
+      !  difma(2,2,2,2) = difma(2,2,2,2)*param_stab1
+      !  difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
+      !end if
       
       !Initial elemental and global variables, it will changes if refination is selected.
       initnevab = ndofn*nne
