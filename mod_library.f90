@@ -706,14 +706,14 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine Galerkin(dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
+    subroutine Galerkin(hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
       
       implicit none
       
       double precision, intent(in) :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
-      double precision, intent(in) :: dvol
+      double precision, intent(in) :: dvol, hmaxi
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
-      double precision ::  diff, convec, reac, cpcty
+      double precision ::  diff, convec, reac, cpcty, cte
       double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       ievab=0
       do inode=1,nne
@@ -727,7 +727,8 @@ module library
               do i=1,2
                 do j=1,2   
                   !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ' ,difma(idofn,jdofn,i,j)
-                  !call param_stab(idofn, jdofn, i, j, cte)         !conductivity tensor
+                  if(kstab.eq.6)call param_stab(idofn, jdofn, i, j, hmaxi, cte) !conductivity tensor
+                  if(kstab.eq.6)diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, f10.5)",'Product ', cte * difma(idofn,jdofn,i,j)
@@ -1195,7 +1196,7 @@ module library
           end do
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
-          call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           call TauMat(hmaxi,tauma)
           !call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
 
@@ -1221,87 +1222,96 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    !subroutine param_stab(idofn, jdofn, i, j, cte)       
-    !  !***********************************************************!
-    !  !                                                           !
-    !  ! Subroutine which check the dofn, x and y position in the  !
-    !  ! diffusion tensor and take the coefficient to multiply     !
-    !  ! the term of the PDE to its corresponding coeff.           !
-    !  !                                                           !
-    !  ! coeficients:                                              !
-    !  !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
-    !  !                                                           !
-    !  !  λ represents the magnetic permeability µ                 !
-    !  !  (call it mu in the code)                                 !
-    !  !                                                           !
-    !  ! h = 2^-i ; computed as in the paper                       !
-    !  !***********************************************************!
-    !  
-    !  implicit none
-    !  
-    !  integer, intent(in) :: idofn, jdofn, i, j
-    !  double precision, intent(out) :: cte
-    !  
-    !  cte = 0.0 
-    !  
-    !  if(idofn.eq.1)then
-    !    if(jdofn.eq.1)then
-    !      if(i==1 .and. j==1)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      end if
-    !     
-    !      if(i==2 .and. j==2)then
-    !        cte = mu
-    !      endif
-    !      
-    !    elseif(jdofn==2)then
-    !      if(i==1 .and. j==2)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      end if
-    !      
-    !      if(i==2.and.j==1)then
-    !        cte = mu
-    !      end if
-    !    end if
-    !    
-    !  elseif(idofn==2)then
-    !    if(jdofn.eq.1)then
-    !      if(i==1 .and. j==2)then
-    !        cte = mu
-    !      end if
-    !      
-    !      if(i==2 .and. j==1)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      endif
-    !     
-    !    elseif(jdofn==2)then
-    !      if(i==1 .and. j==1)then
-    !        cte = mu
-    !      end if
-    !      
-    !      if(i==2.and.j==2)then
-    !        !cte = Cu*mu*(helem**2/ell**2)
-    !      end if
-    !    end if
-    !    
-    !  elseif(idofn==3 .and. jdofn==3)then
-    !    if( i==j )then
-    !      cte = ell**2/mu
-    !    endif
-    !    
-    !  else
-    !    continue
-    !  end if
-    !  !close(10)
-    !  
-    !  
-    !  !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-    !  !Next lines are to taste the 
-    !  !print*, 'hmaxi,', h
-    !  !print*, 'Cu µ h^2/ell^2', Cu*mu*(h**2/ell**2)
-    !  !print*, 'ell^2/µ', ell**2/mu
-    !  
-    !end subroutine param_stab
+    subroutine param_stab(idofn, jdofn, i, j, hmaxi, coeff)       
+      !***********************************************************!
+      !                                                           !
+      ! Subroutine which check the dofn, x and y position in the  !
+      ! diffusion tensor and take the coefficient to multiply     !
+      ! the term of the PDE to its corresponding coefficient.     !
+      !                                                           !
+      ! coeficients:                                              !
+      !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
+      !                                                           !
+      !  λ = 1/µ  = reluctivity of the medium                     !
+      !                                                           !
+      !  h = 2^-i = hmaxi                                         !
+      !                                                           !
+      !***********************************************************!
+      
+      implicit none
+      
+      integer, intent(in) :: idofn, jdofn, i, j
+      double precision, intent(in) :: hmaxi
+      double precision, intent(out) :: coeff
+      
+      
+      !print*, 'getting into param_stab'
+      
+      coeff = 0.0 
+      !print*, 'helem^2', hmaxi**2
+      if(idofn.eq.1)then
+        if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
+          if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+            coeff = Cu*lambda*(hmaxi**2/ell**2)
+            !print*,'Beta', coeff
+          end if
+         
+          if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+            coeff = lambda
+          endif
+          
+        elseif(jdofn==2)then                           !difma(1,2,1,2)
+          if(i==1 .and. j==2)then
+            coeff = Cu*lambda*(hmaxi**2/ell**2)
+            !print*,'Beta', coeff
+          end if
+          
+          if(i==2.and.j==1)then                        !difma(1,2,2,1)
+            coeff = lambda
+          end if
+        end if
+        
+      elseif(idofn==2)then
+        if(jdofn.eq.1)then
+          if(i==1 .and. j==2)then                      !difma(2,1,1,2)
+            coeff = lambda
+          end if
+          
+          if(i==2 .and. j==1)then                      !difma(2,1,2,1)
+            coeff = Cu*lambda*(hmaxi**2/ell**2)
+            !print*,'Beta', coeff
+          endif
+         
+        elseif(jdofn==2)then
+          if(i==1 .and. j==1)then
+            coeff = lambda
+          end if
+          
+          if(i==2.and.j==2)then                        !difma(2,2,2,2)
+            coeff = Cu*lambda*(hmaxi**2/ell**2)
+            !print*,'gamma', coeff
+          end if
+        end if
+        
+      elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
+        if( i==j )then
+          coeff = ell**2/lambda
+            !print*,'gamma', coeff
+        endif
+        
+      else
+        continue
+      end if
+      !close(10)
+      
+      15 continue 
+      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
+      !Next lines are to taste the 
+      !print*, 'hmaxi,', h
+      !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
+      !print*, 'ell^2/µ', ell**2/lambda
+      
+    end subroutine param_stab
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -1342,13 +1352,6 @@ module library
         Ce = 0.0    !elemental capacity matrix (not used in static case)
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !do-loop: compute element stiffness matrix Ke
-        !print*, ' '
-        !print*, 'element:', ielem
-        !print"(A7,9(i3,1x))", 'nodes: ', nodeIDmap
-        !print"(A7)", 'corNodes: '
-        !do i = 1,nne
-        !  print"(2(1x,f7.4))", element_nodes(i,1), element_nodes(i,2)
-        !end do
         do igaus = 1, TotGp
         !print*, 'gauss point:', igaus
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
@@ -1363,11 +1366,9 @@ module library
           end do
           call TauMat(hmaxi,tauma)
           
-          !print*, ' '
-          !print"(A11,I2,A2,2(f7.5,2x))", 'GaussPoint', igaus,': ',ngaus(igaus,1), ngaus(igaus,2)
-          
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
-          call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
         end do
@@ -1376,10 +1377,6 @@ module library
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
-        
-        
-        
-        !call AssembleK(A_K, ke, node_id_map, 3) ! assemble global K
         
       end do
       
@@ -1830,7 +1827,7 @@ module library
       errL2_p=norm2(exact_p - FEM_p)/norm2(exact_p)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-      open(unit=111, file= fileplace//File_PostProcess//extension, ACTION="write", STATUS="replace")
+      open(unit=111, file= fileplace//File_Nodal_Vals//extension, ACTION="write", STATUS="replace")
       !open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
       
       
@@ -1856,7 +1853,7 @@ module library
       end if
       
       !print*, '!====== Matlab file ======'
-      write(*,"(A7,A23,A28)") ' -File ',File_PostProcess//extension, 'written succesfully in Res/'
+      write(*,"(A7,A23,A28)") ' -File ',File_Nodal_Vals//extension, 'written succesfully in Res/'
       
       close(111)
       
@@ -2040,7 +2037,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine PostProcess(solution)
+    subroutine GID_results(solution)
       
       implicit none
       
@@ -2050,11 +2047,12 @@ module library
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin, ii, ielem, inode
+      integer                                 :: ipoin, ii, ielem, inode, jj, igaus, icomp
       
       solution_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      
      
       print*, ' '
       print*, '!============== Output files ==================!'
@@ -2066,7 +2064,7 @@ module library
       elseif(ElemType.eq.'TRIA')then
         Elem_Type = 'Triangle'
       endif
-      open(unit=555, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
+      open(unit=555, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
       
       write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -2090,17 +2088,17 @@ module library
       
       
       close(555)
-      write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//'.post.msh','written succesfully in Pos/'
+      write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.msh','written succesfully in Pos/'
       
       
-      open(unit=555, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
+      open(unit=555, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="replace")
       write(555,"(A)") 'GiD Post Results File 1.0'
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
       
       ! se escribe el res de las componentes de la velocidad
       select case(ndofn)
         case(1)
-          write(555,"(A)") 'Result "Ex" "EM Field" 0 Scalar OnNodes'
+          write(555,"(A)") 'Result "phi" "Electric Potential" 0 Scalar OnNodes'
           write(555,"(A)") 'ComponentNames "" '
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ux '
@@ -2112,7 +2110,7 @@ module library
           write(555,"(A)") 'End Values'
           
         case(2)
-          write(555,"(A)") 'Result "EM Field" "EM field" 0 Vector OnNodes'
+          write(555,"(A)") 'Result "EM Field" "EM field" 0 Vectsur OnNodes'
           write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ex ','               ey '
@@ -2142,7 +2140,7 @@ module library
             ii=ii+1
           end do
           write(555,"(A)") 'End Values'
-          write(*,"(A7,A21,A28)") ' -File ',File_PostProcess//'.post.res','written succesfully in Pos/'
+          write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
       end select
       
       close(555)
@@ -2155,12 +2153,12 @@ module library
       916 format(I7,2x,E15.5)  !format for scalar case
       918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
       919 format(I7,2(4x,E15.5)) !format for res velocity
-     
-    end subroutine PostProcess
+      
+    end subroutine GID_results 
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine GID_PostProcess(solution, activity, step_value, interval)
+    subroutine GID_Time_Results(solution, activity, step_value, interval)
       
       implicit none
       
@@ -2192,7 +2190,7 @@ module library
       !print*, '!====== Output files ======'
       
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad 
-        open(unit=100, file= fileplace//File_PostProcess//extension1, ACTION="write", STATUS="replace")
+        open(unit=100, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
         
         write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
         write(100,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -2209,17 +2207,17 @@ module library
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A19,A30)", ' Mesh file ',File_PostProcess//extension1, 'written succesfully in Pos/ '
+        print"(A11,A19,A30)", ' Mesh file ',File_Nodal_Vals//extension1, 'written succesfully in Pos/ '
         
       elseif(activity == "res")then
         if(step_value == 0)then
-          open(unit=200, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="replace")
+          open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
           write(200,"(A)") '#2D Convection-Diffusion-Reaction'
         else
           continue
         endif
-        open(unit=200, file= fileplace//File_PostProcess//extension2, ACTION="write", STATUS="old", position="append")
+        open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="old", position="append")
         ! se escribe el res de las componentes del campo electrico
         select case(ndofn)
           case(1)
@@ -2269,11 +2267,12 @@ module library
         close(200)
         stop
       end if
+      
       close(200)
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
       
       if(interval.eq.time_fin) then
-        print"(1x, A26,A30)", File_PostProcess//extension2, 'written succesfully in Pos/ '
+        print"(1x, A26,A30)", File_Nodal_Vals//extension2, 'written succesfully in Pos/ '
       endif
       
       
@@ -2286,9 +2285,8 @@ module library
       918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
       919 format(I7,2(4x,E15.5)) !format for res velocity
       
-    end subroutine GID_PostProcess
+    end subroutine GID_Time_Results
    
-    
     
   !Fin de contains
 
