@@ -16,10 +16,11 @@ implicit none
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   external :: dgbtrf, dgbtrs, dgbrfs
   double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
+  double precision, allocatable, dimension(:,:,:) :: grad_u_sol
   !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
   integer, allocatable,          dimension(:)   :: S_ipiv!, S_iwork
   character(len=1) :: S_trans
-  integer          :: S_m, S_n, S_nrhs, info, S_ldSol
+  integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ii, jj
   
 
   !--------------- Input Data ---------------!
@@ -71,10 +72,14 @@ implicit none
     
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
-    !---------- Memory Relase -----------!
-    deallocate( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
-    deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+    !Source Location Setting
+    A_F(2387,1) = 10.0
+    A_F(2450,1) = 10.0
+    A_F(2504,1) = 10.0
+    A_F(2578,1) = 10.0
+    A_F(2646,1) = 10.0
     
+    !---------- Memory Relase -----------!
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
     
@@ -94,13 +99,14 @@ implicit none
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
     !print*, ' '
-    
+   
     !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
-    !call PostProEMfield(u_sol)
+    call PostPro_EMfield(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, u_sol, grad_u_sol)
     
     !---------- Print and write results -----------------------------------!
-    call PostProcess(u_sol) 
+    call GID_results(u_sol, grad_u_sol) 
     call Res_Matlab(u_sol)
+    
     !print*, ' '
     !print*, 'Shape of Global K: ',shape(A_K)
     !print*, 'Shape of Global F: ',shape(A_F)
@@ -108,6 +114,8 @@ implicit none
     write(*,*)
     !---------- Memory Relase ---------------------------------------------!
     DEALLOCATE( A_F, A_K, AK_LU, u_sol)
+    deallocate( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
+    deallocate(hes_xixi, hes_xieta, hes_etaeta) 
     
   endif
 
