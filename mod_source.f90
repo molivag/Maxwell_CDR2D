@@ -23,13 +23,14 @@ module sourceTerm
       
       double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
       integer                        , intent(in) :: ielem
-      integer :: ibase
+      integer :: ibase, inode
       real    :: n
       double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
       double precision :: dp_dx, dp_dy, d2p_dx2, d2p_dy2
       double precision :: x, y, alpha, beta, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
       double precision :: itan, senn, coss
       double precision, dimension(ndofn), intent(out) :: EMsource
+      double precision :: xq, yq, Icurr
       
       
       EMsource = 0.0
@@ -44,25 +45,25 @@ module sourceTerm
         y = y + basis(ibase)*yi_cor(ibase)
         !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
       end do
-      
-      !terms for derivatives
-      aa   = (2.0/27.0)*n
-      bb   = (x**2 + y**2) 
-      cc   = (n/3.0 - 5.0/2.0)
-      dd   = (8.0*n**2 - 24.0*n + 27.0) 
-      ee   = (2.0/3.0)*n
-      ff   = (y/x) 
-      gg   = 4.0*(n-3.0)*n
-      hh   = (x**2 - y**2)  
-      ii   = (4.0*n**2 - 6.0*n + 9.0) 
-      jj   = (2.0*n**2 - 9.0*n + 9.0) 
-      kk   = (8.0*x*y)*(n-3.0)*n 
-      itan = atan(ff) 
-      senn = sin(ee*itan)
-      coss = cos(ee*itan)
-      
+     
       select case(simul)
       case(1)
+        !terms for derivatives
+        aa   = (2.0/27.0)*n
+        bb   = (x**2 + y**2) 
+        cc   = (n/3.0 - 5.0/2.0)
+        dd   = (8.0*n**2 - 24.0*n + 27.0) 
+        ee   = (2.0/3.0)*n
+        ff   = (y/x) 
+        gg   = 4.0*(n-3.0)*n
+        hh   = (x**2 - y**2)  
+        ii   = (4.0*n**2 - 6.0*n + 9.0) 
+        jj   = (2.0*n**2 - 9.0*n + 9.0) 
+        kk   = (8.0*x*y)*(n-3.0)*n 
+        itan = atan(ff) 
+        senn = sin(ee*itan)
+        coss = cos(ee*itan)
+        
         !Derivatives in x-direction
         dey_dydx = aa * bb**cc *( x*y*dd *coss - gg*hh *senn )  
         dex_dy2  =-aa * bb**cc *( ((x**2)*ii - 2.0*(y**2)*jj)*senn - kk*coss )  
@@ -178,37 +179,68 @@ module sourceTerm
         EMsource(3) = force(3)
         
       case(6)
+        ! - - - Coordinate of source location node 2501 at the center of the mesh 158x158
+        xq = 1.0
+        yq = 1.0     
+        Icurr = force(1)
+        
         !x = 0.0
-        !y = 0.0
-        
-        if(ANY(sourceLocation.eq.ielem))then
-          !print'(A22,I7)', 'Source contribution ', ielem
-          
-          if(ndofn.eq.1)then
-            print*,'element source',ielem
-            EMsource = force(1)
+        !Dos posibilidades de implementacion
+        ! - - Primera opcion
+        do inode = 1,nne
+          if((xi_cor(inode).eq.xq).and.(yi_cor(inode).eq.yq))then
+            EMsource = Icurr !Here is the source location
           else
-            !Source Term computation
-            EMsource(1) = force(1)
-            EMsource(2) = force(2)
-            EMsource(3) = force(3)
+            EMsource = 0.0
           endif
-          
-        else
-          EMsource = 0.0
-          !goto 100
-        endif
-        !do ibase = 1, nne 
-        !  x = x + basis(ibase)*xi_cor(ibase)
-        !  y = y + basis(ibase)*yi_cor(ibase)
-        !  !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
-        !end do
+        end do 
         
-        !100 continue
+        ! - - Segunda opcion
+        !EMsource = Icurr *dirac(xi_cor - xq)*dirac(yi_cor - yq) 
+        !print*, EMsource
         
       end select
       
     end subroutine source_term
-
+    
+    
+    double precision function dirac(x)
+      double precision, intent(in) :: x
+      double precision :: absx
+      absx = abs(x)
+      dirac = merge(1.0,0.0,absx<epsilon(x))
+    end function dirac
+    
+    
+    !FUNCTION DIRAC(X,XMIN,XMAX)
+    !  ! Assumes XMIN<=XMAX...
+    !  DIRAC=0.0D+00
+    !  if(X.LT.XMIN.OR.X.GT.XMAX) DIRAC=1.0D+00
+    !  RETURN
+    !END
+    
+    !program test_dirac
+    !    implicit none
+    !    
+    !    integer :: i
+    !    real(real64) :: x
+    !    
+    !    do i=-10,10
+    !       x = real(i,real64)
+    !       print *, 'x=',x,' dirac=',dirac(x)
+    !    end do
+    !    
+    !    contains
+    !    
+    !    elemental real(real64) function dirac(x)
+    !        real(real64), intent(in) :: x
+    !        real(real64) :: absx
+    !        absx = abs(x)
+    !        dirac = merge(1.0_real64/absx,0.0_real64,absx<epsilon(x))
+    !    end function dirac
+    !end program test_dirac
+    
+    
+    
 end module sourceTerm
 
