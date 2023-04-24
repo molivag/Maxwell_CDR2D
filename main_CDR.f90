@@ -5,6 +5,7 @@ program main_CDR3d
 implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
+  character(len=14)                             :: name_inputFile
   double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, presc
   double precision, allocatable, dimension(:,:) :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:) :: hes_xixi, hes_xieta, hes_etaeta
@@ -22,14 +23,16 @@ implicit none
   character(len=1) :: S_trans
   integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ii, jj
   
+  name_inputFile = 'dcCurr_CDR.dsc'
+  !name_inputFile = 'Mxwell_CDR.dsc'
 
   !--------------- Input Data ---------------!
   call cpu_time(start)
-  call inputData
+  call inputData(name_inputFile)
   
   !--------------- Geometry -----------------!
-  call readMesh
-  call GeneralInfo
+  call readMesh(name_inputFile)
+  call GeneralInfo(name_inputFile)
 
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)
