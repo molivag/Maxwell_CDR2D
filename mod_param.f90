@@ -22,7 +22,7 @@ module param
 
   contains
     
-    subroutine inputData
+    subroutine inputData(name_inputFile)
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       !                                                                                   !
       ! subrutina que lee todos los parametros de entrada para la simulacion,             !
@@ -31,12 +31,14 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      double precision  :: param_stab1, param_stab2 
+      character(len=14)             :: name_inputFile
+      !double precision  :: param_stab1, param_stab2 
       character(len=180)            :: msg
       character(len=*), parameter   :: fileplace = "./"
       integer                       ::  stat, ii
       
-      open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      open(5, file=fileplace//name_inputFile,status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,elemSour,skipline,&
       initElem, initNodes, nne, hnatu, i_exp, refiType, theta, time_ini, time_fin, max_time, u0cond,&

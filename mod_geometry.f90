@@ -14,7 +14,7 @@ use param
   
   contains
     
-    subroutine readMesh
+    subroutine readMesh(name_inputFile)
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       !                                                                                   !
       ! subrutina que lee todos los parametros de entrada para la simulacion,             !
@@ -23,15 +23,17 @@ use param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      integer :: ielem, jpoin, idime, i,j, stat
-      character(len=180) :: msg
       character(len=*), parameter  :: fileplace = "./"
+      character(len=14)            :: name_inputFile
+      character(len=180)           :: msg
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
+      integer          :: ielem, jpoin, idime, i,j, stat
       integer          :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
       integer          :: npoiw,nelew,nnodw, npoif
       
       
-      open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      open(5, file=fileplace//name_inputFile,status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       nelem = initElem
       nnodes= initNodes
