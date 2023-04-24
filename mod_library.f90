@@ -5,17 +5,17 @@ module library
 
   contains
     
-    subroutine GeneralInfo
+    subroutine GeneralInfo(name_inputFile)
       external :: fdate
       
       character(len=*), parameter :: fileplace = "Res/results/"
-      character(len=5) :: file_name 
-      character(len=24):: date
-      character(len=4) :: aaaa, cccc
-      character(len=12) :: bbbb
-      character(len=16) :: dddd
-      double precision :: delta_t
-
+      character(len=14)           :: name_inputFile
+      character(len=5)            :: file_name 
+      character(len=24)           :: date
+      character(len=4)            :: aaaa, cccc
+      character(len=12)           :: bbbb
+      character(len=16)           :: dddd
+      double precision            :: delta_t
       integer :: i,j, k, l
       
       if(kstab.eq.0)then
@@ -42,6 +42,7 @@ module library
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
+      write(*,"(A19,7x,a14,3X,A1)") ' - Input File:             ', name_inputFile,''
       write(*,"(A19,7x,a5,3X,A1)") ' - Element type:           ', InitElemType,''
       write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
       write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
@@ -53,7 +54,7 @@ module library
       write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', initnevab,'   '
       write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', initntotv,'   '
       write(*,"(A19,7X,f8.4,1X,A10)") ' - Element size:        ', 2**(-i_exp),'   '
-      write(*,"(A26,3X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
+      write(*,"(A26,2X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
       
       if(refiType.eq.'NO')then
         write(*,"(A23,2x,a6,3X,A1)") ' - Refinement type:        ', '  NONE',''
