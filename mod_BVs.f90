@@ -422,7 +422,6 @@ module BoundVal
             nBVscol = 7 
             
           case(4)
-            print*, 'case',simul
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -633,7 +632,7 @@ module BoundVal
       close(100)
       
       
-      print*, 'Num. of Boundary nodes', nBVS 
+      !print*, 'Num. of Boundary nodes', nBVS 
       
       
      
