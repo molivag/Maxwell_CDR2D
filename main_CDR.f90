@@ -5,7 +5,7 @@ program main_CDR3d
 implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
-  character(len=14)                             :: name_inputFile
+  character(len=19)                             :: name_inputFile
   double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, presc
   double precision, allocatable, dimension(:,:) :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:) :: hes_xixi, hes_xieta, hes_etaeta
@@ -23,8 +23,8 @@ implicit none
   character(len=1) :: S_trans
   integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ii, jj
   
-  name_inputFile = 'dcCurr_CDR.dsc'
-  !name_inputFile = 'Mxwell_CDR.dsc'
+  name_inputFile = 'Resist_inputCDR.dsc'
+  !name_inputFile = 'Maxwel_inputCDR.dsc' 
 
   !--------------- Input Data ---------------!
   call cpu_time(start)
@@ -101,7 +101,6 @@ implicit none
     !---------- Computing nodal unknowns ux_i, uy_i and p_i ---------------!
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
-    !print*, ' '
    
     !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
     call PostPro_EMfield(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, u_sol, grad_u_sol)

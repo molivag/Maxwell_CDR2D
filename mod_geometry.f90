@@ -24,7 +24,7 @@ use param
       implicit none
       
       character(len=*), parameter  :: fileplace = "./"
-      character(len=14)            :: name_inputFile
+      character(len=19)            :: name_inputFile
       character(len=180)           :: msg
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
       integer          :: ielem, jpoin, idime, i,j, stat

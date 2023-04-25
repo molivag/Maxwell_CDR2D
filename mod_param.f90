@@ -31,7 +31,7 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      character(len=14)             :: name_inputFile
+      character(len=19)             :: name_inputFile
       !double precision  :: param_stab1, param_stab2 
       character(len=180)            :: msg
       character(len=*), parameter   :: fileplace = "./"

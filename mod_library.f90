@@ -9,7 +9,7 @@ module library
       external :: fdate
       
       character(len=*), parameter :: fileplace = "Res/results/"
-      character(len=14)           :: name_inputFile
+      character(len=19)           :: name_inputFile
       character(len=5)            :: file_name 
       character(len=24)           :: date
       character(len=4)            :: aaaa, cccc
@@ -42,7 +42,7 @@ module library
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
-      write(*,"(A19,7x,a14,3X,A1)") ' - Input File:             ', name_inputFile,''
+      write(*,"(A19,7x,a19,3X,A1)") ' - Input File:             ', name_inputFile,''
       write(*,"(A19,7x,a5,3X,A1)") ' - Element type:           ', InitElemType,''
       write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
       write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
