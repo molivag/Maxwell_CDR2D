@@ -152,7 +152,7 @@ module library
       !endif
       
       file_name ="test_"
-      open(unit=100,file= fileplace//file_name//testNo//'.txt', ACTION="write", STATUS="replace")
+      open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
       
       if(refiType.eq.'NO')then
         bbbb = '    NONE'
@@ -166,7 +166,7 @@ module library
       
       write(100,'(A)')'- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
       write(100,'(A)')
-      write(100,'(A8,1x,A14)') 'test No:',testNo
+      write(100,'(A8,1x,A14)') 'test ID: ',testID
       write(100,'(A)') " "
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
@@ -2038,7 +2038,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine PostPro_EMfield(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, glob_potential, E_field)
+    subroutine PostPro_EMfield(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, glob_potential, grad_sol)
       
       implicit none
       
@@ -2056,11 +2056,21 @@ module library
       integer         , dimension(nne)          :: nodeIDmap
       double precision                          :: detJ, x, y
       integer                                   :: ielem, igaus, inode, ibase, jj!, idime, ipoin, ii, jj
-      double precision, allocatable, dimension(:,:,:), intent(out) :: E_field
+      double precision, allocatable, dimension(:,:,:), intent(out) :: grad_sol
       
-      allocate(E_field(nelem,totGp,DimPr))
+      allocate(grad_sol(nelem,totGp,DimPr))
+
+      if(postpro.eq.1)then
+        write(*,'(A)') 'Running Post Process'
+        goto 115 
+      elseif(postpro.eq.2)then
+        write(*,'(A)') 'None Post Process'
+        goto 110
+      else
+        write(*,'(A)') 'No postrocess option defined'
+      end if
      
-      open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
+      115 open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
       
       write(100,'(2x,A5,8x,A5,10x,A2,15x,A2,16x,A,15x,A)') 'ielem','igaus','ex','ey','x', 'y'
       
@@ -2068,7 +2078,7 @@ module library
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         call gather(nodeIDmap, glob_potential, elem_potential) 
         
-        !E_field = 0.0
+        !grad_sol = 0.0
        do igaus = 1, TotGp
           du_dx = 0.0 
           du_dy = 0.0 
@@ -2088,8 +2098,8 @@ module library
             du_dy(ielem) = du_dy(ielem) + dN_dxy(2,inode) * elem_potential(inode)
           end do
           
-          E_field(ielem,igaus,1) = -du_dx(ielem)
-          E_field(ielem,igaus,2) = -du_dy(ielem) 
+          grad_sol(ielem,igaus,1) = -du_dx(ielem)
+          grad_sol(ielem,igaus,2) = -du_dy(ielem) 
           
           
           do inode = 1, nne 
@@ -2098,16 +2108,16 @@ module library
             !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
           end do
           
-          write(100,'(2(I5,1x),1x,2(1x,F15.5),3x,2(E15.5))') ielem, igaus, x, y, E_field(ielem,igaus,1), E_field(ielem,igaus,2)
+          write(100,'(2(I5,1x),1x,2(1x,F15.5),3x,2(E15.5))') ielem, igaus, x, y, grad_sol(ielem,igaus,1), grad_sol(ielem,igaus,2)
         end do
         !print*,' '
       end do
       
       close(100)
-      
+      110 continue 
       !do ielem =1,nelem
       !  do igaus = 1,TotGp
-      !    write(*,'(2(1x,e15.5))') ( E_field(ielem, igaus, jj), jj=1,2 )
+      !    write(*,'(2(1x,e15.5))') ( grad_sol(ielem, igaus, jj), jj=1,2 )
       !  end do
       !end do
       
@@ -2115,13 +2125,13 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine GID_results(solution, E_field)
+    subroutine GID_results(solution, grad_sol)
       
       implicit none
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      double precision, dimension(nelem,totGp,DimPr), intent(in) :: E_field
+      double precision, dimension(nelem,totGp,DimPr), intent(in) :: grad_sol
       character(len=10)                       :: extension1, extension2
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
@@ -2221,7 +2231,18 @@ module library
           write(555,"(A)") 'End Values'
           write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
       end select
-      write(555,"(A,A)") 'GaussPoints "GP_1" ElemType ', Elem_Type 
+      
+      if(postpro.eq.1)then
+        write(*,'(A)') 'Writing Post Process.....'
+        goto 115 
+      elseif(postpro.eq.2)then
+        !write(*,'(A)') 'None Post Process'
+        goto 110
+      else
+        write(*,'(A)') 'No postrocess option defined'
+      end if
+
+      115 write(555,"(A,A)") 'GaussPoints "GP_1" ElemType ', Elem_Type 
       write(555,"(A24,I1)") 'Number Of Gauss Points: ', totGp
       write(555,"(A,A)") 'Natural Coordinates: ', "Given"
       do igaus = 1, totGp
@@ -2235,12 +2256,12 @@ module library
       do ielem = 1, nelem
         write(555,'(I0)',Advance='NO') ielem
         do igaus = 1, totGp
-          write(555,903) (E_field(ielem,igaus,icomp), icomp=1,2)
+          write(555,903) (grad_sol(ielem,igaus,icomp), icomp=1,2)
         end do
       end do
       write(555,"(A)") 'End Values'
       
-      close(555)
+      110 close(555)
       
       900 format(A15, A13, A1, A13)
       901 format(2(f10.5))
@@ -2379,7 +2400,7 @@ module library
       !write(200,"(A)") 'Values'
       !do ielem = 1, nelem
       !  do igaus = 1, totGp
-      !    write(200,903) ielem, (E_field(ielem,igaus,icomp), icomp=1,2)
+      !    write(200,903) ielem, (grad_sol(ielem,igaus,icomp), icomp=1,2)
       !  end do
       !end do
       !write(200,"(A)") 'End Values'
