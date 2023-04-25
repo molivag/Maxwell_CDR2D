@@ -3,13 +3,13 @@ module param
   implicit none
 
   character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name
-  character(len=14) :: testNo
+  character(len=14) :: testID
   character(len=4)  :: InitElemType, ProbType
   character(len=2)  :: refiType
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
-  integer           :: elemSour, skipline
+  integer           :: elemSour, skipline, postpro
   real              :: hnatu, patau, time_ini, time_fin, u0cond
   real              :: Cu,lambda, ell, helem, i_exp, n_val
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
@@ -42,7 +42,7 @@ module param
       
       read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,elemSour,skipline,&
       initElem, initNodes, nne, hnatu, i_exp, refiType, theta, time_ini, time_fin, max_time, u0cond,&
-      kstab, ktaum, patau, n_val, Cu, ell, lambda, testNo, File_Nodal_Vals,&
+      kstab, ktaum, patau, n_val, Cu, ell, lambda, postpro, testID, File_Nodal_Vals,&
       error_name, coord_name, conec_name
       
       if (stat.ne.0) then
@@ -177,7 +177,7 @@ module param
       &          3(11x,I7,/), 2(11x,F7.2,/), 11x,A2,/, 2/        ,&  !geometry
       &          11x,I1,/, 2(11x,f7.2,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
       &          2(11x,I5,/), 4(11x,F7.2,/), 1(11x,e15.5,/),   2/,&  !stabi
-      &          11x,A14,/, 4(11x,A12,/), / )                         !output files
+      &          11x,I1,/, 11x,A14,/, 4(11x,A12,/), / )              !output files
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
