@@ -12,7 +12,7 @@ ndofn    = 1                !Degrees of freedom
 totGp    = 4                !1,4,9 for Q, 1,3,7 for P
 simul    = 6                !1=LdomT2; 2=LdomT1; 3=SimpleCuad; 4=PolyMaxwell; 5=PolyStokes; 6=SourceLoc
 elemSour = 1                !Number of elements will contain the source
-skipline = 83               !Lines must be skipped until read the mesh in Geometry module
+skipline = 84               !Lines must be skipped until read the mesh in Geometry module
 
 # > > > > > > >Geometry
 nelem    = 6241             !Number of nodes
@@ -39,7 +39,8 @@ ell      = 0.0              !Constante de longitud
 1/mu=λ   = 1.0e+0           !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
 
 # > > > > > > > Name outPut Files
-testNo   = 24_Pois_MVAF             !data file with input parameters in each iteration Res/results
+pospro   = 1                !Execution of post-processing routine 1=yes, 2=no
+testNo   = 24_Pois_MVAF     !data file with input parameters in each iteration Res/results
 NodalVal = Poisso_Tes23
 Error    = xxxxxxxxxxxx		!Los test del 1 al 10 de Maxwell sin param_stab
 Cordina  = xxxxxxxxxxxx         !Los test del 11 al 20 Maxwell con param_stab

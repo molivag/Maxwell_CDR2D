@@ -12,7 +12,7 @@ ndofn    = 3                !Degrees of freedom
 totGp    = 4                !1,4,9 for Q, 1,3,7 for P
 simul    = 4                !1=LdomT2; 2=LdomT1; 3=SimpleCuad; 4=PolyMaxwell; 5=PolyStokes; 6=SourceLoc
 elemSour = 1                !Number of elements will contain the source
-skipline = 83               !Lines must be skipped until read the mesh in Geometry module
+skipline = 84               !Lines must be skipped until read the mesh in Geometry module
 
 # > > > > > > >Geometry
 nelem    = 64             !Number of nodes
@@ -36,14 +36,15 @@ patau    = 1.0              !Parameter to obtain tau
 n_val    = 1.0              !n parameter in exact solution, for simul=1
 Cu       = 1.0              !Algorithmic constant
 ell      = 1.0              !Constante de longitud  
-1/mu=λ   = 1.0Cambiar este tipo de variable para que se lea como Cu y ell e+0           !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
+1/mu=λ   = 1.0              !Cambiar este tipo de variable para que se lea como Cu y ell e+0           !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
 
 # > > > > > > > Name outPut Files
-testNo   = 12_Maxw_MVAF             !data file with input parameters in each iteration Res/results
-Postpro  = Maxw08_Tes12
-Error    = Maxw08_err12         !Los test del 1 al 10 de Maxwell sin param_stab
-Cordina  = Maxw08cord12         !Los test del 11 al 20 Maxwell con param_stab
-Conecti  = Maxw08cone12         !Los test del 21 al 30 Poisson con RHS
+pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
+testID   = Maxw_MVAF_13     !data file with input parameters in each iteration Res/results
+Postpro  = Maxw08_Tes13
+Error    = Maxw08_err13         !Los test del 1 al 10 de Maxwell sin param_stab
+Cordina  = Maxw08cord13         !Los test del 11 al 20 Maxwell con param_stab
+Conecti  = Maxw08cone13         !Los test del 21 al 30 Poisson con RHS
 
 # > > > > > > > Physical Properties
 #DIFMA_11                !Diffusion tensor
