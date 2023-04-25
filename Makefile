@@ -33,7 +33,7 @@ SRCS = mod_param mod_geometry mod_biunit mod_BVs mod_source mod_library mod_time
 OBJS = $(SRCS:=.o)
 
 #	executable
-MAIN = CDR3d.exe
+MAIN = CDR2dEM.exe
 #========== Fin variables ===========
 
 #	compile project
