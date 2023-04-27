@@ -9,9 +9,9 @@ module param
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
-  integer           :: elemSour, skipline, postpro
+  integer           :: i_exp, elemSour, skipline, postpro
   real              :: hnatu, patau, time_ini, time_fin, u0cond
-  real              :: Cu,lambda, ell, helem, i_exp, n_val
+  real              :: Cu,lambda, ell, helem, n_val
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -32,7 +32,7 @@ module param
       implicit none
       
       character(len=19)             :: name_inputFile
-      !double precision  :: param_stab1, param_stab2 
+      double precision  :: param_stab1, param_stab2 
       character(len=180)            :: msg
       character(len=*), parameter   :: fileplace = "./"
       integer                       ::  stat, ii
@@ -41,7 +41,7 @@ module param
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,elemSour,skipline,&
-      initElem, initNodes, nne, hnatu, i_exp, refiType, theta, time_ini, time_fin, max_time, u0cond,&
+      initElem, initNodes, nne, i_exp, hnatu, refiType, theta, time_ini, time_fin, max_time, u0cond,&
       kstab, ktaum, patau, n_val, Cu, ell, lambda, postpro, testID, File_Nodal_Vals,&
       error_name, coord_name, conec_name
       
@@ -66,6 +66,9 @@ module param
       conma = 0.0
       reama = 0.0
       force = 0.0
+      param_stab1 = 0.0
+      param_stab2 = 0.0
+
       
       if(ndofn.eq.1)then
         read(5,101) difma(1,1,1,1), difma(1,1,1,2)
@@ -147,36 +150,36 @@ module param
       close(5)
       
       
-      !if(kstab.eq.6)then
-      !  helem = 2**(-i_exp) 
-      !  !Parameter of stabilization in augmented formulation
-      !  param_stab1 = Cu*lambda*(helem**2/ell**2)
-      !  !print*, param_stab1
-      !  param_stab2 = ell**2 / lambda
-      !  
-      !  difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
-      !  difma(2,2,1,1) = difma(2,2,1,1)*lambda
-      !  difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
-      !  
-      !  difma(1,2,1,2) = difma(1,2,1,2)*param_stab1
-      !  difma(2,1,1,2) = difma(2,1,1,2)*lambda
-      !  
-      !  difma(1,2,2,1) = difma(1,2,2,1)*lambda
-      !  difma(2,1,2,1) = difma(2,1,2,1)*param_stab1
-      !  
-      !  difma(1,1,2,2) = difma(1,1,2,2)*lambda
-      !  difma(2,2,2,2) = difma(2,2,2,2)*param_stab1
-      !  difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
-      !end if
+      if(kstab.eq.6)then
+        !helem = 2.0**(-(i_exp)) 
+        helem = 1/20.0
+        !Parameter of stabilization in augmented formulation
+        param_stab1 = Cu*lambda*(helem**2/ell**2)
+        param_stab2 = ell**2 / lambda
+        
+        difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
+        difma(2,2,1,1) = difma(2,2,1,1)*lambda
+        difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
+        
+        difma(1,2,1,2) = difma(1,2,1,2)*param_stab1
+        difma(2,1,1,2) = difma(2,1,1,2)*lambda
+        
+        difma(1,2,2,1) = difma(1,2,2,1)*lambda
+        difma(2,1,2,1) = difma(2,1,2,1)*param_stab1
+        
+        difma(1,1,2,2) = difma(1,1,2,2)*lambda
+        difma(2,2,2,2) = difma(2,2,2,2)*param_stab1
+        difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
+      end if
       
       !Initial elemental and global variables, it will changes if refination is selected.
       initnevab = ndofn*nne
       initntotv = ndofn*initNodes
       
-      100 format(7/ 11x, A4,/ ,11x, A4,/, 6(11x,I5,/), 2/        ,&  !model parameters
-      &          3(11x,I7,/), 2(11x,F7.2,/), 11x,A2,/, 2/        ,&  !geometry
+      100 format(7/ 11x, A4,/ ,11x, A4,/, 6(11x,I5,/),         2/,&  !model parameters
+      &          4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
       &          11x,I1,/, 2(11x,f7.2,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
-      &          2(11x,I5,/), 4(11x,F7.2,/), 1(11x,e15.5,/),   2/,&  !stabi
+      &          2(11x,I5,/), 5(11x,F7.2,/),                   2/,&  !stabi
       &          11x,I1,/, 11x,A14,/, 4(11x,A12,/), / )              !output files
      
       101 format(1/,F12.5,2/)
