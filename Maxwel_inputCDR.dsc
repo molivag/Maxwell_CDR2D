@@ -15,11 +15,11 @@ elemSour = 1                !Number of elements will contain the source
 skipline = 84               !Lines must be skipped until read the mesh in Geometry module
 
 # > > > > > > >Geometry
-nelem    = 64             !Number of nodes
-nnodes   = 81             !Total number of nodal points
+nelem    = 64               !Number of nodes
+nnodes   = 81               !Total number of nodal points
 nne      = 4                !Nodes per element Q:4-9; P:3-6
+i_exp    = 0                !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 2.0              !Reference element length
-i_exp    = 0.0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 refiType = NO               !NONE; PS=Powell-Sabin; CB=Crossed-Box
 
 # > > > > > > > Time Discretization
@@ -36,15 +36,15 @@ patau    = 1.0              !Parameter to obtain tau
 n_val    = 1.0              !n parameter in exact solution, for simul=1
 Cu       = 1.0              !Algorithmic constant
 ell      = 1.0              !Constante de longitud  
-1/mu=λ   = 1.0              !Cambiar este tipo de variable para que se lea como Cu y ell e+0           !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
+1/mu=λ   = 1.0              !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
 
 # > > > > > > > Name outPut Files
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
-testID   = Maxw_MVAF_13     !data file with input parameters in each iteration Res/results
-Postpro  = Maxw08_Tes13
-Error    = Maxw08_err13         !Los test del 1 al 10 de Maxwell sin param_stab
-Cordina  = Maxw08cord13         !Los test del 11 al 20 Maxwell con param_stab
-Conecti  = Maxw08cone13         !Los test del 21 al 30 Poisson con RHS
+testID   = Maxw_MVAF_18     !data file with input parameters in each iteration Res/results
+Postpro  = Maxw08_Tes18
+Error    = Maxw08_err18         !Los test del 1 al 10 de Maxwell sin param_stab
+Cordina  = Maxw08cord18         !Los test del 11 al 20 Maxwell con param_stab
+Conecti  = Maxw08cone18         !Los test del 21 al 30 Poisson con RHS
 
 # > > > > > > > Physical Properties
 #DIFMA_11                !Diffusion tensor
