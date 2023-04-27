@@ -1,7 +1,7 @@
 module timeInt
   use param
   use geometry
-  use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
+  use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_Nodal_Vals, MKLsolverResult, MKLfactoResult
 
   contains
     
@@ -46,8 +46,9 @@ module timeInt
       double precision, intent(out)                 :: delta_t
      
       double precision, allocatable, dimension(:,:), intent(out) ::  Uinit
-      !SE DEBERIA CAMBIAR LAS VARIABLES DE TIEMPO A VARIABLES  LOCALES PONIENDOLAS COMO SALIDA DUMMY VARIABLE
-      ! EN EL CALL DE INPUT DATA PUES OSLO SE USAN EN DOS SUBRUTINAS Y NO TIENE CASO QUE ESTEN EN TODO EL CODIGO
+      !SE DEBERIA CAMBIAR LAS VARIABLES DE TIEMPO A VARIABLES 
+      !LOCALES PONIENDOLAS COMO SALIDA DUMMY VARIABLE EN EL CALL DE INPUT DATA
+      ! PUES OSLO SE USAN EN DOS SUBRUTINAS Y NO TIENE CASO QUE ESTEN EN TOD0 EL CODIGO
      
       !allocate( Uinit(ntotv,1),  A_U0(ntotv,1), A_C0(ldAKban,ntotv) ) 
       
@@ -156,7 +157,7 @@ module timeInt
      
       write(*,*) ' '
       print'(A11,I3,A3,F8.3,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
-      call GID_PostProcess(Uprev, 'res', time, 0.0)
+      call GID_Time_Results(Uprev, 'res', time, 0.0)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
      
@@ -204,7 +205,7 @@ module timeInt
         Uprev = Unext
         !---------- Printing and writing results -----------!
         print'(A11,I3,A3,F10.5,A5,F10.5,A5)',' time step:',time,' =',nt,' of',time_fin,' seg'
-        call GID_PostProcess(Uprev, 'res', time, nt)
+        call GID_Time_Results(Uprev, 'res', time, nt)
         
       end do
       
@@ -213,8 +214,8 @@ module timeInt
       !print*, 'Shape of Global F: ',shape(rhs_time)
       !print*, 'Shape of Solution: ',shape(Uprev)
       !write(*,*)
-      call GID_PostProcess(Uprev,'msh', time, 0.0) 
-      print"(1x, A26,A30)", File_PostProcess//'.post.res', 'written succesfully in Pos/ '
+      call GID_Time_Results(Uprev,'msh', time, 0.0) 
+      print"(1x, A26,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
       DEALLOCATE( AK_time, rhs_time, Uprev, Unext)
     end subroutine TimeIntegration
     
