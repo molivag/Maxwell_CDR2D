@@ -4,8 +4,9 @@ module timeInt
   use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_Nodal_Vals, MKLsolverResult, MKLfactoResult
 
   contains
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine initialCondition(presc,ifpre, nofix, N, dN_dxi,dN_deta,S_m, S_n, S_trans, S_nrhs, S_ipiv,S_ldb,delta_t, Uinit) 
       
       !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -115,8 +116,80 @@ module timeInt
       return
 
     end subroutine initialCondition
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine TimeContribution(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, ugl_pre, A_F)
+      use sourceTerm
+      
+      implicit none
+      
+      double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
+      double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
+      double precision, dimension(nne,TotGp), intent(in):: hes_xixi, hes_xieta, hes_etaeta
+      double precision, dimension(ndofn)        :: EMsource
+      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+      double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
+      double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
+      double precision, dimension(3,3)          :: tauma
+      double precision, dimension(nne,DimPr)    :: element_nodes
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ, delta_t
+      integer                                   :: igaus, ibase, ielem
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_F
+      
+      allocate(A_F(ntotv, 1) )
+      
+      A_F = 0.0
+      do ielem = 1, nelem 
+        Ke = 0.0; Fe = 0.0; Ce = 0.0
+        call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
+        
+        call gather(nodeIDmap, ugl_pre, ue_pre)
+        time_cont = ue_pre * 1.0/delta_t
+        !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
+        do igaus = 1, TotGp
+          call Jacobian( element_nodes, dN_dxi, dN_deta, igaus, Jaco, detJ, Jinv)
+          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
+          !detJ = djacb(Jaco)
+          !Jinv = xjaci(detJ,Jaco)
+          dvol = detJ *  weigp(igaus,1)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jinv)
+          do ibase = 1, nne
+            basis(ibase) = N(ibase,igaus)
+          end do
+          
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          !call TauMat(hmaxi,tauma)
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          
+          select case(theta)
+            case(1) !BDF1
+              Fe_time = Fe + matmul(Ce,time_cont)
+            case(2) !BDF2
+              print*, 'BDF2 not available yet '
+              stop
+            case(3) !Crank-Nicholson
+              rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
+              Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+          end select
+
+          !Fe_time = Fe + matmul(Ce,time_cont)
+        end do
+        
+        call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
+        
+      end do
+      
+    end subroutine TimeContribution
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
     &                    nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
      
@@ -156,7 +229,7 @@ module timeInt
       Uprev = Uinit
      
       write(*,*) ' '
-      print'(A11,I3,A3,F8.3,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
+      print'(A11,I0,A3,F8.3,A)',' time step: ',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_Time_Results(Uprev, 'res', time, 0.0)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
@@ -218,6 +291,159 @@ module timeInt
       print"(1x, A26,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
       DEALLOCATE( AK_time, rhs_time, Uprev, Unext)
     end subroutine TimeIntegration
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine GID_Time_Results(solution, activity, step_value, interval)
+      
+      implicit none
+      
+      character(len=*), parameter    :: fileplace = "Pos/"
+      double precision, dimension(ntotv, 1), intent(in) :: solution
+      character(*), intent(in)                :: activity
+      integer     , intent(in)                :: step_value
+      real        , intent(in)                :: interval
+      character(len=10)                       :: extension1, extension2
+      character(len=15)                       :: Elem_Type
+      double precision, dimension(1, ntotv)   :: solution_T
+      double precision, dimension(1,nnodes)   :: xcor, ycor
+      integer                                 :: inode, ipoin, ielem, ii
+      
+      solution_T = transpose(solution)
+      xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      
+      extension1 = ".post.msh"
+      extension2 = ".post.res"
+      
+      
+      if(ElemType.eq.'QUAD')then
+        Elem_Type = 'Quadrilateral'
+      elseif(ElemType.eq.'TRIA')then
+        Elem_Type = 'Triangle'
+      endif
+      
+      !print*, '!====== Output files ======'
+      
+      if(activity == "msh")then !quitar este if y acomodar el numero de unidad 
+        open(unit=100, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
+        
+        write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
+        write(100,"(A)") '#2D Convection-Diffusion-Reaction'
+        write(100,900) '#Element tipe: ', ElemType,'/',ElemType
+        write(100,"(A)")'Coordinates'
+        write(100,"(A)") '#   No        X           Y'
+        do ipoin = 1, nnodes
+          write(100,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+        end do
+        write(100,"(A)") 'End Coordinates'
+        write(100,"(A)") 'Elements'
+        do ielem=1,nelem
+          write(100,908) ielem,(lnods(ielem,inode),inode=1,nne)
+        end do
+        write(100,"(A)") 'End Elements'
+        close(100)
+        print"(A11,A19,A30)", ' Mesh file ',File_Nodal_Vals//extension1, 'written succesfully in Pos/ '
+        
+      elseif(activity == "res")then
+        if(step_value == 0)then
+          open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="replace")
+          write(200,"(A)") 'GiD Post Results File 1.0'
+          write(200,"(A)") '#2D Convection-Diffusion-Reaction'
+        else
+          continue
+        endif
+        open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="old", position="append")
+        ! se escribe el res de las componentes del campo electrico
+        select case(ndofn)
+          case(1)
+            write(200,"(A29, I3, A)") 'Result "DoF" "EM field" ', step_value,' Scalar OnNodes'
+            write(200,"(A)") 'ComponentNames "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ex '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(200,914)
+            do ipoin = 1, nnodes
+              write(200,916) ipoin, solution(ipoin, 1)
+            end do
+            write(200,"(A)") 'End Values'
+          case(2)
+            write(200,"(A29, I3, A)") 'Result "DoF" "EM field" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "ex" "ey" "ez" "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ex ','               ey '
+            do ipoin = 1, nnodes
+              write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(200,"(A)") 'End Values'
+          case(3)
+            write(200,"(A24, I3, A)") 'Result "DoF" "EM field" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "ex" "ey" "ez" "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ex ','               ey'
+            do ipoin = 1, nnodes
+              write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+            end do
+            write(200,"(A)") 'End Values'
+            write(200,"(A24, I3, A)") 'Result "P" "Multiplier" ', step_value,' Scalar OnNodes'
+            write(200,"(A)") 'ComponentNames "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','     p '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(200,914)
+            ii=1
+            do ipoin = 3, nnodes*3,3
+              write(200,916) ii, solution_T(1,ipoin)
+              ii=ii+1
+            end do
+            write(200,"(A)") 'End Values'
+        end select
+      else
+        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" non ', activity
+        close(200)
+        stop
+      end if
+      !write(200,*) 'GaussPoints', "GP_1", 'ElemType', Elem_Type 
+      !write(200,*) 'Number Of Gauss Points:', totGp
+      !write(200,*) 'Natural Coordinates:' "Given"
+      !do igaus = 1, totGp
+      !  write(200,901) (ngaus(igaus,j), j=2,DimPr)
+      !end do
+      !write(200,*) 'End GaussPoints'
+      !
+      !write(555,"(A)") 'Result "E-field" "ANALYSIS" 0 Vector OnGaussPoints "GP_1" '
+      !write(200,"(A)") 'ComponentNames "Ex" "Ey" '
+      !write(200,"(A)") 'Values'
+      !do ielem = 1, nelem
+      !  do igaus = 1, totGp
+      !    write(200,903) ielem, (grad_sol(ielem,igaus,icomp), icomp=1,2)
+      !  end do
+      !end do
+      !write(200,"(A)") 'End Values'
+      
+      close(200)
+      !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
+      
+      if(interval.eq.time_fin) then
+        print"(1x, A26,A30)", File_Nodal_Vals//extension2, 'written succesfully in Pos/ '
+      endif
+      
+      
+      900 format(A15, A13, A1, A13)
+      901 format(f15.5,1x)
+      902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+      903 format(I5,2(1x,E15.5))
+      906 format(I7,2(3x,f9.4)) !format for msh
+      908 format(9(2x,I7) )
+      914 format('#',3x,'No',     9x, 'Dof')
+      916 format(I7,2x,E15.5)  !format for scalar case
+      918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
+      919 format(I7,2(4x,E15.5)) !format for res velocity
+      
+    end subroutine GID_Time_Results
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     
     
   !end contains
