@@ -23,9 +23,11 @@ implicit none
   character(len=1) :: S_trans
   integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ii, jj
   
-  name_inputFile = 'Resist_inputCDR.dsc'
+  !name_inputFile = 'Resist_inputCDR.dsc'
   !name_inputFile = 'Maxwel_inputCDR.dsc' 
-
+  !name_inputFile = 'tMaxwelinputCDR.dsc' 
+  name_inputFile = 'Stokes_InputCDR.dsc' 
+  
   !--------------- Input Data ---------------!
   call cpu_time(start)
   call inputData(name_inputFile)
@@ -76,11 +78,11 @@ implicit none
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !Source Location Setting
-    A_F(2387,1) = 10.0
-    A_F(2450,1) = 10.0
-    A_F(2504,1) = 10.0
-    A_F(2578,1) = 10.0
-    A_F(2646,1) = 10.0
+    !A_F(2387,1) = 10.0
+    !A_F(2450,1) = 10.0
+    !A_F(2504,1) = 10.0
+    !A_F(2578,1) = 10.0
+    !A_F(2646,1) = 10.0
     
     !---------- Memory Relase -----------!
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
