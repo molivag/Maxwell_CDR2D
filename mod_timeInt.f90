@@ -107,9 +107,10 @@ module timeInt
       !   call MKLsolverResult( 'dgbtrs', S_info )
       ! end if
       
-      do ii = 1 , nnodes
-        Uinit(ii,1)  = 0!coord(ii,2)!Uinit             !u in present time 
-      end do
+      
+      !do ii = 1 , nnodes
+      !  Uinit(ii,1)  = coord(ii,1)!Uinit             !u in present time for COnvection diffusion test.
+      !end do
 
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
       deallocate(dummy)
@@ -153,11 +154,8 @@ module timeInt
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus, Jaco, detJ, Jinv)
-          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = djacb(Jaco)
-          !Jinv = xjaci(detJ,Jaco)
-          dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          dvol = detJ *  weigp(igaus,1)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
@@ -165,8 +163,8 @@ module timeInt
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
-          !call TauMat(hmaxi,tauma)
-          !call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          call TauMat(hmaxi,tauma)
+          call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           
           select case(theta)
             case(1) !BDF1
@@ -177,8 +175,10 @@ module timeInt
             case(3) !Crank-Nicholson
               rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
               Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+            case default
+              write(*,'(A)') 'Not theta defined'
           end select
-
+          
           !Fe_time = Fe + matmul(Ce,time_cont)
         end do
         
@@ -288,7 +288,8 @@ module timeInt
       !print*, 'Shape of Solution: ',shape(Uprev)
       !write(*,*)
       call GID_Time_Results(Uprev,'msh', time, 0.0) 
-      print"(1x, A26,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
+      print*, ' '
+      !print"(1x, A26,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
       DEALLOCATE( AK_time, rhs_time, Uprev, Unext)
     end subroutine TimeIntegration
     !
@@ -343,7 +344,7 @@ module timeInt
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A19,A30)", ' Mesh file ',File_Nodal_Vals//extension1, 'written succesfully in Pos/ '
+        print"(A11,A22,A30)", ' Mesh file ',File_Nodal_Vals//extension1, 'written succesfully in Pos/ '
         
       elseif(activity == "res")then
         if(step_value == 0)then
@@ -425,7 +426,8 @@ module timeInt
       !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
       
       if(interval.eq.time_fin) then
-        print"(1x, A26,A30)", File_Nodal_Vals//extension2, 'written succesfully in Pos/ '
+        print*, ' '
+        write(*,"(A9,A24,A30)") ' Res file ', File_Nodal_Vals//extension2, 'written succesfully in Pos/ '
       endif
       
       
