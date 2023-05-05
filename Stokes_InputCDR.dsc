@@ -10,7 +10,7 @@ ProbType = TIME             !Problem type TIME=transient, other=static
 DimPr    = 2                !Dimension del problema
 ndofn    = 3                !Degrees of freedom
 totGp    = 4                !1,4,9 for Q, 1,3,7 for P
-simul    = 5                !1=LdomT2; 2=LdomT1; 3=SimpleCuad; 4=PolyMaxwell; 5=PolyStokes; 6=SourceLoc
+simul    = 5                !1=LdomT2; 2=SimpleCuad; 3=PolyMaxwell; 4=PolyStokes; 5=Cavity Driven Flow
 elemSour = 1                !Number of elements will contain the source
 skipline = 84               !Lines must be skipped until read the mesh in Geometry module
 
@@ -19,7 +19,7 @@ nelem    = 400              !Number of nodes
 nnodes   = 441              !Total number of nodal points
 nne      = 4                !Nodes per element Q:4-9; P:3-6
 i_exp    = 0                !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
-hnatu    = 2.0              !Reference element length
+hnatu    = 2.0              !Length of reference element 1=P1; 2=Q1
 refiType = NO               !NONE; PS=Powell-Sabin; CB=Crossed-Box
 
 # > > > > > > > Time Discretization
@@ -32,7 +32,7 @@ u0cond   = 0.0              !Value of initial condition
 # > > > > > > > Stabilization
 kstab    = 3                !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
 ktaum    = 2                !Tau matrix: 0, 1, 2 
-patau    = 1.0              !Parameter to obtain tau
+patau    = 2.0              !Parameter to obtain tau
 n_val    = 0.0              !n parameter in exact solution, for simul=1
 Cu       = 0.0              !Algorithmic constant
 ell      = 0.0              !Constante de longitud  
@@ -40,8 +40,8 @@ ell      = 0.0              !Constante de longitud
 
 # > > > > > > > Name outPut Files
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
-testID   = Stokes_testx     !data file with input parameters in each iteration Res/results
-Postpro  = Stokes_testx
+testID   = tStokes_test     !data file with input parameters in each iteration Res/results
+Postpro  = tStokes_test
 Error    = xxxxxxxxxxxx
 Cordina  = xxxxxxxxxxxx
 Conecti  = xxxxxxxxxxxx
@@ -76,7 +76,7 @@ Conecti  = xxxxxxxxxxxx
 0.0 , 0.0 , 0.0
 0.0 , 0.0 , 0.0
 #FORCE                   !Force tensor
-1.0 , 1.0 , 0.0
+0.0 , 0.0 , 0.0
 
 # > > > > > > > Element Source Location
 3121
