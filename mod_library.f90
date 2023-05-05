@@ -116,40 +116,40 @@ module library
         continue
       endif
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-      end do
-        print*,' '
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
-      end do
-      print*, ' '
-      print*, 'External Forces'
-      if(ndofn.eq.1)then
-        write(*,"(3(f10.3,1x))") force(1)
-      elseif(ndofn.eq.2)then
-        write(*,"(2(f10.3,1x))") force(1), force(2)
-      else
-        write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
-      endif
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(f15.7,1x,f15.7, 1x, f15.7)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.5, 1x, f10.5, 1x, f10.5)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !end do
+      !  print*,' '
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.5, 1x, f10.5, 1x, f10.5)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !print*, ' '
+      !print*, 'External Forces'
+      !if(ndofn.eq.1)then
+      !  write(*,"(3(f10.3,1x))") force(1)
+      !elseif(ndofn.eq.2)then
+      !  write(*,"(2(f10.3,1x))") force(1), force(2)
+      !else
+      !  write(*,"(3(f10.3,1x))") force(1), force(2), force(3)
+      !endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
@@ -1597,7 +1597,7 @@ module library
       double precision, dimension(nnodes)   :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
       double precision     :: aa, bb, cc, dd, ee, x, y
       double precision     :: sum_error, error_EM, error_p, xmax, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
-      double precision     :: fi, psi, der_fi, der_psi, errL2_x, errL2_y, errL2_p
+      double precision     :: fi, psi, der_fi, der_psi!, errL2_x, errL2_y, errL2_p
       character(len=12)    :: extension, File_Solution
       integer              :: ipoin, ielem, inode 
       
@@ -1661,32 +1661,6 @@ module library
             
           end do
         case(2)
-          do inode = 1, nnodes  
-            x = coord(1,inode)
-            y = coord(2,inode)
-            
-           !exact solution
-            uxSol = -exp(x) * ( y*cos(y) + sin(y) )
-            uySol = exp(x) * y * sin(y)
-            multi = sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1.0))
-            
-            !FEM solution
-            x_FEM = solution_T(1,ndofn*inode-2)
-            y_FEM = solution_T(1,ndofn*inode-1)
-            p_FEM = solution_T(1,ndofn*inode)
-            
-            !write(*,"(6(f15.5,1x))") uxSol, x_FEM, uySol, y_FEM, multi, p_FEM
-            !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
-            error_p  = error_p + (multi - p_FEM )**2
-            !print*, 'error', error  
-            
-            !Write to plotting file 
-            exact_x(inode) = uxSol 
-            exact_y(inode) = uySol
-          end do
-          
-        case(3)
           do inode = 1, nnodes  !simple Function
             x = coord(1,inode)
             y = coord(2,inode)
@@ -1717,8 +1691,7 @@ module library
             
           end do
          
-        case(4) !new test of polynomial solution
-          115 continue
+        case(3) !new test of polynomial solution
           do inode = 1, nnodes  !simple Function
             x = coord(1,inode)
             y = coord(2,inode)
@@ -1744,16 +1717,16 @@ module library
             FEM_p(inode) = solution_T(1,ndofn*inode-0) 
           end do
           
-        case(5)
-          print*,'Entra a case 5'
+        case(4)
+          print*,'No analytic solution'
           goto 115 
       end select
       error_EM = sqrt(error_EM/nnodes)
       error_p = sqrt(error_p/nnodes)
      
-      errL2_x=norm2(exact_x - FEM_x)/norm2(exact_x)
-      errL2_y=norm2(exact_y - FEM_y)/norm2(exact_y)
-      errL2_p=norm2(exact_p - FEM_p)/norm2(exact_p)
+      !errL2_x=norm2(exact_x - FEM_x)/norm2(exact_x)
+      !errL2_y=norm2(exact_y - FEM_y)/norm2(exact_y)
+      !errL2_p=norm2(exact_p - FEM_p)/norm2(exact_p)
       
       !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
       open(unit=111, file= fileplace//File_Nodal_Vals//extension, ACTION="write", STATUS="replace")
@@ -1805,9 +1778,9 @@ module library
       open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
       write(777,"(1x,E15.5,3x, A)") error_EM,'%error in electric field'
       write(777,"(1x,E15.5,3x, A)") error_p, '%error in multiplier'
-      write(777,"(1x,E15.5,3x, A)") errL2_x,'%L2error in ex'
-      write(777,"(1x,E15.5,3x, A)") errL2_y,'%L2error in ey'
-      write(777,"(1x,E15.5,3x, A)") errL2_p,'%L2error in multiplier'
+      !write(777,"(1x,E15.5,3x, A)") errL2_x,'%L2error in ex'
+      !write(777,"(1x,E15.5,3x, A)") errL2_y,'%L2error in ey'
+      !write(777,"(1x,E15.5,3x, A)") errL2_p,'%L2error in multiplier'
       close(777)
 
       xmax = maxval(coord(1,:)) !the greatest number in x column
@@ -1821,6 +1794,7 @@ module library
       904 format(I7,2(3x,f9.4) ) !format for msh
       906 format(6(E15.5, 3x))
       
+      115 continue
     end subroutine Res_Matlab
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1983,7 +1957,7 @@ module library
       double precision, dimension(nelem)        :: du_dx, du_dy 
       integer         , dimension(nne)          :: nodeIDmap
       double precision                          :: detJ, x, y
-      integer                                   :: ielem, igaus, inode, ibase, jj!, idime, ipoin, ii, jj
+      integer                                   :: ielem, igaus, inode! ,idime, ipoin, ii, jj
       double precision, allocatable, dimension(:,:,:), intent(out) :: grad_sol
       
       allocate(grad_sol(nelem,totGp,DimPr))
