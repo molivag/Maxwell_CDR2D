@@ -83,32 +83,6 @@ module sourceTerm
         
       case(2)
         !Derivatives in x-direction
-        dey_dydx = exp(x) * ( sin(y) + y*cos(y) )
-        dex_dy2  = exp(x) * (3.0*sin(y)+ y*cos(y) )
-        dex_dx2  =-exp(x) * ( sin(y) + y*cos(y) )
-        dey_dxdy = exp(x) * ( sin(y) + y*cos(y) )
-        
-        !Derivatives in y-direction
-        dey_dx2  = exp(x) * y*sin(y)
-        dex_dxdy = exp(x) * ( y*sin(y) - 2.0*cos(y) )
-        dex_dydx = exp(x) * ( y*sin(y) - 2.0*cos(y) )
-        dey_dy2  = exp(x) * ( 2.0*cos(y) - y*sin(y) )
-        
-        !Gradient of multiplier
-        dp_dx = 0.5*pi * sin(0.5*pi*(y-1.0)) * cos(0.5*pi*(x-1))
-        dp_dy = 0.5*pi * sin(0.5*pi*(x-1.0)) * cos(0.5*pi*(y-1))
-        
-        !Laplacian of multiplier
-        d2p_dx2 = -0.25*pi**2 * sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1))
-        d2p_dy2 = -0.25*pi**2 * sin(0.5*pi*(x-1.0)) * sin(0.5*pi*(y-1))
-        
-        !Source Term computation
-        EMsource(1) = lambda*( dey_dydx - dex_dy2) + beta*( dex_dx2 + dey_dxdy)  + dp_dx
-        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy) + beta*( dex_dydx+ dey_dy2 )  + dp_dy
-        EMsource(3) = alpha * (d2p_dx2 + d2p_dy2)
-        
-      case(3)
-        !Derivatives in x-direction
         dey_dydx = 2.0-(4.0*y)
         dex_dy2  = 0.0 
         
@@ -140,7 +114,7 @@ module sourceTerm
         ! EMsource(2) = lambda*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
         ! EMsource(3) = force(3)
         
-      case(4)
+      case(3)
         !Source with NO DivDiv term
         
         !Derivatives in x-direction
@@ -157,11 +131,11 @@ module sourceTerm
         dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
         
         
-        EMsource(1) = lambda*( dey_dydx - dex_dy2)! - beta*dex_dx2  - beta*dey_dxdy
-        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy)! - beta*dex_dydx - beta*dey_dy2  
+        EMsource(1) = lambda*( dey_dydx - dex_dy2)! - beta*(dex_dx2  - beta*dey_dxdy ) 
+        EMsource(2) = lambda*(-dey_dx2 + dex_dxdy)! - beta*(dex_dydx - beta*dey_dy2  )  
         EMsource(3) = force(3)
         
-      case(5) !stokes
+      case(4) !stokes
         
         
         !Derivatives in x-direction
@@ -178,22 +152,30 @@ module sourceTerm
         EMsource(2) = -lambda * ( dey_dx2 + dey_dy2 )
         EMsource(3) = force(3)
         
-      case(6)
-        ! - - - Coordinate of source location node 2501 at the center of the mesh 158x158
-        xq = 1.0
-        yq = 1.0     
-        Icurr = force(1)
+      case(5)
         
-        !x = 0.0
-        !Dos posibilidades de implementacion
-        ! - - Primera opcion
-        do inode = 1,nne
-          if((xi_cor(inode).eq.xq).and.(yi_cor(inode).eq.yq))then
-            EMsource = Icurr !Here is the source location
-          else
-            EMsource = 0.0
-          endif
-        end do 
+        
+        EMsource(1) = -lambda * force(1)
+        EMsource(2) = -lambda * force(2)
+        EMsource(3) = -lambda * force(3)
+        
+        
+        
+        ! - - - Coordinate of source location node 2501 at the center of the mesh 158x158
+        !xq = 1.0
+        !yq = 1.0     
+        !Icurr = force(1)
+        !
+        !!x = 0.0
+        !!Dos posibilidades de implementacion
+        !! - - Primera opcion
+        !do inode = 1,nne
+        !  if((xi_cor(inode).eq.xq).and.(yi_cor(inode).eq.yq))then
+        !    EMsource = Icurr !Here is the source location
+        !  else
+        !    EMsource = 0.0
+        !  endif
+        !end do 
         
         ! - - Segunda opcion
         !EMsource = Icurr *dirac(xi_cor - xq)*dirac(yi_cor - yq) 
