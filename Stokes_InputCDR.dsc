@@ -23,10 +23,10 @@ hnatu    = 2.0              !Length of reference element 1=P1; 2=Q1
 refiType = NO               !NONE; PS=Powell-Sabin; CB=Crossed-Box
 
 # > > > > > > > Time Discretization
-theta    = 1                !BDF1=1 ;BDF2=2 ;CN=3
+theta    = 4                !BDF1=2 ;CN=3 ;BDF2=4
 time_ini = 0.0              !Starting time simulation
-time_fin = 1.0              !Ending time simulation
-max_time = 20               !Max time of simulation
+time_fin = 20.0              !Ending time simulation
+max_time = 80               !Max time of simulation
 u0cond   = 0.0              !Value of initial condition
 
 # > > > > > > > Stabilization
@@ -40,8 +40,8 @@ ell      = 0.0              !Constante de longitud
 
 # > > > > > > > Name outPut Files
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
-testID   = tStokes_test     !data file with input parameters in each iteration Res/results
-Postpro  = tStokes_test
+testID   = tStokes_oldd     !data file with input parameters in each iteration Res/results
+Postpro  = tStokes_oldd
 Error    = xxxxxxxxxxxx
 Cordina  = xxxxxxxxxxxx
 Conecti  = xxxxxxxxxxxx
