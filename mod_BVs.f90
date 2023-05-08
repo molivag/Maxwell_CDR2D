@@ -21,7 +21,7 @@ module BoundVal
       character(len=*), parameter :: fileplace ="./"
       
       integer :: ierror, a ,b, c, d, e, f,i 
-      double precision :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy, mult
+      double precision :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
       double precision :: aa, cc
       integer, intent(out) :: nBVs, nBVscol
       

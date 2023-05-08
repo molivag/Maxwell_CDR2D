@@ -21,7 +21,7 @@ implicit none
   !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
   integer, allocatable,          dimension(:)   :: S_ipiv!, S_iwork
   character(len=1) :: S_trans
-  integer          :: S_m, S_n, S_nrhs, info, S_ldSol, ii, jj
+  integer          :: S_m, S_n, S_nrhs, info, S_ldSol,workdim
   
   !name_inputFile = 'Resist_inputCDR.dsc'
   !name_inputFile = 'Maxwel_inputCDR.dsc' 
@@ -66,8 +66,10 @@ implicit none
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'TIME')then !transient case
     
-    call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
-    &                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
+    !call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
+    !&                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
+    call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, time_ini, time_fin, max_time, u0cond,&
+    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
    
     !---------- Memory Relase -----------!
     deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)

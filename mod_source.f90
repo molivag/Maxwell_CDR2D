@@ -23,14 +23,13 @@ module sourceTerm
       
       double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
       integer                        , intent(in) :: ielem
-      integer :: ibase, inode
-      real    :: n
       double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
-      double precision :: dp_dx, dp_dy, d2p_dx2, d2p_dy2
       double precision :: x, y, alpha, beta, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
       double precision :: itan, senn, coss
+      integer          :: ibase
+      real             :: n
       double precision, dimension(ndofn), intent(out) :: EMsource
-      double precision :: xq, yq, Icurr
+      !double precision :: xq, yq, Icurr
       
       
       EMsource = 0.0
