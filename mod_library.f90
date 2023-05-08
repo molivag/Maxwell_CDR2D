@@ -2179,6 +2179,352 @@ module library
     end subroutine GID_results 
    
     
+    
+    
+    
+    !- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- -
+    ! Agregamos las rutinas de tiempo del commit 625fbee: May2 2022
+    
+    
+    subroutine GID_PostProcess(solution, activity, step_value, interval, time_final)
+      
+      implicit none
+      
+      character(len=*), parameter    :: fileplace = "Pos/"
+      double precision, dimension(ntotv, 1), intent(in) :: solution
+      character(*), intent(in)                :: activity
+      integer, intent(in)                     :: step_value
+      real, intent(in)                        :: interval, time_final
+      character(len=10)                       :: extension1, extension2
+      character(len=15)                       :: Elem_Type
+      double precision, dimension(1, ntotv)   :: solution_T
+      double precision, dimension(1,nnodes)   :: xcor, ycor
+      integer                                 :: ipoin, ii, ielem, inode
+      
+      solution_T = transpose(solution)
+      xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      
+      
+      
+      extension1 = ".post.msh"
+      extension2 = ".post.res"
+      if(ElemType.eq.'QUAD')then
+        Elem_Type = 'Quadrilateral'
+      elseif(ElemType.eq.'TRIA')then
+        Elem_Type = 'Triangle'
+      endif
+      !open(unit=555, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
+      
+      
+      
+      if(activity == "msh")then !quitar este if y acomodar el numero de unidad
+        open(unit=100, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
+        
+        write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
+        write(100,"(A)") '#2D Convection-Diffusion-Reaction'
+        write(100,900) '#Element tipe: ', ElemType,'/',ElemType
+        write(100,"(A)")'Coordinates'
+        write(100,"(A)") '#   No        X           Y'
+        do ipoin = 1, nnodes
+          write(100,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+        end do
+        write(100,"(A)") 'End Coordinates'
+        write(100,"(A)") 'Elements'
+        do ielem=1,nelem
+          write(100,908) ielem,(lnods(ielem,inode),inode=1,nne)
+        end do
+        write(100,"(A)") 'End Elements'
+        close(100)
+        print"(A11,A19,A30)", ' Mesh file ',File_Nodal_Vals//'.post.msh', 'written succesfully in Pos/ '
+      ! if(status.eq.0)then continue 
+      elseif(activity == "res")then
+       
+        if(step_value == 0)then
+          open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="replace")
+          write(200,"(A)") 'GiD Post Results File 1.0'
+          write(200,"(A)") '#2D Convection-Diffusion-Reaction'
+        else
+          continue
+        endif
+        open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="old", position="append")
+        
+        ! se escribe el res de las componentes de la velocidad
+        select case(ndofn)
+          case(1)
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Scalar OnNodes'
+            write(200,"(A)") 'ComponentNames "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ux '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(200,914)
+            do ipoin = 1, nnodes
+              write(200,916) ipoin, solution(ipoin, 1)
+            end do
+            !An alternative work around is to explicitly designate the elements to be read using an io-implied-do.
+            !Something like
+            !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
+            write(200,"(A)") 'End Values'
+          case(2)
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ux ','               uy '
+            do ipoin = 1, nnodes
+              write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(200,"(A)") 'End Values'
+          case(3)
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','             ux ','               uy'
+           ! do ipoin = 1, nnodes
+           !   write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+           ! end do
+            do ipoin = 1, nnodes
+              write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+            end do
+            write(200,"(A)") 'End Values'
+            write(200,"(A22, I3, A)") 'Result "P" "Preassure"', step_value,' Scalar OnNodes'
+            write(200,"(A)") 'ComponentNames "" '
+            write(200,"(A)") 'Values'
+            write(200,*) '#',   'No    ','     P '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(200,914)
+            ii=1
+            do ipoin = 3, nnodes*3,3
+              write(200,916) ii, solution_T(1,ipoin)
+              ii=ii+1
+            end do
+            write(200,"(A)") 'End Values'
+        end select
+      else
+        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" non ', activity
+        close(200)
+        stop
+      end if
+      close(200)
+      !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
+      if(interval == time_final) then
+        print*, ' '
+        print"(1x, A19,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
+      endif
+      
+      
+      900 format(A15, A13, A1, A13)
+      902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+      906 format(I7,2(3x,f9.4)) !format for msh
+      908 format(9(2x,I7) )
+      914 format('#',3x,'No',     9x, 'Dof')
+      916 format(I7,2x,E12.5)  !format for scalar case
+      918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
+      919 format(I7,3(3x,E15.5)) !format for res velocity
+      
+    end subroutine GID_PostProcess
+   
+
+
+
+    
+    
+    
+    
+    
+    
+    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t, ugl_pre , A_F)
+      
+      use sourceTerm
+      
+      implicit none
+      
+      double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
+      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
+      double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+      !double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      double precision, dimension(ndofn)        :: EMsource
+      integer, intent(in)                                :: S_ldSol
+      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+      double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
+      double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
+      double precision, dimension(3,3)          :: tauma
+      double precision, dimension(nne,DimPr)                :: element_nodes
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ, delta_t
+      integer                                   :: igaus, ibase, ielem
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_F
+      
+      allocate( A_F(ntotv, 1) )
+      !allocate(ugl_pre(S_ldSol,1) )
+      
+                                                                                                
+      A_F = 0.0
+      do ielem = 1, nelem 
+        !gather
+        Ke = 0.0
+        Fe = 0.0    !Fe(nevab)
+        Ce = 0.0
+        call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
+        !call SetElementNodes(ielem, element_nodes, nodeIDmap)
+        call gather(nodeIDmap, ugl_pre, ue_pre)
+        time_cont = ue_pre * 1.0/delta_t
+        
+        !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
+        do igaus = 1, TotGp
+          call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
+          !Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
+          !detJ = m22det(Jaco)
+          !Jinv = inv2x2(Jaco)
+          dvol = detJ *  weigp(igaus,1)
+          !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jinv)
+          do ibase = 1, nne
+            basis(ibase) = N(ibase,igaus)
+          end do
+          
+          call TauMat(hmaxi,tauma)
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
+          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          
+          
+          select case(theta)
+          case(2)
+          Fe_time = Fe + matmul(Ce,time_cont)
+          case(3)
+          rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
+          Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+          endselect
+        
+                                                                                                
+                                                                                                
+        end do
+        
+        
+        !call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
+        !call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
+        call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
+        
+      end do
+      
+      
+    end subroutine GlobalSystem_Time
+
+
+
+
+    subroutine Galerkin_prevTime(dvol, basis, Ce, Fe)
+      
+      implicit none
+      
+      double precision, intent(in) :: basis(nne)
+      double precision, intent(in) :: dvol
+      integer :: inode, idofn, ievab, jevab, jnode, jdofn
+      double precision ::  cpcty
+      double precision, intent(out) :: Fe(nevab), Ce(nevab,nevab)
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              cpcty = basis(inode) * basis(jnode)
+              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
+            end do
+          end do
+          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
+        end do
+      end do
+    
+    end subroutine Galerkin_prevTime
+   
+    
+    
+    
+    subroutine TimeLevels(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, Ucurr, Uprev, F_plus_MU)
+      
+      use sourceTerm
+      
+      
+      implicit none
+      
+      double precision, allocatable, dimension(:,:), intent(in out) :: Uprev, Ucurr
+      double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
+      double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+      !double precision, dimension(3,nne), intent(in)    :: Hesxieta
+      double precision, dimension(ndofn)        :: EMsource
+      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
+      double precision, dimension(DimPr,nne)    :: dN_dxy
+      double precision, dimension(3,nne)        :: HesXY
+      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+      double precision, dimension(nevab, nevab) :: Ke, Ce
+      double precision, dimension(nevab)        :: Fe, Fe_time, ue_prev, ue_curr, AvrgeTime
+      double precision, dimension(3,3)          :: tauma
+      double precision, dimension(nne,DimPr)                :: element_nodes
+      integer, dimension(nne)                   :: nodeIDmap
+      double precision                          :: dvol, hmaxi, detJ, delta_t
+      integer                                   :: igaus, ibase, ielem
+      double precision, allocatable, dimension(:,:), intent(out)  :: F_plus_MU
+      
+      allocate( F_plus_MU(ntotv, 1) )
+      F_plus_MU = 0.0
+    
+      do ielem = 1, nelem 
+        Ke = 0.0; Fe = 0.0; Ce = 0.0
+        call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
+        call gather(nodeIDmap, Uprev, ue_prev)
+        call gather(nodeIDmap, Ucurr, ue_curr)
+        AvrgeTime =  (2*ue_curr + 0.5*ue_prev) / delta_t 
+        
+        !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
+        do igaus = 1, TotGp
+          call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
+          !Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
+          !detJ = m22det(Jaco)
+          !Jinv = inv2x2(Jaco)
+          !dvol = detJ *  weigp(igaus,1)
+          !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          hmaxi = elemSize(Jinv)
+          do ibase = 1, nne
+            basis(ibase) = N(ibase,igaus)
+          end do
+          
+          
+          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
+          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          call Galerkin_prevTime(dvol, basis, Ce, Fe)
+          call TauMat(hmaxi,tauma)
+          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+          Fe_time = Fe - matmul(Ce,AvrgeTime)
+        end do
+    
+        call Assemb_Glob_Vec(nodeIDmap, Fe_time, F_plus_MU) !Assemble Global Source vector F
+        
+      end do
+      
+    end subroutine TimeLevels
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
   !Fin de contains
 
 
