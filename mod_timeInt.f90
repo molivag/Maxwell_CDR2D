@@ -4,7 +4,7 @@ module timeInt
 
   contains
 
-    subroutine initialCondition( )
+    subroutine initialCondition(presc,ifpre, nofix, delta_t, Uinit) 
       
       !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
       ! Routine to proyect the initial condition into the FE space:
@@ -20,20 +20,31 @@ module timeInt
       !     
       !     from: Johnson, C. (2009). Numerical Sol of PDE by the FEM. Dover, 149-150
       !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-      
+     
       implicit none
+     
+      !external                                      :: dgbtrf, dgbtrs, dgbrfs
+     
+      double precision, dimension(ndofn,nBVs), intent(in):: presc
+      integer, dimension(ndofn,nBVs), intent(in)         :: ifpre
+      integer, dimension(nBVs), intent(in)               :: nofix
+      double precision, allocatable, dimension(:,:) :: dummy
+      double precision, allocatable, dimension(:,:), intent(out) ::  Uinit
+      double precision, intent(out)                 :: delta_t
       
       
+      allocate( Uinit(ntotv,1), dummy(ldAKban,ntotv))
       
+      delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       
-      
-      
-      
-      
+      call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
+      deallocate(dummy)
+      return
       
     end subroutine initialCondition
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine Timeintegration(basfun,dN_dxi,dN_deta, hes_xixi,hes_xieta,hes_etaeta, &
       &                        time_ini,time_fin,max_time,u0cond,nofix, ifpre, presc,&
       &                        S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
@@ -80,17 +91,10 @@ module timeInt
       time     = 0                                            !initializing the time
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       
-      write(*,*) ' '
-      print*,'!============ TIME DISCRETIZATION ============!'
-      write(*,"(A19,8X,I2,1X,A10)")    ' - Method Selected:       ', theta,' '
-      write(*,"(A19,4X,F10.3,1X,A10)") ' - Initial time:          ', time_ini,' '
-      write(*,"(A19,4X,F10.3,1X,A10)") ' - Final time:            ', time_fin,' '
-      write(*,"(A19,8X,I3,1X,A10)")    ' - Number of steps:       ', max_time,' '
-      write(*,"(A21,7X,F10.6,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
-      write(*,*) ' '
+      
+      call initialCondition(presc,ifpre, nofix, delta_t, u_init) 
+      !call initialCondition(presc,ifpre,nofix,basfun,dN_dxi,dN_deta,S_m,S_n,S_trans,S_nrhs,S_ipiv,S_ldSol,delta_t,Uinit) 
 
-      !call initial_condition(node_num, node_xy, u0_cond, u_init) 
-      u_init = u0cond                                  !Para prueba lo dejo sin subroutina
       u_pre  = u_init                                   !u in present time 
       call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C ,A_F)
@@ -104,7 +108,7 @@ module timeInt
       nt = 0.0              
       select case(theta)
         case(2) !-------- 1st-order Backward Difference 
-          write(*,*)'BDF1 Selected'
+          write(*,*)'              BDF1 Selected'
           do time = 1, max_time +1
             nt = nt + delta_t!,time_fin,delta_t
             
@@ -129,12 +133,13 @@ module timeInt
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
             !---------- Printing and writing results -----------!
-            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
             u_pre = u_fut
           end do
         case(3) !-------- Crank- Nicholson Scheme 
-          write(*,*)'CN method Selected'  
+          write(*,*)'    Crank-Nicholson method Selected'  
           
           do time = 1, max_time +1
             nt = nt + delta_t!,time_fin,delta_t  
@@ -160,7 +165,8 @@ module timeInt
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
             !---------- Printing and writing results -----------!
-            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(u_fut,'res', time, nt, time_fin)
             u_pre = u_fut
             
@@ -234,7 +240,7 @@ module timeInt
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
             !---------- Printing and writing results -----------!
-            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            !print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
             u_pre=u_curr
             u_curr=u_fut
@@ -248,10 +254,10 @@ module timeInt
       
       
       print*, ' '
-      print*, 'Shape of Global K: ',shape(AK_time)
-      print*, 'Shape of Global F: ',shape(rhs_time)
-      print*, 'Shape of Solution: ',shape(u_pre)
-      write(*,*)
+      !print*, 'Shape of Global K: ',shape(AK_time)
+      !print*, 'Shape of Global F: ',shape(rhs_time)
+      !print*, 'Shape of Solution: ',shape(u_pre)
+      !write(*,*)
       call GID_PostProcess(u_pre, 'msh', time, 0.0, time_fin)
       DEALLOCATE( AK_time, rhs_time, u_pre, u_fut)
 
