@@ -24,10 +24,10 @@ refiType = NO               !NONE; PS=Powell-Sabin; CB=Crossed-Box
 
 # > > > > > > > Time Discretization
 theta    = 1                !BDF1=1 ;BDF2=2 ;CN=3
-time_ini = 0.0              !Starting time simulation
-time_fin = 1.0              !Ending time simulation
-max_time = 10               !Max time of simulation
-u0cond   = 0.0              !Value of initial condition
+time_ini = 0.0              !Starting time simulation (simulation always starts at 0?)
+time_fin = 30.0             !Ending time simulation (total time simulation in...seg?)
+max_time = 120              !Max time steps
+u0cond   = 0.0              !Value of initial condition (could be defined here or codeing at mod_timeInt.f90)
 
 # > > > > > > > Stabilization
 kstab    = 6                !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)

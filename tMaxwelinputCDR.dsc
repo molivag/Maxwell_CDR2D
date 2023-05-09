@@ -1,7 +1,7 @@
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! λ∇x∇xE + ∇P + β∇∇⋅E = f   in  Ω  
 ! 2d Convection-Diffusion-Reaction simulation                 !          ∇⋅E - ɣΔP  = 0   in  Ω  
 ! Input data file                                             !                 nxE = 0   on  ∂Ω 
-!                                   MAOG       Bcn, Dic. 2021 ! with:                                                             
+!                                   MAOG       Bcn, Dic. 2021 ! with:
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
  
 # > > > > > > > Model Parameters
@@ -10,7 +10,7 @@ ProbType = TIME             !Problem type TIME=transient, other=static
 DimPr    = 2                !Dimension del problema
 ndofn    = 3                !Degrees of freedom
 totGp    = 4                !1,4,9 for Q, 1,3,7 for P
-simul    = 4                !1=LdomT2; 2=LdomT1; 3=SimpleCuad; 4=PolyMaxwell; 5=PolyStokes; 6=SourceLoc
+simul    = 3                !1=LdomT2; 2=SimpleCuad; 3=PolyMaxwell; 4=PolyStokes; 5=Cavity-Driven Flow
 elemSour = 1                !Number of elements will contain the source
 skipline = 84               !Lines must be skipped until read the mesh in Geometry module
 
@@ -23,25 +23,25 @@ hnatu    = 2.0              !Reference element length
 refiType = NO               !NONE; PS=Powell-Sabin; CB=Crossed-Box
 
 # > > > > > > > Time Discretization
-theta    = 1                !BDF1=1 ;BDF2=2 ;CN=3
-time_ini = 0.0              !Starting time simulation
-time_fin = 1.0              !Ending time simulation
-max_time = 10               !Max time of simulation
-u0cond   = 0.0              !Value of initial condition
+theta    = 2                !BDF1=2 ;CN=3; BDF2=4
+time_ini = 0.0              !Starting time simulation (simulation always starts at 0?)
+time_fin = 30.0             !Ending time simulation (total time simulation in...seg?)
+max_time = 120              !Max time steps
+u0cond   = 0.0              !Value of initial condition (could be defined here or codeing at mod_timeInt.f90)
 
 # > > > > > > > Stabilization
 kstab    = 6                !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
 ktaum    = 2                !Tau matrix: 0, 1, 2 
 patau    = 1.0              !Parameter to obtain tau
 n_val    = 1.0              !n parameter in exact solution, for simul=1
-Cu       = 1.5              !Algorithmic constant
-ell      = 0.1              !Constante de longitud  
+Cu       = 10.0             !Algorithmic constant
+ell      = 1.0              !Constante de longitud  
 1/mu=λ   = 1.0              !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
 
 # > > > > > > > Name outPut Files
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
-testID   = timeMaxell22     !data file with input parameters in each iteration Res/results
-Postpro  = timeMaxw_T22
+testID   = BDF1MaxwlT3x     !data file with input parameters in each iteration Res/results
+Postpro  = BDF1MaxwlT3x
 Error    = xxxxxxxxxxxx
 Cordina  = xxxxxxxxxxxx
 Conecti  = xxxxxxxxxxxx
