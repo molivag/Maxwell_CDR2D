@@ -1605,16 +1605,19 @@ module library
       implicit none
       
       double precision, parameter :: pi = 4*atan(1.d0)
-      character(len=*), parameter    :: fileplace = "Res/"
+      !double precision, parameter :: mu=1.25663706d-6 ! 4d0*pi*1d-7
+      character(len=*), parameter :: fileplace = "Res/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       
       double precision, dimension(1, ntotv) :: solution_T
       !double precision, dimension(1,nnodes) :: xcoor, ycoor
       !double precision, dimension(nnodes)   :: x, y
+      !double precision, dimension(max_time) :: t
       double precision, dimension(nnodes)   :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
       double precision     :: aa, bb, cc, dd, ee, x, y
       double precision     :: sum_error, error_EM, error_p, xmax, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
       double precision     :: fi, psi, der_fi, der_psi!, errL2_x, errL2_y, errL2_p
+      !double precision     :: SrcCurr, z, sigma, ds
       character(len=12)    :: extension, File_Solution
       integer              :: ipoin, ielem, inode 
       
@@ -1678,36 +1681,57 @@ module library
             
           end do
         case(2)
-          do inode = 1, nnodes  !simple Function
-            x = coord(1,inode)
-            y = coord(2,inode)
-           
-            !exact solution
-            fi      = (x-x**2)
-            psi     = (y-y**2)
-            der_fi  = (1.0-2.0*x)
-            der_psi = (1.0-2.0*y)
-            uxSol   = fi*der_psi
-            uySol   =-(psi*der_fi)
-             
-            !FEM solution
-            x_FEM = solution_T(1,ndofn*inode-2)
-            y_FEM = solution_T(1,ndofn*inode-1)             
-            p_FEM = solution_T(1,ndofn*inode)
-           
-            !write(*,"(4(f15.5,1x))") x_FEM, ex_x, y_FEM, ex_y
-            !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
-            error_p  = error_p  + (multi - p_FEM )**2
-            !error = error + (x_FEM - ex_x)**2 + (y_FEM - ex_y)**2 
-            
-            !Write to plotting file 
-            exact_x(inode) = uxSol
-            exact_y(inode) = uySol
-            exact_p(inode) = multi
-            
-          end do
-         
+          
+        !  ! Implements eq. (2.50) of Nabighian 1988 EM Methods (EM Theory book) (p. 175)
+        !  !Nota: Esta solucion analitica determina el campo electrico en un punto especifico 
+        !  !de la malla (x,y) por lo que, para usarse de comparacion se requiere ejecutar el codigo y luego en 
+        !  !el post-proceso extraer en un punto determinado ux e uy para todos los tiempos simulados
+        !  implicit real*8 (a-h,o-z)
+        !  !!  real(8) :: x = 0.17_8
+        !  !!  x = erfc(x)
+        !  ! Constants
+        !  ! Times array
+        !  
+        !  ! Define variables
+        !  ! I*ds = dipole moment, is set to I*ds=1
+        !  srcCurr=1d0 ! I
+        !  ds=1d0
+        !  sigma = 0.01
+        !  x = 1.0
+        !  y = 1.0
+        !  z = 0.0
+        !  nt = max_time
+        !  do i=1,nt
+        !    t(i) = i*0.25
+        !  end do
+        !  r_vec   = sqrt(x*x+y*y+z*z)
+        !  spi = sqrt(pi)
+        !  cc   = SrcCurr*ds/(4.*pi*sigma*r_vec**3)
+        !  
+        !  write(*,*)'      t(i)       ex       ey           ez'
+        !  ! r
+        !  do i=1,nt
+        !    
+        !    thta = sqrt(mu*sigma/(4.*t(i)))
+        !    aa = 4./spi*theta**3*r_vec**3 + 6./spi*theta*r_vec
+        !    arg= -theta**2*r_vec**2
+        !    ee = erfc(theta*r_vec)
+        !    aa = aa*exp(arg)+3.*ee
+        !    bb = 4./spi*theta**3*r_vec**3 + 2./spi*theta*r_vec
+        !    bb = bb*exp(arg)+ee
+        !    
+        !    ! geometry term
+        !    ex=cc * (aa*x**2/r_vec**2 - bb)
+        !    ey=cc * aa*x*y/r_vec**2
+        !    ez=cc * aa*x*z/r_vec**2
+        !    
+        !    exact_x(i) = ex
+        !    exact_y(i) = ey
+        !    exact_z(i) = ez
+        !    
+        !    write(*,'(4(1PE14.6))')t(i), exact_x, exact_y, exact_z
+        !  end do
+          
         case(3) !new test of polynomial solution
           do inode = 1, nnodes  !simple Function
             x = coord(1,inode)
@@ -1735,8 +1759,11 @@ module library
           end do
           
         case(4)
-          print*,'No analytic solution'
           goto 115 
+        case(5)
+          print*,'No analytic solution'
+        case(6)
+          print*,'DC simulation No analytic solution'
       end select
       error_EM = sqrt(error_EM/nnodes)
       error_p = sqrt(error_p/nnodes)
