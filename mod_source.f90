@@ -46,6 +46,8 @@ module sourceTerm
       end do
      
       select case(simul)
+      case(0)
+        EMsource(1) = force(1)
       case(1)
         !terms for derivatives
         aa   = (2.0/27.0)*n
@@ -81,37 +83,10 @@ module sourceTerm
         EMsource(3) = force(3)
         
       case(2)
-        !Derivatives in x-direction
-        dey_dydx = 2.0-(4.0*y)
-        dex_dy2  = 0.0 
-        
-        !Derivatives in y-direction
-        dey_dx2  = 0.0
-        dex_dxdy = (4.0*x)-2
-        
-        EMsource(1) = lambda*(dey_dydx - dex_dy2)
-        EMsource(2) = lambda*(-dey_dx2  + dex_dxdy)
-        EMsource(3) = 0.0!force(ndofn)
-        
-        !Source considering the DivDiv term
-        
-        ! !Derivatives in x-direction
-        ! dey_dydx = 2.0-(4.0*y)
-        ! dex_dy2  = 0.0 
-        ! dex_dx2  = (4.0*y)-2.0
-        ! dey_dxdy = 2.0-(4.0*y)
-        ! 
-        ! 
-        ! !Derivatives in y-direction
-        ! dey_dx2  = 0.0
-        ! dex_dxdy = (4.0*x)-2
-        ! dex_dydx = (4.0*x)-2
-        ! dey_dy2  = 2.0-4.0*x
-        ! 
-        ! 
-        ! EMsource(1) = lambda*( dey_dydx - dex_dy2 + beta*( dex_dx2 + dey_dxdy) )
-        ! EMsource(2) = lambda*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
-        ! EMsource(3) = force(3)
+        !The source in a full-space geophysicall modelling is a Dirac Delta
+        EMsource(1) = force(1)
+        EMsource(2) = force(2)
+        EMsource(3) = force(3)
         
       case(3)
         !Source with NO DivDiv term
@@ -132,6 +107,7 @@ module sourceTerm
         
         EMsource(1) = lambda*( dey_dydx - dex_dy2)! - beta*(dex_dx2  - beta*dey_dxdy ) 
         EMsource(2) = lambda*(-dey_dx2 + dex_dxdy)! - beta*(dex_dydx - beta*dey_dy2  )  
+
         EMsource(3) = force(3)
         
       case(4) !stokes
@@ -158,7 +134,7 @@ module sourceTerm
         EMsource(2) = -lambda * force(2)
         EMsource(3) = -lambda * force(3)
         
-        
+      case default
         
         ! - - - Coordinate of source location node 2501 at the center of the mesh 158x158
         !xq = 1.0
