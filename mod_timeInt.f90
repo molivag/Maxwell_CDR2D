@@ -31,16 +31,28 @@ module timeInt
       double precision, allocatable, dimension(:,:) :: dummy
       double precision, allocatable, dimension(:,:), intent(out) ::  Uinit
       double precision, intent(out)                 :: delta_t
-      
+      integer                                       :: ii 
       
       allocate( Uinit(ntotv,1), dummy(ldAKban,ntotv))
       
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
+      Uinit(2080,1) = 1.0
+      Uinit(2081,1) = 1.0
+      !Uinit(2081,1) = 10.0
+      !Uinit(2081,1) = 10.0
+      
+      !Uinit(((2080-1)*1),1) = 10.0
+      !Uinit(((2080-1)*2),1) = 10.0
+      
+      !do ii = 1, ntotv
+      !  print*, Uinit(ii,1)
+      !end do
+      
       deallocate(dummy)
       return
-      
+      stop 
     end subroutine initialCondition
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -104,7 +116,7 @@ module timeInt
       call GID_PostProcess(u_pre, 'res', time, 0.0, time_fin)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
-
+      
       nt = 0.0              
       select case(theta)
         case(2) !-------- 1st-order Backward Difference 
@@ -133,8 +145,9 @@ module timeInt
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
             !---------- Printing and writing results -----------!
-            if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
             u_pre = u_fut
           end do
@@ -165,8 +178,9 @@ module timeInt
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
             !---------- Printing and writing results -----------!
-            if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(u_fut,'res', time, nt, time_fin)
             u_pre = u_fut
             
