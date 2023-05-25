@@ -1,4 +1,4 @@
-! hmaxi! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 ! 2d Convection-Diffusion-Reaction simulation                 !
 ! Input data file                                             !
 !                                   MAOG       Bcn, Dic. 2021 !
@@ -18,8 +18,8 @@ skipline = 84               !Lines must be skipped until read the mesh in Geomet
 nelem    = 6241             !Number of nodes
 nnodes   = 6400             !Total number of nodal points
 nne      = 4                !Nodes per element Q:4-9; P:3-6
+i_exp    = 0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 2.0              !Reference element length
-i_exp    = 0.0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 refiType = NO               !NONE; PS=Powell-Sabin; CB=Crossed-Box
 
 # > > > > > > > Time Discretization
@@ -36,15 +36,15 @@ patau    = 1.0              !Parameter to obtain tau
 n_val    = 0.0              !n parameter in exact solution, for simul=1
 Cu       = 0.0              !Algorithmic constant
 ell      = 0.0              !Constante de longitud  
-1/mu=λ   = 1.0e+0           !Reluctivity of the medium	µ0=4πE-7 = 795774,71545 [T•m•A^-1]
+1/mu=λ   = 1.0              !Reluctivity of the medium µ0=4πE-7 = 795774,71545 [T•m•A^-1]
 
 # > > > > > > > Name outPut Files
 pospro   = 1                !Execution of post-processing routine 1=yes, 2=no
-testNo   = 24_Pois_MVAF     !data file with input parameters in each iteration Res/results
+testID   = 24_Pois_MVAF     !data file with input parameters in each iteration Res/results
 NodalVal = Poisso_Tes23
-Error    = xxxxxxxxxxxx		!Los test del 1 al 10 de Maxwell sin param_stab
-Cordina  = xxxxxxxxxxxx         !Los test del 11 al 20 Maxwell con param_stab
-Conecti  = xxxxxxxxxxxx        	!Los test del 21 al 30 Poisson con RHS
+Error    = xxxxxxxxxxxx
+Cordina  = xxxxxxxxxxxx
+Conecti  = xxxxxxxxxxxx
 
 # > > > > > > > Physical Properties
 #DIFMA_11                !Diffusion tensor
@@ -76,15 +76,15 @@ Conecti  = xxxxxxxxxxxx        	!Los test del 21 al 30 Poisson con RHS
 0.0 , 0.0 , 0.0
 0.0 , 0.0 , 0.0
 #FORCE                   !Force tensor
-0.0 , 0.0 , 0.0
+1.0 , 0.0 , 0.0
 
 # > > > > > > > Element Source Location
 3121
 
 # > > > > > > > Mesh -> Element's Nodes -> Coordinate's Nodes 
-1 4975 4858 4855 4973	#Geophysics 158x158
-2 4979 4862 4858 4975	#elem = 6241
-3 4982 4866 4862 4979	#nodes= 6400 
+1 4975 4858 4855 4973           #Geophysics 158x158
+2 4979 4862 4858 4975           #elem = 6241
+3 4982 4866 4862 4979           #nodes= 6400 
 4 4993 4869 4866 4982
 5 5001 4878 4869 4993
 6 5012 4885 4878 5001
