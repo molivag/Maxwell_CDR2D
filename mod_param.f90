@@ -9,7 +9,7 @@ module param
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
-  integer           :: i_exp, elemSour, skipline, postpro
+  integer           :: i_exp, nodalSrc, skipline, postpro, signal, srcType!, srcLoc
   real              :: hnatu, patau, time_ini, time_fin, u0cond
   real              :: Cu,lambda, ell, helem, n_val
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
@@ -18,7 +18,7 @@ module param
   double precision, allocatable, dimension(:,:,:)   :: conma
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
   double precision, allocatable, dimension(:)       :: force !Force vector 
-  integer         , allocatable, dimension(:)       :: sourceLocation 
+  integer         , allocatable, dimension(:)       :: srcLoc
 
   contains
     
@@ -37,30 +37,32 @@ module param
       character(len=*), parameter   :: fileplace = "./"
       integer                       ::  stat, ii
       
-      open(5, file=fileplace//name_inputFile,status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      
+      open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
-      read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,elemSour,skipline,&
+      read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,nodalSrc,skipline,&
       initElem, initNodes, nne, i_exp, hnatu, refiType, theta, time_ini, time_fin, max_time, u0cond,&
       kstab, ktaum, patau, n_val, Cu, ell, lambda, postpro, testID, File_Nodal_Vals,&
       error_name, coord_name, conec_name
-      
       if (stat.ne.0) then
         print*, ' '
         print*,'!============ STATUS READING INPUT FILE. ============!'
         print "(A38,I4)", "- Status while reading input file is: ", stat
         print*, ' '
+        print*, ' '
         print'(A8,1x,A180)','iomsg = ',msg
+        print*, ' '
+        print*, ' '
       else
         continue
       end if
-     
      
       allocate( difma(ndofn,ndofn,DimPr,DimPr) )
       allocate( conma(ndofn,ndofn,DimPr) )
       allocate( reama(ndofn,ndofn) )
       allocate( force(ndofn) )
-      allocate( sourceLocation(elemSour) )
+      allocate( srcLoc(nodalSrc) )
       
       difma = 0.0
       conma = 0.0
@@ -142,12 +144,17 @@ module param
         if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
         
       end if
-     
-      do ii =1, elemSour
-        read(5,*,iostat=stat,iomsg=msg) sourceLocation(ii)
+      
+      do ii =1, nodalSrc
+        read(5,*,iostat=stat,iomsg=msg) srcLoc(ii)
       end do
       
+      read(5,104,iostat=stat,iomsg=msg) srcType, signal
+      
       close(5)
+      
+      
+      !print*, srcLoc(1), srcLoc(2), srcType, signal 
       
       
       if(kstab.eq.6)then
@@ -185,10 +192,14 @@ module param
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
+      !104 format(11x,I5,/,2(11x,I1,/))
+      104 format(1/,2(11x,I1,/))
       105 format(1/,F12.5,2/)
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,e15.5,e15.5,e15.5,2/) 
      
+      !108 format(11x,I3,I3,/) 
+      
     end subroutine inputData
     
   !end contains
