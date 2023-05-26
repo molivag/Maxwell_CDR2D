@@ -761,8 +761,8 @@ module library
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
-          Fe(ievab) = Fe(ievab) + basis(inode) * EMsource(idofn) * dvol
-          !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
+          !Fe(ievab) = Fe(ievab) + basis(inode) * EMsource(idofn) * dvol
+          Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
       
@@ -1261,7 +1261,7 @@ module library
     !
     subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
-      use sourceTerm
+      !use sourceTerm
       
       implicit none
       
@@ -1312,7 +1312,7 @@ module library
           end do
           call TauMat(hmaxi,tauma)
           
-          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          !call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
@@ -2355,6 +2355,21 @@ module library
         print"(1x, A19,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
       endif
       
+      !if(simul.eq.6.and.ndofn.1)then
+      !  do ipoin = 1, nnodes
+      !    write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+      !  end do
+      !else
+      !  write(*,'A')
+      !
+      
+      
+      
+      
+      
+      
+      
+      
       
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
@@ -2431,7 +2446,7 @@ module library
           end do
           
           call TauMat(hmaxi,tauma)
-          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          !call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
@@ -2516,9 +2531,9 @@ module library
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ, delta_t
       integer                                   :: igaus, ibase, ielem
-      double precision, allocatable, dimension(:,:), intent(out)  :: F_plus_MU
+      double precision, dimension(ntotv, 1), intent(out)  :: F_plus_MU
       
-      allocate( F_plus_MU(ntotv, 1) )
+      !allocate( F_plus_MU )
       F_plus_MU = 0.0
     
       do ielem = 1, nelem 
