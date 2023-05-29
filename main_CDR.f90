@@ -1,32 +1,32 @@
 program main_CDR3d
   use param; use geometry; use biunit
-  use library; use boundVal; use timeInt
+  use library; use boundVal; use timeInt; use sourceTerm
 
 implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
-  character(len=19)                             :: name_inputFile
-  double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, presc
-  double precision, allocatable, dimension(:,:) :: basfun, dN_dxi, dN_deta
-  double precision, allocatable, dimension(:,:) :: hes_xixi, hes_xieta, hes_etaeta
+  character(len=19)                                 :: name_inputFile
+  double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc !,Jsource
+  double precision, allocatable, dimension(:,:)     :: basfun, dN_dxi, dN_deta
+  double precision, allocatable, dimension(:,:)     :: hes_xixi, hes_xieta, hes_etaeta
   !double precision,              dimension(3,4) :: Hesxieta
-  integer, allocatable, dimension(:,:)          :: condition, ifpre
-  double precision, allocatable, dimension(:,:)   :: Bvs
-  integer, allocatable, dimension(:)            :: nofix
-  real                                          :: start, finish
+  integer,          allocatable, dimension(:,:)     :: condition, ifpre
+  double precision, allocatable, dimension(:,:)     :: Bvs
+  integer,          allocatable, dimension(:)       :: nofix
+  real                                              :: start, finish
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   external :: dgbtrf, dgbtrs, dgbrfs
-  double precision, allocatable, dimension(:,:) :: AK_LU, u_sol
   double precision, allocatable, dimension(:,:,:) :: grad_u_sol
-  !double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
-  integer, allocatable,          dimension(:)   :: S_ipiv!, S_iwork
-  character(len=1) :: S_trans
-  integer          :: S_m, S_n, S_nrhs, info, S_ldSol,workdim
+  double precision, allocatable, dimension(:,:)   :: AK_LU, u_sol
+  !double precision, allocatable, dimension(:)    :: S_ferr, S_berr, S_work
+  integer,          allocatable, dimension(:)     :: S_ipiv!, S_iwork
+  character(len=1)                                :: S_trans
+  integer                                         :: S_m, S_n, S_nrhs, info, S_ldSol,workdim, ii
   
-  !name_inputFile = 'Resist_inputCDR.dsc'
+  !name_inputFile = 'TesisDCinputCDR.dsc'
   !name_inputFile = 'Maxwel_inputCDR.dsc' 
-  !name_inputFile = 'tMaxwelinputCDR.dsc' 
-  name_inputFile = 'Stokes_InputCDR.dsc' 
+  name_inputFile = 'tMaxwelinputCDR.dsc' 
+  !name_inputFile = 'Stokes_InputCDR.dsc' 
   
   !--------------- Input Data ---------------!
   call cpu_time(start)
@@ -41,7 +41,7 @@ implicit none
   call ShapeFunctions(ngaus, basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta)
 
   !------- Computing half bandwidth  --------!
-  call BandWidth( )
+  call BandWidth
   
   !---------- Global Matrix and Vector ------!
   call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
@@ -79,12 +79,12 @@ implicit none
     
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
-    !Source Location Setting
-    !A_F(2387,1) = 10.0
-    !A_F(2450,1) = 10.0
-    !A_F(2504,1) = 10.0
-    !A_F(2578,1) = 10.0
-    !A_F(2646,1) = 10.0
+    !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)
+    if(ndofn.eq.1.and.simul.eq.2)then
+      do ii=1,nodalSrc
+        A_F((srcLoc(ii)-1)*ndofn+1,1) = 1.0
+      end do
+    end if
     
     !---------- Memory Relase -----------!
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
@@ -126,7 +126,7 @@ implicit none
   endif
 
   call cpu_time(finish)
-  write(*,'(A11,f9.2,A8)')' CPU-Time =', finish-start, ' Seconds', ' '
+  write(*,'(A11,f9.2,A8)')' CPU-Time =', (finish-start)/60.0, ' minutes', ' '
 
 end program main_CDR3d
 
