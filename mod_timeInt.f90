@@ -1,10 +1,11 @@
 module timeInt
   use param
   use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
+  use sourceTerm
 
   contains
 
-    subroutine initialCondition(presc,ifpre, nofix, delta_t, Uinit) 
+    subroutine initialCondition(presc,ifpre, nofix, delta_t, shapeTime, Uinit) 
       
       !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
       ! Routine to proyect the initial condition into the FE space:
@@ -25,30 +26,68 @@ module timeInt
      
       !external                                      :: dgbtrf, dgbtrs, dgbrfs
      
-      double precision, dimension(ndofn,nBVs), intent(in):: presc
-      integer, dimension(ndofn,nBVs), intent(in)         :: ifpre
-      integer, dimension(nBVs), intent(in)               :: nofix
-      double precision, allocatable, dimension(:,:) :: dummy
-      double precision, allocatable, dimension(:,:), intent(out) ::  Uinit
-      double precision, intent(out)                 :: delta_t
-      integer                                       :: ii 
+      double precision, dimension(ndofn,nBVs)      ,intent(in) :: presc
+      integer, dimension(ndofn,nBVs)               ,intent(in) :: ifpre
+      integer, dimension(nBVs)                     ,intent(in) :: nofix
+      double precision, allocatable, dimension(:,:)            :: dummy
+      double precision, dimension(max_time+1)                  :: u
+      integer                                                  :: tw, t
+      double precision, dimension(ntotv,1)         ,intent(out):: Uinit
+      double precision, dimension(max_time+1)      ,intent(out):: shapeTime
+      double precision                             ,intent(out):: delta_t
       
-      allocate( Uinit(ntotv,1), dummy(ldAKban,ntotv))
+      allocate( dummy(ldAKban,ntotv) )
       
+      u  = 0.0
+      tw = 5 !time*width how strong the impulse is
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
-      Uinit(2080,1) = 1.0
-      Uinit(2081,1) = 1.0
-      !Uinit(2081,1) = 10.0
-      !Uinit(2081,1) = 10.0
       
-      !Uinit(((2080-1)*1),1) = 10.0
-      !Uinit(((2080-1)*2),1) = 10.0
       
-      !do ii = 1, ntotv
-      !  print*, Uinit(ii,1)
+      !--Select a signal shape function in time
+      select case(signal)
+        case(1) !step-on
+          do t = 1, max_time+1
+            if(t.le.tw)then
+              u(t) = 0.0
+            elseif(t.gt.tw.and.t.le.2*tw)then
+              u(t) = 1.0
+            elseif(t.gt.2*tw)then
+              u(t) = 1.0
+            endif
+          end do
+        case(2) !step off
+          do t = 1, max_time+1
+            if(t.le.tw)then
+              u(t) = 1.0
+            elseif(t.gt.tw.and.t.le.2*tw)then
+              u(t) = 0.0
+            elseif(t.gt.2*tw)then
+              u(t) = 0.0
+            endif
+          end do
+        case(3) !triangular
+          do t = 1, max_time+1
+            if(t.le.tw)then
+              u(t) = 1.0/tw * t
+            elseif(tw.lt.t.and.t.lt.2*tw)then
+              u(t) = 1. - 1./tw * (t-tw)
+            !else
+            !  u(t) = 0.0
+            endif
+          end do
+        case default
+          write(*,*) 'No function in time defined'
+      end select
+      
+      shapeTime = u 
+      
+      !do t =1,max_time+1
+      !  print"(I0, 1x, f5.3)", t, shapeTime(t)
       !end do
+      
+      
       
       deallocate(dummy)
       return
@@ -61,35 +100,39 @@ module timeInt
       &                        time_ini,time_fin,max_time,u0cond,nofix, ifpre, presc,&
       &                        S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
       
-      !subroutine Timeintegration  (N, dN_dxi, dN_deta, Hesxieta, time_ini, time_fin, max_time, u0cond,&
-      !&                        nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim)
-      
       implicit none
       
       external :: dgbtrf, dgbtrs, dgbrfs
       
-      double precision, dimension(nne,TotGp), intent(in)     :: basfun, dN_dxi, dN_deta
-      double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
-      !double precision, dimension(3,nne), intent(in)         :: Hesxieta
-      double precision, dimension(ndofn,nBVs), intent(in)    :: presc
-      integer, dimension(ndofn,nBVs), intent(in)             :: ifpre
-      integer, dimension(nBVs), intent(in)                   :: nofix
-      character(len=1), intent(in)                           :: S_trans
-      integer,intent (in)                                    :: S_m, S_n, S_nrhs, S_ldSol, max_time
-      real, intent(in)                                       :: time_ini, time_fin, u0cond
+      double precision, dimension(nne,TotGp) ,intent(in)     :: basfun, dN_dxi, dN_deta
+      double precision, dimension(nne,TotGp) ,intent(in)     :: hes_xixi, hes_xieta, hes_etaeta
+      double precision, dimension(ndofn,nBVs),intent(in)     :: presc
+      integer, dimension(ndofn,nBVs)         ,intent(in)     :: ifpre
+      integer, dimension(nBVs)               ,intent(in)     :: nofix
+      character(len=1)                       ,intent(in)     :: S_trans
+      integer                                ,intent(in)     :: S_m, S_n, S_nrhs, S_ldSol, max_time
+      real                                   ,intent(in)     :: time_ini, time_fin, u0cond
       ! - - Local Variables - -!
-      double precision, allocatable, dimension(:,:) :: A_K, A_C, A_F, F_plus_MU
-      double precision, allocatable, dimension(:,:) :: AK_time, lhs_BDF2, rhs_BDF2, u_pre, u_curr, u_fut, rhs_time, u_init
-      !double precision, allocatable, dimension(:,:) :: AK_LU
-      double precision, allocatable, dimension(:)   :: S_ferr, S_berr, S_work
-      integer, allocatable, dimension(:)            :: S_ipiv, S_iwork
-      double precision :: delta_t
-      integer          :: time, info, workdim
-      real             :: nt 
+      double precision, allocatable, dimension(:,:)          :: A_K, A_C, A_F
+      double precision, allocatable, dimension(:,:)          :: AK_time, lhs_BDF2
+
+
+      double precision, dimension(ntotv,1)          :: rhs_time, Jsource, F_plus_MU, rhs_BDF2, u_init
+      double precision, dimension(max_time+1) :: shapeTime
+      
+      double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut
+      double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
+      integer         , allocatable, dimension(:)            :: S_ipiv, S_iwork
+      double precision                                       :: delta_t
+      integer                                                :: time, info, workdim
+      real                                                   :: nt 
+      integer :: ii
       
       
       allocate( AK_time(ldAKban,ntotv), lhs_BDF2(ldAKban,ntotv))
-      allocate( rhs_time(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
+      
+      !allocate( rhs_time(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
+      
       allocate( u_pre(S_ldSol, 1))
       allocate( u_fut(S_ldSol, 1))
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
@@ -104,13 +147,13 @@ module timeInt
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       
       
-      call initialCondition(presc,ifpre, nofix, delta_t, u_init) 
+      call initialCondition(presc,ifpre, nofix, delta_t, shapeTime, u_init)
       !call initialCondition(presc,ifpre,nofix,basfun,dN_dxi,dN_deta,S_m,S_n,S_trans,S_nrhs,S_ipiv,S_ldSol,delta_t,Uinit) 
-
+      
       u_pre  = u_init                                   !u in present time 
       call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C ,A_F)
-
+      
       write(*,*) ' '
       print'(A11,I3,A3,F8.3,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(u_pre, 'res', time, 0.0, time_fin)
@@ -119,19 +162,30 @@ module timeInt
       
       nt = 0.0              
       select case(theta)
-        case(2) !-------- 1st-order Backward Difference 
+        !-------- 1st-order Backward Difference 
+        case(2) 
           write(*,*)'              BDF1 Selected'
-          do time = 1, max_time +1
+          !Time-stepping
+          do time = 1, max_time+1
             nt = nt + delta_t!,time_fin,delta_t
             
-            call GlobalSystem_Time(basfun,dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol, delta_t, u_pre, A_F)
+            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
             AK_time  = (1.0/delta_t)*A_C + A_K !A_C + delta_t*A_K
-            rhs_time = A_F 
-            call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
+
+            call ApplyBVs(nofix,ifpre,presc,AK_time,A_F)
+            call currDensity(time,shapeTime(time),Jsource) 
+            rhs_time =  A_F + Jsource
+            !rhs_time((srcLoc-1)*3+1,1) = 10
+            
+            !if(shapeTime(time).ne.0.0)then
+            !  do ii=1,ntotv
+            !    print"(I0,f10.5)", ii, Jsource(ii,1)
+            !  end do
+            !end if
             
             !------------- Solver -------------!
             u_fut = rhs_time   !here mkl will rewrite u_fut by the solution vector
-
+            !u_fut = Jsource   !here mkl will rewrite u_fut by the solution vector
             !--- Factorizing Matrix
             call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
             if(info.ne.0)then
@@ -147,16 +201,17 @@ module timeInt
             !---------- Printing and writing results -----------!
             print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,' of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
             u_pre = u_fut
           end do
-        case(3) !-------- Crank- Nicholson Scheme 
+        !-------- Crank- Nicholson Scheme 
+        case(3)
           write(*,*)'    Crank-Nicholson method Selected'  
-          
+          !Time-stepping
           do time = 1, max_time +1
             nt = nt + delta_t!,time_fin,delta_t  
-            call GlobalSystem_Time(basfun,dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol, delta_t, u_pre, A_F)
+            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
             !call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_F)
             AK_time  = (1.0/delta_t)*A_C + 0.5*A_K !A_C + delta_t*A_K
             rhs_time = A_F
@@ -273,7 +328,7 @@ module timeInt
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
       call GID_PostProcess(u_pre, 'msh', time, 0.0, time_fin)
-      DEALLOCATE( AK_time, rhs_time, u_pre, u_fut)
+      DEALLOCATE( AK_time, u_pre, u_fut)
 
     end subroutine TimeIntegration
     
