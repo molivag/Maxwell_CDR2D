@@ -14,7 +14,7 @@ use param
   
   contains
     
-    subroutine readMesh(name_inputFile)
+    subroutine readMesh(file_mesh)
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       !                                                                                   !
       ! subrutina que lee todos los parametros de entrada para la simulacion,             !
@@ -23,8 +23,8 @@ use param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      character(len=*), parameter  :: fileplace = "./"
-      character(len=19)            :: name_inputFile
+      character(len=*), parameter  :: fileplace = "Msh/"
+      character(len=19)            :: file_mesh
       character(len=180)           :: msg
       double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
       integer          :: ielem, jpoin, idime, i,j, stat
@@ -32,7 +32,7 @@ use param
       integer          :: npoiw,nelew,nnodw, npoif
       
       
-      open(5, file=fileplace//name_inputFile,status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      open(5, file=fileplace//file_mesh,status='old', action='read',IOSTAT=stat, IOMSG=msg)
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       nelem = initElem
@@ -43,17 +43,17 @@ use param
       lnods = 0.0
       coord = 0.0
       
-      do i=1,skipline
-      read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
-      end do
-      do i=1,nelem
-        read(5,*,iostat=stat,iomsg=msg) ielem,(lnods(ielem,j), j =1,nne)
+      !do i=1,skipline
+      !read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
+      !end do
+      do i=1,2
+        read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
         if ( stat /= 0 )then
           print*, ' ' 
           print*, 'error in read mesh module geometry' 
           print'(A9,I3)','iostat= ',stat
           print'(A8,1x,A180)','iomsg= ',msg
-          print*, 'error >>>> It must increase the skip lines in module geometry (line 45)'
+          print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
           print*, ' ' 
           stop
         end if
@@ -64,6 +64,20 @@ use param
           print*,'iostat= ',stat
           print*, msg
         end if
+      end do
+      do i=1,3
+        read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
+        if ( stat /= 0 )then
+          print*,'iostat= ',stat
+          print*, msg
+        endif
+      end do
+      do i=1,nelem
+        read(5,*,iostat=stat,iomsg=msg) ielem,(lnods(ielem,j), j =1,nne)
+        IF ( stat /= 0 )then
+          print*,'iostat= ',stat
+          print*, msg
+        END IF
       end do
       
       close(5)

@@ -5,36 +5,40 @@ program main_CDR3d
 implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
-  character(len=19)                                 :: name_inputFile
+  character(len=19)                                 :: name_inputFile, geometry_File
   double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc !,Jsource
   double precision, allocatable, dimension(:,:)     :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:)     :: hes_xixi, hes_xieta, hes_etaeta
   !double precision,              dimension(3,4) :: Hesxieta
-  integer,          allocatable, dimension(:,:)     :: condition, ifpre
   double precision, allocatable, dimension(:,:)     :: Bvs
+  integer,          allocatable, dimension(:,:)     :: condition, ifpre
   integer,          allocatable, dimension(:)       :: nofix
   real                                              :: start, finish
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
-  external :: dgbtrf, dgbtrs, dgbrfs
-  double precision, allocatable, dimension(:,:,:) :: grad_u_sol
-  double precision, allocatable, dimension(:,:)   :: AK_LU, u_sol
-  !double precision, allocatable, dimension(:)    :: S_ferr, S_berr, S_work
-  integer,          allocatable, dimension(:)     :: S_ipiv!, S_iwork
-  character(len=1)                                :: S_trans
-  integer                                         :: S_m, S_n, S_nrhs, info, S_ldSol,workdim, ii
+  double precision, allocatable, dimension(:,:,:)   :: grad_u_sol
+  double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol
+  external                                          :: dgbtrf, dgbtrs, dgbrfs
+  !double precision, allocatable, dimension(:)      :: S_ferr, S_berr, S_work
+  integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
+  character(len=1)                                  :: S_trans
+  integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol,workdim, ii
   
+  !-----Input File
   !name_inputFile = 'TesisDCinputCDR.dsc'
   !name_inputFile = 'Maxwel_inputCDR.dsc' 
   name_inputFile = 'tMaxwelinputCDR.dsc' 
   !name_inputFile = 'Stokes_InputCDR.dsc' 
+  
+  !-----Geometry File
+  geometry_File  = 'EM_tests.msh' 
   
   !--------------- Input Data ---------------!
   call cpu_time(start)
   call inputData(name_inputFile)
   
   !--------------- Geometry -----------------!
-  call readMesh(name_inputFile)
-  call GeneralInfo(name_inputFile)
+  call readMesh(geometry_File)
+  call GeneralInfo(name_inputFile, geometry_File)
 
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)

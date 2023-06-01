@@ -5,11 +5,11 @@ module library
 
   contains
     
-    subroutine GeneralInfo(name_inputFile)
+    subroutine GeneralInfo(name_inputFile, geometry_File)
       external :: fdate
       
       character(len=*), parameter :: fileplace = "Res/results/"
-      character(len=19)           :: name_inputFile
+      character(len=19)           :: name_inputFile, geometry_File
       character(len=5)            :: file_name 
       character(len=24)           :: date
       character(len=4)            :: aaaa, cccc
@@ -43,6 +43,7 @@ module library
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
       write(*,"(A19,7x,a19,3X,A1)") ' - Input File:             ', name_inputFile,''
+      write(*,"(A19,7x,a19,3X,A1)") ' - Input File:             ', geometry_File,''
       write(*,"(A19,7x,a5,3X,A1)") ' - Element type:           ', InitElemType,''
       write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
       write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
@@ -79,12 +80,12 @@ module library
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
       elseif(kstab.eq.6)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
-        write(*,"(A30,3X,f5.2,1X,A10)") ' - Reluctivity of medium (λ): ', lambda, '  '
-        write(*,"(A30,2X,f5.2,1X,A10)") ' - Algorithmic constant (Cu): ', Cu, ' '
-        write(*,"(A30,4X,f5.2,1X,A10)") ' - Constante of length (ℓ):   ', ell, '    '
-        write(*,"(A26,5X,e13.5,1X,A10)") ' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
-        write(*,"(A26,4X,e14.5,2X,A10)") ' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
+        write(*,"(A26,2x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+        write(*,"(A31,2X,f10.3,1X,A10)") ' - Reluctivity of medium (λ): ', lambda, '  '
+        write(*,"(A30,2X,f10.3,1X,A10)") ' - Algorithmic constant (Cu): ', Cu, ' '
+        write(*,"(A30,4X,f10.3,1X,A10)") ' - Constante of length (ℓ):   ', ell, '    '
+        write(*,"(A30,5X,e13.5,1X,A10)") ' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
+        write(*,"(A30,4X,e14.5,2X,A10)") ' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
       else
         print*,'!========== STABILIZATION PARAMETERS ==========!'
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
@@ -170,6 +171,7 @@ module library
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
       write(100,"(A19,7x,a19,3X,A1)") ' - Input File:             ', name_inputFile,''
+      write(100,"(A19,7x,a19,3X,A1)") ' - Input File:             ', geometry_File,''
       write(100,"(A19,7x,a4,3X,A1)") ' - Element type:           ', InitElemType,''
       write(100,"(A19,5X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
       write(100,"(A19,5X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
