@@ -80,12 +80,12 @@ module library
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
       elseif(kstab.eq.6)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A26,2x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+        write(*,"(A30,4x,a4,3X,A1)")     ' - Stabilization method     : ', aaaa,''
         write(*,"(A31,2X,f10.3,1X,A10)") ' - Reluctivity of medium (λ): ', lambda, '  '
         write(*,"(A30,2X,f10.3,1X,A10)") ' - Algorithmic constant (Cu): ', Cu, ' '
-        write(*,"(A30,4X,f10.3,1X,A10)") ' - Constante of length (ℓ):   ', ell, '    '
-        write(*,"(A30,5X,e13.5,1X,A10)") ' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
-        write(*,"(A30,4X,e14.5,2X,A10)") ' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
+        write(*,"(A31,3X,f10.3,1X,A10)") ' - Constante of length (ℓ)  : ', ell, '    '
+        write(*,"(A30,5X,e13.5,1X,A10)") ' - Stab. param.1 (Su)       : ', Cu*lambda*(helem**2/ell**2),'   '
+        write(*,"(A30,4X,e14.5,2X,A10)") ' - Stab. param.2 (Sp)       : ', ell**2 / lambda,'   '
       else
         print*,'!========== STABILIZATION PARAMETERS ==========!'
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
@@ -188,29 +188,9 @@ module library
         write(100,"(A19,6X,I6,1X,A10)") ' - Total Elements:         ', nelem,'   '
         write(100,"(A23,2X,I6,1X,A10)") ' - Total Nodal points:     ', nnodes, ' '
         write(100,'(A)') 
-      endif
-      if(kstab.eq.0)then
-        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''  
-      !write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
-      elseif(kstab.eq.6)then
-        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A29,3x,a4,3X,A1)") ' - Stabilization method:        ', aaaa,''
-        write(100,"(A29,3X,f8.3,1X,A10)") ' - Algorithmic constant(Cu): ', Cu, ' '
-        write(100,"(A31,3X,f8.3,1X,A10)") ' - Constant of length(ℓ):    ', ell, '    '
-        write(100,"(A30,2X,f8.3,1X,A10)") ' - Reluctivity of the medium: ', lambda, '  '
-        write(100,"(A29,4X,e13.5,1X,A10)")' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
-        write(100,"(A29,3X,e14.5,2X,A10)")' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
-      else
-        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''
-        write(100,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:        ', ktaum,''
-        write(100,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:    ', patau, '  '
-      endif
-    
+      endif 
       if(ProbType.eq.'TIME')then
         delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
-        write(100,'(A)') 
         write(100,'(A)')'!============ TIME DISCRETIZATION =============!'
         if((theta.eq.2).or.(theta.eq.4))then
           if(theta.eq.2)then
@@ -229,6 +209,27 @@ module library
         write(100,"(A21,7X,F10.6,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
       else
         continue
+      endif
+      if(kstab.eq.0)then
+        write(100,'(A)') 
+        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''  
+      !write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
+      elseif(kstab.eq.6)then
+        write(100,'(A)') 
+        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+        write(100,"(A29,3x,a4,3X,A1)") ' - Stabilization method:        ', aaaa,''
+        write(100,"(A29,3X,f8.3,1X,A10)") ' - Algorithmic constant(Cu): ', Cu, ' '
+        write(100,"(A31,3X,f8.3,1X,A10)") ' - Constant of length(ℓ):    ', ell, '    '
+        write(100,"(A30,2X,f8.3,1X,A10)") ' - Reluctivity of the medium: ', lambda, '  '
+        write(100,"(A29,4X,e13.5,1X,A10)")' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
+        write(100,"(A29,3X,e14.5,2X,A10)")' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
+      else
+        write(100,'(A)') 
+        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
+        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''
+        write(100,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:        ', ktaum,''
+        write(100,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:    ', patau, '  '
       endif
       write(100,'(A)') 
       write(100,'(A)')'!============ TENSOR COEFFICIENTS  ============!'
