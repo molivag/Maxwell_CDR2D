@@ -2,14 +2,14 @@ module param
   
   implicit none
 
-  character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name
+  character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
   character(len=14) :: testID
   character(len=4)  :: InitElemType, ProbType
   character(len=2)  :: refiType
   integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
-  integer           :: i_exp, nodalSrc, skipline, postpro, signal, srcType!, srcLoc
+  integer           :: i_exp, nodalSrc, nodalRec, skipline, postpro, signal, srcType!, srcLoc
   real              :: hnatu, patau, time_ini, time_fin, u0cond
   real              :: Cu,lambda, ell, helem, n_val
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
@@ -18,7 +18,7 @@ module param
   double precision, allocatable, dimension(:,:,:)   :: conma
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
   double precision, allocatable, dimension(:)       :: force !Force vector 
-  integer         , allocatable, dimension(:)       :: srcLoc
+  integer         , allocatable, dimension(:)       :: srcLoc, recLoc
 
   contains
     
@@ -41,10 +41,12 @@ module param
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
-      read(5, 100,iostat=stat,iomsg=msg) InitElemType,ProbType,DimPr,ndofn,totGp,simul,nodalSrc,skipline,&
-      initElem, initNodes, nne, i_exp, hnatu, refiType, theta, time_ini, time_fin, max_time, u0cond,&
-      kstab, ktaum, patau, n_val, Cu, ell, lambda, postpro, testID, File_Nodal_Vals,&
-      error_name, coord_name, conec_name
+      read(5, 100,iostat=stat,iomsg=msg) &
+      InitElemType,ProbType,DimPr,ndofn,totGp,simul,nodalSrc,nodalRec,postpro,skipline,&
+      initElem, initNodes, nne, i_exp, hnatu, refiType,&
+      theta, time_ini, time_fin, max_time, u0cond,&
+      kstab, ktaum, patau, n_val, Cu, ell, lambda,&
+      testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       if (stat.ne.0) then
         print*, ' '
         print*,'!============ STATUS READING INPUT FILE. ============!'
@@ -63,6 +65,7 @@ module param
       allocate( reama(ndofn,ndofn) )
       allocate( force(ndofn) )
       allocate( srcLoc(nodalSrc) )
+      allocate( recLoc(nodalRec) )
       
       difma = 0.0
       conma = 0.0
@@ -148,9 +151,12 @@ module param
       do ii =1, nodalSrc
         read(5,*,iostat=stat,iomsg=msg) srcLoc(ii)
       end do
-      
       read(5,104,iostat=stat,iomsg=msg) srcType, signal
       
+      do ii =1, nodalRec
+        read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
+      end do
+
       close(5)
       
       
@@ -159,7 +165,7 @@ module param
       
       if(kstab.eq.6)then
         !helem = 2.0**(-(i_exp)) 
-        helem = 1/20.0
+        helem = 1/1.0
         !Parameter of stabilization in augmented formulation
         param_stab1 = Cu*lambda*(helem**2/ell**2)
         param_stab2 = ell**2 / lambda
@@ -183,11 +189,11 @@ module param
       initnevab = ndofn*nne
       initntotv = ndofn*initNodes
       
-      100 format(7/ 11x, A4,/ ,11x, A4,/, 6(11x,I5,/),         2/,&  !model parameters
+      100 format(7/ 11x, A4,/ ,11x, A4,/, 8(11x,I5,/),         2/,&  !model parameters
       &          4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
       &          11x,I1,/, 2(11x,f7.2,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
       &          2(11x,I5,/), 5(11x,F7.2,/),                   2/,&  !stabi
-      &          11x,I1,/, 11x,A14,/, 4(11x,A12,/), / )              !output files
+      &          11x,A14,/, 5(11x,A12,/), / )              !output files
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
