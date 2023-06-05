@@ -96,7 +96,7 @@ module library
       print*, ' '
       if(ProbType.eq.'TIME')then
         delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
-        print*,'!============ TIME DISCRETIZATION ============!'
+        print*,'!============ TIME DISCRETIZATION =============!'
         if((theta.eq.2).or.(theta.eq.4))then
           if(theta.eq.2)then
             cccc = 'BDF1'
@@ -2081,7 +2081,7 @@ module library
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       double precision, dimension(nelem,totGp,DimPr), intent(in) :: grad_sol
-      character(len=10)                       :: extension1, extension2
+      character(len=10)                       :: ext1, ext2
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
@@ -2095,14 +2095,14 @@ module library
       print*, ' '
       print*, '!============== Output files ==================!'
       
-      extension1 = ".post.msh"
-      extension2 = ".post.res"
+      ext1 = ".post.msh"
+      ext2 = ".post.res"
       if(ElemType.eq.'QUAD')then
         Elem_Type = 'Quadrilateral'
       elseif(ElemType.eq.'TRIA')then
         Elem_Type = 'Triangle'
       endif
-      open(unit=555, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
+      open(unit=555, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
       
       write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -2129,7 +2129,7 @@ module library
       write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.msh','written succesfully in Pos/'
       
       
-      open(unit=555, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="replace")
+      open(unit=555, file= fileplace//File_Nodal_Vals//ext2, ACTION="write", STATUS="replace")
       write(555,"(A)") 'GiD Post Results File 1.0'
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
       
@@ -2233,40 +2233,49 @@ module library
     ! Agregamos las rutinas de tiempo del commit 625fbee: May2 2022
     
     
-    subroutine GID_PostProcess(solution, activity, step_value, interval, time_final)
+    subroutine GID_PostProcess(solution, activity, time, timeStep, time_final)
       
       implicit none
+      external                                          :: fdate 
       
-      character(len=*), parameter    :: fileplace = "Pos/"
+      character(len=*), parameter                       :: fileplace = "Pos/"
+      character(len=*), parameter                       :: fileplace2 = "Res/Profiles/"
+      character(len=24)                                 :: date
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                :: activity
-      integer, intent(in)                     :: step_value
-      real, intent(in)                        :: interval, time_final
-      character(len=10)                       :: extension1, extension2
-      character(len=15)                       :: Elem_Type
-      double precision, dimension(1, ntotv)   :: solution_T
-      double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin, ii, ielem, inode
+      character(*), intent(in)                          :: activity
+      integer, intent(in)                               :: time
+      real, intent(in)                                  :: timeStep, time_final
+      character(len=10)                                 :: ext1, ext2
+      character(len=4)                                  :: ext3
+      character(len=15)                                 :: Elem_Type
+      double precision, dimension(1, ntotv)             :: Sol_T
+      double precision, dimension(1,nnodes)             :: xcor, ycor
+      integer                                           :: ipoin, ii, ielem, inode, time2
       
-      solution_T = transpose(solution)
+      double precision :: delta_t, timeStep2
+      
+      
+      Sol_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
+      delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)
       
       
-      extension1 = ".post.msh"
-      extension2 = ".post.res"
+      ext1 = ".post.msh"
+      ext2 = ".post.res"
+      ext3 = ".dat"
       if(ElemType.eq.'QUAD')then
         Elem_Type = 'Quadrilateral'
       elseif(ElemType.eq.'TRIA')then
         Elem_Type = 'Triangle'
       endif
-      !open(unit=555, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
+      !open(unit=555, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
       
       
       
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
-        open(unit=100, file= fileplace//File_Nodal_Vals//extension1, ACTION="write", STATUS="replace")
+        open(unit=100, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
         
         write(100,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
         write(100,"(A)") '#2D Convection-Diffusion-Reaction'
@@ -2283,23 +2292,23 @@ module library
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A19,A30)", ' Mesh file ',File_Nodal_Vals//'.post.msh', 'written succesfully in Pos/ '
-      ! if(status.eq.0)then continue 
+        print"(A11,A21,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ '
+       
       elseif(activity == "res")then
        
-        if(step_value == 0)then
-          open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="replace")
+        if(time == 0)then
+          open(unit=200, file= fileplace//File_Nodal_Vals//ext2, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
           write(200,"(A)") '#2D Convection-Diffusion-Reaction'
         else
           continue
         endif
-        open(unit=200, file= fileplace//File_Nodal_Vals//extension2, ACTION="write", STATUS="old", position="append")
+        open(unit=200,file=fileplace//File_Nodal_Vals//ext2,ACTION="write",STATUS="old",position="append")
         
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Scalar OnNodes'
+            write(200,"(A29, I0, A)") 'Result "DoF" "Concentration" ', time,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ux '
@@ -2313,27 +2322,27 @@ module library
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
           case(2)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', time,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ux ','               uy '
             do ipoin = 1, nnodes
-              write(200,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+              write(200,918) ipoin, Sol_T(1, ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
             end do
             write(200,"(A)") 'End Values'
           case(3)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', step_value,' Vector OnNodes'
+            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', time,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ux ','               uy'
            ! do ipoin = 1, nnodes
-           !   write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+           !   write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
            ! end do
             do ipoin = 1, nnodes
-              write(200,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+              write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
             end do
             write(200,"(A)") 'End Values'
-            write(200,"(A22, I3, A)") 'Result "P" "Preassure"', step_value,' Scalar OnNodes'
+            write(200,"(A22, I3, A)") 'Result "P" "Preassure"', time,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','     P '
@@ -2341,21 +2350,52 @@ module library
             write(200,914)
             ii=1
             do ipoin = 3, nnodes*3,3
-              write(200,916) ii, solution_T(1,ipoin)
+              write(200,916) ii, Sol_T(1,ipoin)
               ii=ii+1
             end do
             write(200,"(A)") 'End Values'
         end select
+      elseif(activity == "profile")then
+        
+        if(time == 0)then
+          call fdate(date) 
+          open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
+          write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
+          write(300,"(A)") '%timeStep     ex     ey'
+          write(300,"(A)") ' '
+        else
+          continue
+        endif
+        open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+        
+        if(time == 0)write(300,"(A)") '%Component ex'
+        write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        !
+        if( time == max_time+1 ) then
+          write(300,"(A)") ' '
+          write(300,"(A)") '%Component ey'
+          timeStep2 = 0.0
+          do time2 = 1, max_time+1
+            timeStep2 = timeStep2 + delta_t
+            write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
+          end do
+        endif
+        
       else
-        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh" or "res" non ', activity
+        write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
         close(200)
+        close(300)
         stop
       end if
-      close(200)
-      !la siguiente instruccion debe usarse con nt no con time pero solo es para avanzar
-      if(interval == time_final) then
+      
+      close(200)        !Estos close van aqui y el position append permite abrir una y otra vez el
+      close(300)        !mismo archivo escribiendo a continuacion de donde se quedo el archivo anterior
+      
+      !la siguiente instruccion debe usarse con timeStep no con time pero solo es para avanzar
+      if(time == max_time+1.and.activity.eq."profile") then
+      !if(timeStep == time_final+1) then
         print*, ' '
-        print"(1x, A19,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
+        print"(1x, A21,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
       endif
       
       !if(simul.eq.6.and.ndofn.1)then
@@ -2366,16 +2406,9 @@ module library
       !  write(*,'A')
       !
       
-      
-      
-      
-      
-      
-      
-      
-      
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
+      904 format(2x,I0,2x,f15.6,2x,99(e15.6))    !format to print the profile file
       906 format(I7,2(3x,f9.4)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
