@@ -157,6 +157,7 @@ module timeInt
       write(*,*) ' '
       print'(A11,I3,A3,F8.3,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(u_pre, 'res', time, 0.0, time_fin)
+      call GID_PostProcess(u_pre, 'profile', time, 0.0, time_fin)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
       
@@ -203,6 +204,7 @@ module timeInt
             !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,' of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
+            call GID_PostProcess(u_fut, 'profile', time, nt, time_fin)
             u_pre = u_fut
           end do
         !-------- Crank- Nicholson Scheme 
@@ -322,12 +324,12 @@ module timeInt
       end select
       
       
-      print*, ' '
       !print*, 'Shape of Global K: ',shape(AK_time)
       !print*, 'Shape of Global F: ',shape(rhs_time)
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
       call GID_PostProcess(u_pre, 'msh', time, 0.0, time_fin)
+      print*, ' '
       DEALLOCATE( AK_time, u_pre, u_fut)
 
     end subroutine TimeIntegration
