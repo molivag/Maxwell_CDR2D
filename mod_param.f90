@@ -17,7 +17,7 @@ module param
   double precision, allocatable, dimension(:,:,:,:) :: difma
   double precision, allocatable, dimension(:,:,:)   :: conma
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
-  double precision, allocatable, dimension(:)       :: force !Force vector 
+  double precision, allocatable, dimension(:)       :: force, Icurr !Force and Current vector (respectively)
   integer         , allocatable, dimension(:)       :: srcLoc, recLoc
 
   contains
@@ -42,10 +42,10 @@ module param
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100,iostat=stat,iomsg=msg) &
-      InitElemType,ProbType,DimPr,ndofn,totGp,simul,nodalSrc,nodalRec,postpro,skipline,&
+      InitElemType,ProbType,DimPr,ndofn,totGp,simul,postpro,&
       initElem, initNodes, nne, i_exp, hnatu, refiType,&
-      theta, time_ini, time_fin, max_time, u0cond,&
       kstab, ktaum, patau, n_val, Cu, ell, lambda,&
+      theta, time_ini, time_fin, max_time, u0cond,&
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       if (stat.ne.0) then
         print*, ' '
@@ -64,6 +64,7 @@ module param
       allocate( conma(ndofn,ndofn,DimPr) )
       allocate( reama(ndofn,ndofn) )
       allocate( force(ndofn) )
+      allocate( Icurr(ndofn) )
       allocate( srcLoc(nodalSrc) )
       allocate( recLoc(nodalRec) )
       
@@ -148,17 +149,29 @@ module param
         
       end if
       
+      read(5,107,iostat=stat,iomsg=msg) Icurr(1), Icurr(2), Icurr(3)
+      if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+      
+      read(5,104,iostat=stat,iomsg=msg) nodalSrc
       do ii =1, nodalSrc
         read(5,*,iostat=stat,iomsg=msg) srcLoc(ii)
       end do
-      read(5,104,iostat=stat,iomsg=msg) srcType, signal
       
+      read(5,109,iostat=stat,iomsg=msg) signal
+      read(5,109,iostat=stat,iomsg=msg) nodalRec
       do ii =1, nodalRec
         read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
       end do
-
-      close(5)
       
+      !print*, 'Icurr', Icurr(1), Icurr(2), Icurr(3)
+      !print*, 'nodalSrc', nodalSrc 
+      !print*, 'SrcLoc', srcLoc(1)
+      !print*, 'signal', signal 
+      !print*, 'nodalRec', nodalRec
+      !print*, 'RecLoc', recLoc(1)
+      
+      close(5)
+      !stop 
       
       !print*, srcLoc(1), srcLoc(2), srcType, signal 
       
@@ -189,21 +202,23 @@ module param
       initnevab = ndofn*nne
       initntotv = ndofn*initNodes
       
-      100 format(7/ 11x, A4,/ ,11x, A4,/, 8(11x,I5,/),         2/,&  !model parameters
+      100 format(7/ 11x, A4,/ ,11x, A4,/, 5(11x,I5,/),         2/,&  !model parameters
       &          4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
-      &          11x,I1,/, 2(11x,f7.2,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
       &          2(11x,I5,/), 5(11x,F7.2,/),                   2/,&  !stabi
+      &          11x,I1,/, 2(11x,f7.5,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
       &          11x,A14,/, 5(11x,A12,/), / )              !output files
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
-      !104 format(11x,I5,/,2(11x,I1,/))
-      104 format(1/,2(11x,I1,/))
+      104 format(1(11x,I2))
       105 format(1/,F12.5,2/)
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,e15.5,e15.5,e15.5,2/) 
+      108 format(1/,F10.5,F10.5,F10.5,2/) 
      
+      109 format(2/,11x,I2)
+      110 format(2/,11x,I2,/)
       !108 format(11x,I3,I3,/) 
       
     end subroutine inputData
