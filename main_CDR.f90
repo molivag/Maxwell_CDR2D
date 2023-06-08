@@ -17,6 +17,7 @@ implicit none
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   double precision, allocatable, dimension(:,:,:)   :: grad_u_sol
   double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol
+  double precision, allocatable, dimension(:)       :: Ex_field
   external                                          :: dgbtrf, dgbtrs, dgbrfs
   !double precision, allocatable, dimension(:)      :: S_ferr, S_berr, S_work
   integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
@@ -70,10 +71,14 @@ implicit none
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'TIME')then !transient case
     
-    !call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
+    print*, ' '
+    print*, "!=============== Time Integration =============! "
+     !call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
     !&                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
     call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, time_ini, time_fin, max_time, u0cond,&
-    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
+    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim, Ex_field)
+   
+    call Res_Matlab(Ex_field)
    
     !---------- Memory Relase -----------!
     deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
