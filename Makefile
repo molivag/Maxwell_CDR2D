@@ -13,7 +13,7 @@ FC = ifort
 #SRC_DIR = .
 
 #	compiler flags
-CFLAGS = -stand f03 #f90 #f08
+CFLAGS = -stand f08#f03 #f90 #f08
 #	debugger option
 CFLAGS += -g -debug all
 #	warning flags
