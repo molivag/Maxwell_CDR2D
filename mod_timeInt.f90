@@ -51,10 +51,10 @@ module timeInt
           do t = 1, max_time+1
             if(t.le.tw)then
               u(t) = 0.0
-            elseif(t.gt.tw.and.t.le.2*tw)then
+            elseif(t.gt.tw)then!.and.t.le.2*tw)then
               u(t) = 1.0
-            elseif(t.gt.2*tw)then
-              u(t) = 1.0
+            !elseif(t.gt.2*tw)then
+             ! u(t) = 1.0
             endif
           end do
         case(2) !step off
@@ -98,7 +98,7 @@ module timeInt
     !
     subroutine Timeintegration(basfun,dN_dxi,dN_deta, hes_xixi,hes_xieta,hes_etaeta, &
       &                        time_ini,time_fin,max_time,u0cond,nofix, ifpre, presc,&
-      &                        S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim )
+      &                        S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim, Ex_field)
       
       implicit none
       
@@ -117,8 +117,8 @@ module timeInt
       double precision, allocatable, dimension(:,:)          :: AK_time, lhs_BDF2
 
 
-      double precision, dimension(ntotv,1)          :: rhs_time, Jsource, F_plus_MU, rhs_BDF2, u_init
-      double precision, dimension(max_time+1) :: shapeTime
+      double precision, dimension(ntotv,1)                   :: rhs_time, Jsource, F_plus_MU, rhs_BDF2, u_init
+      double precision, dimension(max_time+1)                :: shapeTime
       
       double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut
       double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
@@ -127,6 +127,7 @@ module timeInt
       integer                                                :: time, info, workdim
       real                                                   :: nt 
       integer :: ii
+      double precision, allocatable,dimension(:),intent(out) :: Ex_field
       
       
       allocate( AK_time(ldAKban,ntotv), lhs_BDF2(ldAKban,ntotv))
@@ -137,6 +138,7 @@ module timeInt
       allocate( u_fut(S_ldSol, 1))
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
       allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
+      allocate( Ex_field(max_time+1))
       
       u_curr   = 0.0
       u_pre    = 0.0
@@ -145,7 +147,7 @@ module timeInt
       AK_time  = 0.0
       time     = 0                                            !initializing the time
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
-      
+      nt       = time_ini
       
       call initialCondition(presc,ifpre, nofix, delta_t, shapeTime, u_init)
       !call initialCondition(presc,ifpre,nofix,basfun,dN_dxi,dN_deta,S_m,S_n,S_trans,S_nrhs,S_ipiv,S_ldSol,delta_t,Uinit) 
@@ -155,13 +157,12 @@ module timeInt
       !call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C ,A_F)
       
       write(*,*) ' '
-      print'(A11,I3,A3,F8.3,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
-      call GID_PostProcess(u_pre, 'res', time, 0.0, time_fin)
-      call GID_PostProcess(u_pre, 'profile', time, 0.0, time_fin)
+      print'(A11,I0,A3,F8.5,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
+      call GID_PostProcess(u_pre, 'res', time, nt, time_fin,Ex_field)
+      call GID_PostProcess(u_pre, 'profile', time, nt, time_fin,Ex_field)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
       
-      nt = 0.0              
       select case(theta)
         !-------- 1st-order Backward Difference 
         case(2) 
@@ -203,120 +204,120 @@ module timeInt
             print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,' of',time_fin,' seg'
-            call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
-            call GID_PostProcess(u_fut, 'profile', time, nt, time_fin)
+            call GID_PostProcess(u_fut, 'res', time, nt, time_fin, Ex_field)
+            call GID_PostProcess(u_fut, 'profile', time, nt, time_fin, Ex_field)
             u_pre = u_fut
           end do
         !-------- Crank- Nicholson Scheme 
         case(3)
           write(*,*)'    Crank-Nicholson method Selected'  
-          !Time-stepping
-          do time = 1, max_time +1
-            nt = nt + delta_t!,time_fin,delta_t  
-            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
-            !call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_F)
-            AK_time  = (1.0/delta_t)*A_C + 0.5*A_K !A_C + delta_t*A_K
-            rhs_time = A_F
-            !duda en 0.5*(A_Fnext + A_Fcurr) dependencia del tiempo del rhs
-            call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
-            
-            !------------- Solver -------------!
-            u_fut = rhs_time   !here mkl will rewrite u_fut by the solution vector
-            !--- Factorizing Matrix
-            call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
-            if(info.ne.0)then
-              call MKLfactoResult('dgbtrf',info) 
-              print'(A32,I3)', '<<<Error in factorization at time: ', time
-            endif
-            !--- Solving System of Eqns
-            call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, AK_time, ldAKban, S_ipiv, u_fut, S_ldSol, info )
-            if(info.ne.0)then
-              call MKLsolverResult('dgbtrs',info) 
-              print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
-            endif
-            !---------- Printing and writing results -----------!
-            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            call GID_PostProcess(u_fut,'res', time, nt, time_fin)
-            u_pre = u_fut
-            
-          end do      
+          !!Time-stepping
+          !do time = 1, max_time +1
+          !  nt = nt + delta_t!,time_fin,delta_t  
+          !  call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
+          !  !call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_F)
+          !  AK_time  = (1.0/delta_t)*A_C + 0.5*A_K !A_C + delta_t*A_K
+          !  rhs_time = A_F
+          !  !duda en 0.5*(A_Fnext + A_Fcurr) dependencia del tiempo del rhs
+          !  call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
+          !  
+          !  !------------- Solver -------------!
+          !  u_fut = rhs_time   !here mkl will rewrite u_fut by the solution vector
+          !  !--- Factorizing Matrix
+          !  call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
+          !  if(info.ne.0)then
+          !    call MKLfactoResult('dgbtrf',info) 
+          !    print'(A32,I3)', '<<<Error in factorization at time: ', time
+          !  endif
+          !  !--- Solving System of Eqns
+          !  call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, AK_time, ldAKban, S_ipiv, u_fut, S_ldSol, info )
+          !  if(info.ne.0)then
+          !    call MKLsolverResult('dgbtrs',info) 
+          !    print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
+          !  endif
+          !  !---------- Printing and writing results -----------!
+          !  print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+          !  !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+          !  !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+          !  call GID_PostProcess(u_fut,'res', time, nt, time_fin)
+          !  u_pre = u_fut
+          !  
+          !end do      
         case(4)
           write(*,*)'BDF2 Selected'
           
-          !################## Desde aqui 
-          !---1st-Order Backward Euler   
-          AK_time  = (1.0/delta_t)*A_C + A_K !A_C + delta_t*A_K
-          call GlobalSystem_Time(basfun,dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol, delta_t, u_pre, A_F)
-          !call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_F)
-          rhs_time = A_F 
+          !!################## Desde aqui 
+          !!---1st-Order Backward Euler   
+          !AK_time  = (1.0/delta_t)*A_C + A_K !A_C + delta_t*A_K
+          !call GlobalSystem_Time(basfun,dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol, delta_t, u_pre, A_F)
+          !!call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_F)
+          !rhs_time = A_F 
 
-          call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
+          !call ApplyBVs(nofix,ifpre,presc,AK_time,rhs_time)
 
-          !#Aqui entraria AK_time, rhs_time para dar el tiempo current, el prev es el de afuera de loop de tiempo y antes
-          ! de BDF1 y luego ya solo se actualiza: ucurr=u_fut  y uprebv=ucurr de la iteracion anterior, la calculada con BDF1
-          
-          !------------- Solver -------------!
-          u_curr = rhs_time   !here mkl will rewrite u_fut by the solution vector
-          !--- Factorizing Matrix
-          call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
-          if(info.ne.0)then
-            call MKLfactoResult('dgbtrf',info) 
-            print'(A32,I3)', '<<<Error in factorization at time: ', time
-          endif
-          !--- Solving System of Eqns
-          call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, AK_time, ldAKban, S_ipiv, u_curr, S_ldSol, info )
-          if(info.ne.0)then
-            call MKLsolverResult('dgbtrs',info) 
-            print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
-          endif
-          
-          !---------- Printing and writing results -----------!
-          print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-          call GID_PostProcess(u_curr, 'res', 1, 0.0, time_fin)
-          !call GID_PostProcess(u_curr, File_PostRes, 'res', 1, 0.0, time_fin)
-          !#################  y hast aqui debe ir afuera del loop de tiempo de BDF2 
+          !!#Aqui entraria AK_time, rhs_time para dar el tiempo current, el prev es el de afuera de loop de tiempo y antes
+          !! de BDF1 y luego ya solo se actualiza: ucurr=u_fut  y uprebv=ucurr de la iteracion anterior, la calculada con BDF1
+          !
+          !!------------- Solver -------------!
+          !u_curr = rhs_time   !here mkl will rewrite u_fut by the solution vector
+          !!--- Factorizing Matrix
+          !call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
+          !if(info.ne.0)then
+          !  call MKLfactoResult('dgbtrf',info) 
+          !  print'(A32,I3)', '<<<Error in factorization at time: ', time
+          !endif
+          !!--- Solving System of Eqns
+          !call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, AK_time, ldAKban, S_ipiv, u_curr, S_ldSol, info )
+          !if(info.ne.0)then
+          !  call MKLsolverResult('dgbtrs',info) 
+          !  print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
+          !endif
+          !
+          !!---------- Printing and writing results -----------!
+          !print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+          !call GID_PostProcess(u_curr, 'res', 1, 0.0, time_fin)
+          !!call GID_PostProcess(u_curr, File_PostRes, 'res', 1, 0.0, time_fin)
+          !!#################  y hast aqui debe ir afuera del loop de tiempo de BDF2 
 
-          !Una vez calculado el tiempo presente Ucurr a partir del tiempo pasado Uprev
-          !usando BDF1. Calculamos BDF2
-          
-          do time = 2, max_time +1 !Empieza en 2?
-            nt = nt + delta_t!,time_fin,delta_t
+          !!Una vez calculado el tiempo presente Ucurr a partir del tiempo pasado Uprev
+          !!usando BDF1. Calculamos BDF2
+          !
+          !do time = 2, max_time +1 !Empieza en 2?
+          !  nt = nt + delta_t!,time_fin,delta_t
 
-            ! Uprev(Un-1) --> computed throug the initial cond for time 1   
-            ! Ucurr(Un) --> computed throug 1st order Euler
-            !Tghe next subrotuine perform: M*(Un - Un-1)
-            ! - - - 2nd-Order Backward Euler 
-            lhs_BDF2  = (3/2*delta_t)*A_C + A_K      !#Este tambien podria ir fuera del loop de tiempo
-            call TimeLevels(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, u_curr, u_pre, F_plus_MU)
-            !By the last subroutine we compute the product of right-hand side of 2nd order backward Euler 
-            !done in elemental form to match the dimension btwn band matrix and global vecotr
-            rhs_BDF2 = F_plus_MU 
+          !  ! Uprev(Un-1) --> computed throug the initial cond for time 1   
+          !  ! Ucurr(Un) --> computed throug 1st order Euler
+          !  !Tghe next subrotuine perform: M*(Un - Un-1)
+          !  ! - - - 2nd-Order Backward Euler 
+          !  lhs_BDF2  = (3/2*delta_t)*A_C + A_K      !#Este tambien podria ir fuera del loop de tiempo
+          !  call TimeLevels(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, u_curr, u_pre, F_plus_MU)
+          !  !By the last subroutine we compute the product of right-hand side of 2nd order backward Euler 
+          !  !done in elemental form to match the dimension btwn band matrix and global vecotr
+          !  rhs_BDF2 = F_plus_MU 
 
-            call ApplyBVs(nofix,ifpre,presc, lhs_BDF2, rhs_BDF2)
+          !  call ApplyBVs(nofix,ifpre,presc, lhs_BDF2, rhs_BDF2)
 
-            !------------- Solver for future time -------------!
-            u_fut = rhs_BDF2   !here mkl will rewrite u_fut by the solution vector  
-            !--- Factorizing Matrix
-            call dgbtrf(S_m, S_n, lowban, upban, lhs_BDF2, ldAKban, S_ipiv, info)
-            if(info.ne.0)then
-              call MKLfactoResult('dgbtrf',info) 
-              print'(A32,I3)', '<<<Error in factorization at time: ', time
-            endif
-            !--- Solving System of Eqns
-            call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, lhs_BDF2, ldAKban, S_ipiv, u_fut, S_ldSol, info )
-            if(info.ne.0)then
-              call MKLsolverResult('dgbtrs',info) 
-              print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
-            endif
-            !---------- Printing and writing results -----------!
-            !print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
-            u_pre=u_curr
-            u_curr=u_fut
-          
-          end do
+          !  !------------- Solver for future time -------------!
+          !  u_fut = rhs_BDF2   !here mkl will rewrite u_fut by the solution vector  
+          !  !--- Factorizing Matrix
+          !  call dgbtrf(S_m, S_n, lowban, upban, lhs_BDF2, ldAKban, S_ipiv, info)
+          !  if(info.ne.0)then
+          !    call MKLfactoResult('dgbtrf',info) 
+          !    print'(A32,I3)', '<<<Error in factorization at time: ', time
+          !  endif
+          !  !--- Solving System of Eqns
+          !  call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, lhs_BDF2, ldAKban, S_ipiv, u_fut, S_ldSol, info )
+          !  if(info.ne.0)then
+          !    call MKLsolverResult('dgbtrs',info) 
+          !    print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
+          !  endif
+          !  !---------- Printing and writing results -----------!
+          !  !print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+          !  call GID_PostProcess(u_fut, 'res', time, nt, time_fin)
+          !  u_pre=u_curr
+          !  u_curr=u_fut
+          !
+          !end do
           
         case default
            write(*,*) 'Not time integration method definded'
@@ -328,7 +329,7 @@ module timeInt
       !print*, 'Shape of Global F: ',shape(rhs_time)
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
-      call GID_PostProcess(u_pre, 'msh', time, 0.0, time_fin)
+      call GID_PostProcess(u_pre, 'msh', time, 0.0, time_fin, Ex_field)
       print*, ' '
       DEALLOCATE( AK_time, u_pre, u_fut)
 
