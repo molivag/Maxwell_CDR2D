@@ -8,7 +8,7 @@ module library
     subroutine GeneralInfo(name_inputFile, geometry_File)
       external :: fdate
       
-      character(len=*), parameter :: fileplace = "Res/results/"
+      character(len=*), parameter :: fileplace = "Info/"
       character(len=19)           :: name_inputFile, geometry_File
       character(len=5)            :: file_name 
       character(len=24)           :: date
@@ -108,8 +108,8 @@ module library
           dddd = 'Cranck-Nicholson'
           write(*,"(A23,2x,a16,3X,A1)") ' - Method Selected:        ', dddd,' '
         endif
-        write(*,"(A19,4X,F10.3,1X,A10)") ' - Initial time:          ', time_ini,' '
-        write(*,"(A19,4X,F10.3,1X,A10)") ' - Final time:            ', time_fin,' '
+        write(*,"(A19,4X,F10.5,1X,A10)") ' - Initial time:          ', time_ini,' '
+        write(*,"(A19,4X,F10.5,1X,A10)") ' - Final time:            ', time_fin,' '
         write(*,"(A19,5X,I5,1X,A10)")    ' - Number of steps:       ', max_time,' '
         write(*,"(A21,7X,F10.6,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
       else
@@ -1608,25 +1608,27 @@ module library
       implicit none
       
       double precision, parameter :: pi = 4*atan(1.d0)
-      !double precision, parameter :: mu=1.25663706d-6 ! 4d0*pi*1d-7
-      character(len=*), parameter :: fileplace = "Res/"
+      character(len=*), parameter :: fileplace  = "Res/Analytic/"
+      character(len=*), parameter :: fileplace2 = "Res/Geometry/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       
       double precision, dimension(1, ntotv) :: solution_T
       !double precision, dimension(1,nnodes) :: xcoor, ycoor
       !double precision, dimension(nnodes)   :: x, y
       !double precision, dimension(max_time) :: t
-      double precision, dimension(nnodes)   :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
-      double precision     :: aa, bb, cc, dd, ee, x, y
+      double precision, dimension(nnodes)       :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
+      double precision, dimension(max_time+2)   :: Texact_y, Texact_x, Texact_z, time, t
+      double precision     :: aa, bb, cc, dd, ee, x, y, z, ds, sigma, srcCurr, r_vec, spi
+      double precision     :: theta,ex,ey,ez, nt, delta_t, arg
       double precision     :: sum_error, error_EM, error_p, xmax, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
-      double precision     :: fi, psi, der_fi, der_psi!, errL2_x, errL2_y, errL2_p
+      double precision     :: fi, psi, der_fi, der_psi, mu!, errL2_x, errL2_y, errL2_p
       !double precision     :: SrcCurr, z, sigma, ds
-      character(len=12)    :: extension, File_Solution
-      integer              :: ipoin, ielem, inode 
+      character(len=4)     :: extension!, File_Solution
+      integer              :: ipoin, ielem, inode, i, itime
       
       
-      extension ="_matlab.txt"
-      File_Solution ="globsolution"
+      extension =".dat"
+      !File_Solution ="globsolution"
       
       solution_T = transpose(solution)
       
@@ -1685,55 +1687,65 @@ module library
           end do
         case(2)
           
-        !  ! Implements eq. (2.50) of Nabighian 1988 EM Methods (EM Theory book) (p. 175)
-        !  !Nota: Esta solucion analitica determina el campo electrico en un punto especifico 
-        !  !de la malla (x,y) por lo que, para usarse de comparacion se requiere ejecutar el codigo y luego en 
-        !  !el post-proceso extraer en un punto determinado ux e uy para todos los tiempos simulados
-        !  implicit real*8 (a-h,o-z)
-        !  !!  real(8) :: x = 0.17_8
-        !  !!  x = erfc(x)
-        !  ! Constants
-        !  ! Times array
-        !  
-        !  ! Define variables
-        !  ! I*ds = dipole moment, is set to I*ds=1
-        !  srcCurr=1d0 ! I
-        !  ds=1d0
-        !  sigma = 0.01
-        !  x = 1.0
-        !  y = 1.0
-        !  z = 0.0
-        !  nt = max_time
-        !  do i=1,nt
-        !    t(i) = i*0.25
-        !  end do
-        !  r_vec   = sqrt(x*x+y*y+z*z)
-        !  spi = sqrt(pi)
-        !  cc   = SrcCurr*ds/(4.*pi*sigma*r_vec**3)
-        !  
-        !  write(*,*)'      t(i)       ex       ey           ez'
-        !  ! r
-        !  do i=1,nt
-        !    
-        !    thta = sqrt(mu*sigma/(4.*t(i)))
-        !    aa = 4./spi*theta**3*r_vec**3 + 6./spi*theta*r_vec
-        !    arg= -theta**2*r_vec**2
-        !    ee = erfc(theta*r_vec)
-        !    aa = aa*exp(arg)+3.*ee
-        !    bb = 4./spi*theta**3*r_vec**3 + 2./spi*theta*r_vec
-        !    bb = bb*exp(arg)+ee
-        !    
-        !    ! geometry term
-        !    ex=cc * (aa*x**2/r_vec**2 - bb)
-        !    ey=cc * aa*x*y/r_vec**2
-        !    ez=cc * aa*x*z/r_vec**2
-        !    
-        !    exact_x(i) = ex
-        !    exact_y(i) = ey
-        !    exact_z(i) = ez
-        !    
-        !    write(*,'(4(1PE14.6))')t(i), exact_x, exact_y, exact_z
-        !  end do
+          ! Implements eq. (2.50) of Nabighian 1988 EM Methods (EM Theory book) (p. 175)
+          !Nota: Esta solucion analitica determina el campo electrico en un punto de la malla (x,y)
+          !para usarse de comparacion se requiere ejecutar el codigo y luego en el post-proceso 
+          !extraer en un punto determinado ux e uy para todos los tiempos simulados
+
+          ! Define variables
+          ! I*ds = dipole moment, is set to I*ds=1
+          srcCurr=  Icurr(1)
+          ds     =  1.0
+          sigma  =  1.0
+          x      = 40.0 
+          y      =-26.0
+          z      =  0.0
+          mu     =  1.0/lambda 
+
+          print*,' '
+          print*,'x', x
+          print*,'y', y
+          print*,'mu', mu
+          print*,' '
+          
+          arg = 0.0
+          aa  = 0.0
+          ee  = 0.0
+          
+          delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)  
+          nt = time_ini
+          
+          do i=1,max_time +2
+            t(i) = nt 
+            nt   = nt + delta_t
+            if(i.le.6)t(i)=0.0
+          end do
+          
+          r_vec= sqrt(x*x+y*y+z*z)
+          spi  = sqrt(pi)
+          cc   = SrcCurr*ds/(4.*pi*sigma*r_vec**3)
+          
+          do i=1,max_time +2
+            
+            theta = sqrt(mu*sigma/(4.*t(i)))
+            aa = 4./spi*theta**3*r_vec**3 + 6./spi*theta*r_vec
+            arg= -theta**2*r_vec**2
+            ee = erfc(theta*r_vec)
+            aa = aa*exp(arg)+3.*ee
+            bb = 4./spi*theta**3*r_vec**3 + 2./spi*theta*r_vec
+            bb = bb*exp(arg)+ee
+            
+            ! geometry term
+            ex=cc * (aa*x**2/r_vec**2 - bb)
+            ey=cc * aa*x*y/r_vec**2
+            ez=cc * aa*x*z/r_vec**2
+            
+            Texact_x(i) = ex
+            Texact_y(i) = ey
+            Texact_z(i) = ez
+            
+            write(*,'(I5, F15.5, 3(E14.6))') i-1, t(i), Texact_x(i), Texact_y(i), Texact_z(i)
+          end do
           
         case(3) !new test of polynomial solution
           do inode = 1, nnodes  !simple Function
@@ -1779,35 +1791,43 @@ module library
       open(unit=111, file= fileplace//File_Nodal_Vals//extension, ACTION="write", STATUS="replace")
       !open(unit=112, file= fileplace//File_Solution//extension, ACTION="write", STATUS="replace")
       
-      
-      if(ndofn.eq.3)then
-        do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-         
-         ! write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
-         ! &     solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin), exact_p(ipoin)
-          
-          write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
-          &              exact_x(ipoin), exact_y(ipoin)
-          
-        end do
+      write(111,'(A)')'%  Time         step         ex             ey             ez'
+      do itime = 1, max_time+2
         
-      elseif(ndofn.eq.1)then 
-        do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-          write(111,906) solution(ipoin,1)
-          !write(111,906) solution_T(1, ipoin), exact_x(ipoin)
-        end do
-      else
-        print*, 'In Res_Matlab, Problem type not defined'
-        stop
-      end if
+        write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
+        
+      end do
       
-      !print*, '!====== Matlab file ======'
+      
+      
+      
+      !if(ndofn.eq.3)then
+      !  do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+      !   
+      !   ! write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
+      !   ! &     solution_T(1,ndofn*ipoin), exact_x(ipoin), exact_y(ipoin), exact_p(ipoin)
+      !    
+      !    write(111,906) solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1),&
+      !    &              exact_x(ipoin), exact_y(ipoin)
+      !    
+      !  end do
+      !  
+      !elseif(ndofn.eq.1)then 
+      !  do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
+      !    write(111,906) solution(ipoin,1)
+      !    !write(111,906) solution_T(1, ipoin), exact_x(ipoin)
+      !  end do
+      !else
+      !  print*, 'In Res_Matlab, Problem type not defined'
+      !  stop
+      !end if
+      
+      print*, '!====== Matlab file ======'
       write(*,"(A7,A23,A28)") ' -File ',File_Nodal_Vals//extension, 'written succesfully in Res/'
       
       close(111)
-      
-      open(unit=444, file= fileplace//coord_name//extension, ACTION="write", STATUS="replace")
-      open(unit=333, file= fileplace//conec_name//extension, ACTION="write", STATUS="replace")
+      open(unit=444, file= fileplace2//coord_name//extension, ACTION="write", STATUS="replace")
+      open(unit=333, file= fileplace2//conec_name//extension, ACTION="write", STATUS="replace")
       
       do ielem=1,nelem
         write(333,902) (lnods(ielem,inode),inode=1,nne)
@@ -1840,6 +1860,7 @@ module library
       902 format(1x,i5,10(1x,i5))
       904 format(I7,2(3x,f9.4) ) !format for msh
       906 format(6(E15.5, 3x))
+      908 format(I5,1x, F15.5, 3(E15.6))
       
       115 continue
     end subroutine Res_Matlab
@@ -2233,24 +2254,25 @@ module library
     ! Agregamos las rutinas de tiempo del commit 625fbee: May2 2022
     
     
-    subroutine GID_PostProcess(solution, activity, time, timeStep, time_final)
+    subroutine GID_PostProcess(solution, activity, time, timeStep, time_final, Ex_field)
       
       implicit none
-      external                                          :: fdate 
+      external                                             :: fdate 
       
-      character(len=*), parameter                       :: fileplace = "Pos/"
-      character(len=*), parameter                       :: fileplace2 = "Res/Profiles/"
-      character(len=24)                                 :: date
-      double precision, dimension(ntotv, 1), intent(in) :: solution
-      character(*), intent(in)                          :: activity
-      integer, intent(in)                               :: time
-      real, intent(in)                                  :: timeStep, time_final
-      character(len=10)                                 :: ext1, ext2
-      character(len=4)                                  :: ext3
-      character(len=15)                                 :: Elem_Type
-      double precision, dimension(1, ntotv)             :: Sol_T
-      double precision, dimension(1,nnodes)             :: xcor, ycor
-      integer                                           :: ipoin, ii, ielem, inode, time2
+      character(len=*), parameter                          :: fileplace = "Pos/"
+      character(len=*), parameter                          :: fileplace2 = "Res/Profiles/"
+      character(len=24)                                    :: date
+      double precision, dimension(ntotv, 1),intent(in)     :: solution
+      character(*)                         ,intent(in)     :: activity
+      integer                              ,intent(in)     :: time
+      real                                 ,intent(in)     :: timeStep, time_final
+      character(len=10)                                    :: ext1, ext2
+      character(len=4)                                     :: ext3
+      character(len=15)                                    :: Elem_Type
+      double precision, dimension(1, ntotv)                :: Sol_T
+      double precision, dimension(1,nnodes)                :: xcor, ycor
+      double precision, dimension(max_time+1), intent(out) :: Ex_field
+      integer                                              :: ipoin, ii, ielem, inode, time2
       
       double precision :: delta_t, timeStep2
       
@@ -2356,30 +2378,32 @@ module library
             write(200,"(A)") 'End Values'
         end select
       elseif(activity == "profile")then
-        
+        Ex_field = 0.0 
         if(time == 0)then
           call fdate(date) 
           open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
           write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
-          write(300,"(A)") '%timeStep     ex     ey'
           write(300,"(A)") ' '
+          write(300,"(A)") '% - - - - - - - Component ex'
+          if(time == 0) write(300,"(A)") '% time       timeStep          receiver1'
         else
           continue
         endif
         open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
         
-        if(time == 0)write(300,"(A)") '%Component ex'
         write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
-        !
-        if( time == max_time+1 ) then
-          write(300,"(A)") ' '
-          write(300,"(A)") '%Component ey'
-          timeStep2 = 0.0
-          do time2 = 1, max_time+1
-            timeStep2 = timeStep2 + delta_t
-            write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
-          end do
-        endif
+        !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+
+        !if( time == max_time+1 ) then
+        !  write(300,"(A)") ' '
+        !  write(300,"(A)") '% - - - - - - - Component ey'
+        !  if(time == 0) write(300,"(A)") '% time       timeStep          receiver1'
+        !  timeStep2 = 0.0
+        !  do time2 = 1, max_time+1
+        !    timeStep2 = timeStep2 + delta_t
+        !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
+        !  end do
+        !endif
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
