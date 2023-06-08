@@ -43,13 +43,13 @@ module BoundVal
       xmiddle =  xmax/2.0
       ymiddle =  ymin/2.0
       print*, ' '
-      !print*, '!================ Dimension of the domain ==============!'
-      !print*, 'xmin = ', xmin
-      !print*, 'xmax = ', xmax
-      !print*, 'ymin = ', ymin
-      !print*, 'ymax = ', ymax
-      !print*, 'xmiddle = ', xmiddle
-      !print*, 'ymiddle = ', ymiddle
+      print*, '!================ Domain Dimensions ===========!'
+      write(*,'(A)') '- xmin , xmax '
+      write(*,'(A3,1x,I0,A,2x,I0)')' ', int(xmin),'  ,', int(xmax) 
+      write(*,'(A9,I0)') '- ymax = ', int(ymax)
+      write(*,'(A9,I0)') '- ymin = ', int(ymin)
+      write(*,'(A9,I0)') '- xhlf = ', int(xmiddle)
+      write(*,'(A9,I0)') '- yhlf = ', int(ymiddle)
       
       
       
