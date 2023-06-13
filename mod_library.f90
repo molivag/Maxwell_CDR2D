@@ -13,8 +13,9 @@ module library
       character(len=5)            :: file_name 
       character(len=24)           :: date
       character(len=4)            :: aaaa, cccc
+      character(len=9)            :: Prob_Type
       character(len=12)           :: bbbb
-      character(len=16)           :: dddd
+      character(len=16)           :: dddd, OrderElemType
       double precision            :: delta_t
       integer :: i,j, k, l
       
@@ -34,7 +35,23 @@ module library
         write(*,'(A)') '> > >Error in stabilization method'
       endif
      
-      if(ProbType.ne.'TIME')ProbType = 'STAT'
+      if(ProbType.ne.'TIME')then
+        Prob_Type = 'STATIC'
+      else
+        Prob_Type = 'TRANSIENT'
+      endif
+      
+      if((InitElemType.eq.'QUAD').and.(nne.eq.4))then
+        OrderElemType = 'QUADRILATERAL Q1'
+      elseif((InitElemType.eq.'QUAD').and.(nne.eq.9))then
+        OrderElemType = 'QUADRILATERAL Q2'
+      elseif((InitElemType.eq.'TRIA').and.(nne.eq.3))then
+        OrderElemType = 'TRIANGULAR P1'
+      elseif((InitElemType.eq.'TRIA').and.(nne.eq.6))then
+        OrderElemType = 'TRIANGULAR P2'
+      end if
+      
+      
      
       call fdate(date)
       print*, ' '
@@ -42,23 +59,23 @@ module library
       print*, ' '
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
-      write(*,"(A19,7x,a19,3X,A1)") ' - Input File:             ', name_inputFile,''
-      write(*,"(A19,7x,a19,3X,A1)") ' - Input File:             ', geometry_File,''
-      write(*,"(A19,7x,a5,3X,A1)") ' - Element type:           ', InitElemType,''
-      write(*,"(A19,7x,a5,3X,A1)")  ' - Problem Type:           ', ProbType,''
-      write(*,"(A19,4X,I6,1X,A10)") ' - Problem dimension:      ', DimPr, '  '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Elements:               ', initelem,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Nodal points:           ', initnodes, ' '
-      write(*,"(A19,4X,I6,1X,A10)") ' - DoF per node:           ', ndofn, '  '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Nodes per element:      ', nne, '    '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Total Gauss points:     ', totGp,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Element variabless:     ', initnevab,'   '
-      write(*,"(A19,4X,I6,1X,A10)") ' - Total unknowns:         ', initntotv,'   '
-      write(*,"(A19,7X,f8.4,1X,A10)") ' - Element size:        ', 2.0**(-i_exp),'   '
-      write(*,"(A26,2X,f3.1,1X,A10)") ' - Length ref. element:    ', hnatu,'   '
+      write(*,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
+      write(*,"(A30,2x,a19  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
+      write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', initelem,'   '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', initnodes, ' '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - DoF per node             : ', ndofn, '  '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodes per element        : ', nne, '    '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Element variabless       : ', initnevab    ,'  '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
+      write(*,"(A29,3X,f11.4,1X,A10)") ' - Element size             : ', helem,' '
+      write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Length reference element : ', hnatu        ,' '
       
       if(refiType.eq.'NO')then
-        write(*,"(A23,2x,a6,3X,A1)") ' - Refinement type:        ', '  NONE',''
+        write(*,"(A30,2x,a6,3X,A10)") ' - Refinement type          : ','  NONE',' '
       elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
         if(refitype.eq.'PS')then
           bbbb = 'Powell-Sabin'
@@ -80,17 +97,17 @@ module library
         write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
       elseif(kstab.eq.6)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A30,4x,a4,3X,A1)")     ' - Stabilization method     : ', aaaa,''
-        write(*,"(A31,2X,f10.3,1X,A10)") ' - Reluctivity of medium (λ): ', lambda, '  '
-        write(*,"(A30,2X,f10.3,1X,A10)") ' - Algorithmic constant (Cu): ', Cu, ' '
-        write(*,"(A31,3X,f10.3,1X,A10)") ' - Constante of length (ℓ)  : ', ell, '    '
-        write(*,"(A30,5X,e13.5,1X,A10)") ' - Stab. param.1 (Su)       : ', Cu*lambda*(helem**2/ell**2),'   '
-        write(*,"(A30,4X,e14.5,2X,A10)") ' - Stab. param.2 (Sp)       : ', ell**2 / lambda,'   '
+        write(*,"(A30,2x, A10 ,1X,A10)") ' - Stabilization method     : ', aaaa   ,' '
+        write(*,"(A30,2X,f13.5,1X,A10)") ' - Reluctivity of medium (λ): ', lambda ,' '
+        write(*,"(A30,1X,f13.5,1X,A10)") ' - Algorithmic constant (Cu): ', Cu     ,' '
+        write(*,"(A31,2X,f13.5,1X,A10)") ' - Constante of length (ℓ)  : ', ell    ,' '
+        write(*,"(A30,2X,e16.5,1X,A10)") ' - Stab. param.1 (Su)       : ', Cu*lambda*(helem**2/ell**2),'   '
+        write(*,"(A30,2X,e16.5,2X,A10)") ' - Stab. param.2 (Sp)       : ', ell**2 / lambda,'   '
       else
         print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
-        write(*,"(A26,3x,I2,3X,A1)")  ' - Type of Tau matrix:    ', ktaum,''
-        write(*,"(A26,3X,f3.1,1X,A10)") ' - Param. to obtain TAU:   ', patau, '  '
+        write(*,"(A30,2x,a4  ,3X,A1 )")  ' - Stabilization method     : ', aaaa   ,' '
+        write(*,"(A30,2x,I2  ,3X,A1 )")  ' - Type of Tau matrix       : ', ktaum  ,' '
+        write(*,"(A30,2X,f3.1,1X,A10)")  ' - Param. to obtain TAU     : ', patau  ,' '
       endif
       
       print*, ' '
@@ -103,15 +120,15 @@ module library
           else
             cccc = 'BDF2'
           endif
-          write(*,"(A19,8X,A,1X,A10)") ' - Method Selected:        ', cccc,' '
+          write(*,"(A29,2X,A10,1X,A10)") ' - Method Selected          : ', cccc,' '
         elseif(theta.eq.3)then
           dddd = 'Cranck-Nicholson'
-          write(*,"(A23,2x,a16,3X,A1)") ' - Method Selected:        ', dddd,' '
+          write(*,"(A29,2x,A10,1X,A10)") ' - Method Selected          : ', dddd,' '
         endif
-        write(*,"(A19,4X,F10.5,1X,A10)") ' - Initial time:          ', time_ini,' '
-        write(*,"(A19,4X,F10.5,1X,A10)") ' - Final time:            ', time_fin,' '
-        write(*,"(A19,5X,I5,1X,A10)")    ' - Number of steps:       ', max_time,' '
-        write(*,"(A21,7X,F10.6,1X,A10)") ' - Step size(∆t):         ', delta_t,' '
+        write(*,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
+        write(*,"(A29,2X,F13.5,1X,A11)") ' - Total time simulation    : ', time_fin,' '
+        write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', max_time,' '
+        write(*,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
       else
         continue
       endif
@@ -218,12 +235,12 @@ module library
       elseif(kstab.eq.6)then
         write(100,'(A)') 
         write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A29,3x,a4,3X,A1)") ' - Stabilization method:        ', aaaa,''
-        write(100,"(A29,3X,f8.3,1X,A10)") ' - Algorithmic constant(Cu): ', Cu, ' '
-        write(100,"(A31,3X,f8.3,1X,A10)") ' - Constant of length(ℓ):    ', ell, '    '
-        write(100,"(A30,2X,f8.3,1X,A10)") ' - Reluctivity of the medium: ', lambda, '  '
-        write(100,"(A29,4X,e13.5,1X,A10)")' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
-        write(100,"(A29,3X,e14.5,2X,A10)")' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
+        write(100,"(A30,2x, A10 ,1X,A10)") ' - Stabilization method:        ', aaaa,''
+        write(100,"(A30,2X,f13.5,1X,A10)") ' - Algorithmic constant(Cu): ', Cu, ' '
+        write(100,"(A30,1X,f13.5,1X,A10)") ' - Constant of length(ℓ):    ', ell, '    '
+        write(100,"(A31,2X,f13.5,1X,A10)") ' - Reluctivity of the medium: ', lambda, '  '
+        write(100,"(A30,2X,e16.5,1X,A10)")' - Stab. param.1 (Su):       ', Cu*lambda*(helem**2/ell**2),'   '
+        write(100,"(A30,2X,e16.5,2X,A10)")' - Stab. param.2 (Sp):       ', ell**2 / lambda,'   '
       else
         write(100,'(A)') 
         write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
@@ -1160,10 +1177,10 @@ module library
       
       print*, ' '
       print*,'!================ Bandwidth Info ==============!'
-      write(*,"(A15,9X,I6,1X,A9)")' - UpBand:      ', upban,'   '
-      write(*,"(A15,9X,I6,1X,A9)")' - LowBand:     ', lowban,'  '
-      write(*,"(A15,9X,I6,1X,A9)")' - TotBand:     ', totban,'  '
-      write(*,"(A15,9X,I6,1X,A9)")' - ledimAK:     ', ldAKban,' '
+      write(*,"(A30,2X,I6,1X,A9      )")' - Uppper Band              : ', upban,'   '
+      write(*,"(A30,2X,I6,1X,A9      )")' - Lower Band               : ', lowban,'  '
+      write(*,"(A30,2X,I6,1X,A9      )")' - Bandwidth                : ', totban,'  '
+      write(*,"(A30,2X,I6,1X,A9      )")' - Leading dimension of K   : ', ldAKban,' '
       
     end subroutine BandWidth
     !
@@ -1697,7 +1714,7 @@ module library
           srcCurr=  Icurr(1)
           ds     =  1.0
           sigma  =  1.0
-          x      = 40.0 
+          x      = 60.0 
           y      =-26.0
           z      =  0.0
           mu     =  1.0/lambda 
@@ -1718,7 +1735,7 @@ module library
           do i=1,max_time +2
             t(i) = nt 
             nt   = nt + delta_t
-            if(i.le.6)t(i)=0.0
+            !if(i.le.6)t(i)=0.0
           end do
           
           r_vec= sqrt(x*x+y*y+z*z)
@@ -1744,7 +1761,7 @@ module library
             Texact_y(i) = ey
             Texact_z(i) = ez
             
-            write(*,'(I5, F15.5, 3(E14.6))') i-1, t(i), Texact_x(i), Texact_y(i), Texact_z(i)
+            !write(*,'(I5, F15.5, 3(E14.6))') i-1, t(i), Texact_x(i), Texact_y(i), Texact_z(i)
           end do
           
         case(3) !new test of polynomial solution
@@ -2253,7 +2270,6 @@ module library
     !- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- -
     ! Agregamos las rutinas de tiempo del commit 625fbee: May2 2022
     
-    
     subroutine GID_PostProcess(solution, activity, time, timeStep, time_final, Ex_field)
       
       implicit none
@@ -2265,7 +2281,7 @@ module library
       double precision, dimension(ntotv, 1),intent(in)     :: solution
       character(*)                         ,intent(in)     :: activity
       integer                              ,intent(in)     :: time
-      real                                 ,intent(in)     :: timeStep, time_final
+      double precision                     ,intent(in)     :: timeStep, time_final
       character(len=10)                                    :: ext1, ext2
       character(len=4)                                     :: ext3
       character(len=15)                                    :: Elem_Type
