@@ -31,7 +31,8 @@ implicit none
   !name_inputFile = 'Stokes_InputCDR.dsc' 
   
   !-----Geometry File
-  geometry_File  = 'EM_tests.msh' 
+  !geometry_File  = 'Fix_EM.msh' 
+  geometry_File  = 'EM_Tests.msh' 
   
   !--------------- Input Data ---------------!
   call cpu_time(start)
@@ -78,7 +79,7 @@ implicit none
     call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, time_ini, time_fin, max_time, u0cond,&
     &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim, Ex_field)
    
-    call Res_Matlab(Ex_field)
+    !call Res_Matlab(Ex_field)
    
     !---------- Memory Relase -----------!
     deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
@@ -89,12 +90,13 @@ implicit none
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)
-    if(ndofn.eq.1.and.simul.eq.2)then
+    !if(ndofn.eq.1.and.simul.eq.2)then
       do ii=1,nodalSrc
-        A_F((srcLoc(ii)-1)*ndofn+1,1) = 1.0
+        A_F((srcLoc(ii)-1)*ndofn+1,1) = Icurr(1)
+        A_F((srcLoc(ii)-1)*ndofn+2,1) = Icurr(2)
       end do
-    end if
-    
+    !end if
+      !A_F = 0.0
     !---------- Memory Relase -----------!
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
     allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
