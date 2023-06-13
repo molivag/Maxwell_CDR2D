@@ -10,8 +10,8 @@ module param
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
   integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   integer           :: i_exp, nodalSrc, nodalRec, skipline, postpro, signal, srcType!, srcLoc
-  real              :: hnatu, patau, time_ini, time_fin, u0cond
-  real              :: Cu,lambda, ell, helem, n_val
+  real              :: hnatu, patau
+  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, u0cond
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -72,6 +72,7 @@ module param
       conma = 0.0
       reama = 0.0
       force = 0.0
+      helem = 0d0
       param_stab1 = 0.0
       param_stab2 = 0.0
 
@@ -149,8 +150,15 @@ module param
         
       end if
       
-      read(5,107,iostat=stat,iomsg=msg) Icurr(1), Icurr(2), Icurr(3)
-      if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+      if(ndofn.eq.1)then
+        read(5,105,iostat=stat,iomsg=msg) Icurr(1)
+        if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+      elseif(ndofn.eq.3)then
+        read(5,107,iostat=stat,iomsg=msg) Icurr(1), Icurr(2), Icurr(3)
+        if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+      else
+        write(*,*) 'Source must be 1 or 3 DoF'
+      endif
       
       read(5,104,iostat=stat,iomsg=msg) nodalSrc
       do ii =1, nodalSrc
@@ -178,7 +186,8 @@ module param
       
       if(kstab.eq.6)then
         !helem = 2.0**(-(i_exp)) 
-        helem = 1/1.0
+        helem = 0.2
+        print*,'helem: ', helem
         !Parameter of stabilization in augmented formulation
         param_stab1 = Cu*lambda*(helem**2/ell**2)
         param_stab2 = ell**2 / lambda
@@ -204,8 +213,8 @@ module param
       
       100 format(7/ 11x, A4,/ ,11x, A4,/, 5(11x,I5,/),         2/,&  !model parameters
       &          4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
-      &          2(11x,I5,/), 5(11x,F7.2,/),                   2/,&  !stabi
-      &          11x,I1,/, 2(11x,f7.5,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
+      &          2(11x,I5,/), 5(11x,F15.5,/),                   2/,&  !stabi
+      &          11x,I1,/, 2(11x,f15.5,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
       &          11x,A14,/, 5(11x,A12,/), / )              !output files
      
       101 format(1/,F12.5,2/)
