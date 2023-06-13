@@ -111,7 +111,7 @@ module timeInt
       integer, dimension(nBVs)               ,intent(in)     :: nofix
       character(len=1)                       ,intent(in)     :: S_trans
       integer                                ,intent(in)     :: S_m, S_n, S_nrhs, S_ldSol, max_time
-      real                                   ,intent(in)     :: time_ini, time_fin, u0cond
+      double precision                       ,intent(in)     :: time_ini, time_fin, u0cond
       ! - - Local Variables - -!
       double precision, allocatable, dimension(:,:)          :: A_K, A_C, A_F
       double precision, allocatable, dimension(:,:)          :: AK_time, lhs_BDF2
@@ -123,9 +123,8 @@ module timeInt
       double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut
       double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
       integer         , allocatable, dimension(:)            :: S_ipiv, S_iwork
-      double precision                                       :: delta_t
+      double precision                                       :: delta_t, nt
       integer                                                :: time, info, workdim
-      real                                                   :: nt 
       integer :: ii
       double precision, allocatable,dimension(:),intent(out) :: Ex_field
       
@@ -157,12 +156,12 @@ module timeInt
       !call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C ,A_F)
       
       write(*,*) ' '
-      print'(A11,I0,A3,F8.5,A)',' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
-      call GID_PostProcess(u_pre, 'res', time, nt, time_fin,Ex_field)
-      call GID_PostProcess(u_pre, 'profile', time, nt, time_fin,Ex_field)
+      print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
+      call GID_PostProcess(u_pre, 'res'    , time, nt, time_fin, Ex_field)
+      call GID_PostProcess(u_pre, 'profile', time, nt, time_fin, Ex_field)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
-      
+     
       select case(theta)
         !-------- 1st-order Backward Difference 
         case(2) 
@@ -201,10 +200,10 @@ module timeInt
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
             !---------- Printing and writing results -----------!
-            print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+            print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
             !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
             !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,' of',time_fin,' seg'
-            call GID_PostProcess(u_fut, 'res', time, nt, time_fin, Ex_field)
+            call GID_PostProcess(u_fut, 'res'    , time, nt, time_fin, Ex_field)
             call GID_PostProcess(u_fut, 'profile', time, nt, time_fin, Ex_field)
             u_pre = u_fut
           end do
@@ -329,10 +328,14 @@ module timeInt
       !print*, 'Shape of Global F: ',shape(rhs_time)
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
-      call GID_PostProcess(u_pre, 'msh', time, 0.0, time_fin, Ex_field)
+      nt = 0.0
+      call GID_PostProcess(u_pre, 'msh', time, nt, time_fin, Ex_field)
       print*, ' '
       DEALLOCATE( AK_time, u_pre, u_fut)
-
+      
+      
+      100 format(A11,I4,1x,A3,F8.5,A)  
+      101 format(A11,I4,1x,A3,1x,E12.5,A5,1x, E12.5,A5)
     end subroutine TimeIntegration
     
     
