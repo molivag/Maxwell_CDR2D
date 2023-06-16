@@ -5,7 +5,7 @@ use param
 
   double precision, allocatable, dimension(:,:)     :: coord !, coordRef
   integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
-  character(len=4) :: ElemType
+  character(len=4)  :: ElemType
   integer           :: nelem, nnodes, nevab, ntotv
 
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
@@ -23,13 +23,13 @@ use param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      character(len=*), parameter  :: fileplace = "Msh/"
-      character(len=19)            :: file_mesh
-      character(len=180)           :: msg
-      double precision :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
-      integer          :: ielem, jpoin, idime, i,j, stat
-      integer          :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
-      integer          :: npoiw,nelew,nnodw, npoif
+      character(len=*), parameter     :: fileplace = "Msh/"
+      character(len=12), intent(in)   :: file_mesh
+      character(len=180)              :: msg
+      double precision                :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
+      integer                         :: ielem, jpoin, idime, i,j, stat
+      integer                         :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
+      integer                         :: npoiw,nelew,nnodw, npoif
       
       
       open(5, file=fileplace//file_mesh,status='old', action='read',IOSTAT=stat, IOMSG=msg)
@@ -47,7 +47,7 @@ use param
       !read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       !end do
       do i=1,2
-        read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
+        read(5,*) !se salta todas las lineas del archivo .msh comenzando a leer nodos
         if ( stat /= 0 )then
           print*, ' ' 
           print*, 'error in read mesh module geometry' 
