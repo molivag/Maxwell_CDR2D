@@ -94,7 +94,7 @@ module sourceTerm
           !EMsource(2) = force(2)*A_F((srcLoc-1)*ndofn,1)*u(t)
           !EMsource(3) = force(3)*A_F((srcLoc-1)*ndofn,1)*u(t)
           
-          print*, 'The static case'
+          !print*, 'The static case'
           EMsource(1) = force(1)
           EMsource(2) = force(2)
           EMsource(3) = force(3)
@@ -116,8 +116,8 @@ module sourceTerm
           dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
           
           
-          EMsource(1) = lambda*( dey_dydx - dex_dy2)! - beta*(dex_dx2  - beta*dey_dxdy ) 
-          EMsource(2) = lambda*(-dey_dx2 + dex_dxdy)! - beta*(dex_dydx - beta*dey_dy2  )  
+          EMsource(1) = force(1)*lambda*( dey_dydx - dex_dy2)! - beta*(dex_dx2  - beta*dey_dxdy ) 
+          EMsource(2) = force(2)*lambda*(-dey_dx2 + dex_dxdy)! - beta*(dex_dydx - beta*dey_dy2  )  
           EMsource(3) = force(3)
           
         case(4) !stokes
@@ -142,7 +142,7 @@ module sourceTerm
           
           EMsource(1) = -lambda * force(1)
           EMsource(2) = -lambda * force(2)
-          EMsource(3) = -lambda * force(3)
+          EMsource(3) =  force(3)
           
         case default
         
@@ -178,7 +178,7 @@ module sourceTerm
       
       !double precision,allocatable, dimension(:,:), intent(in) :: A_F
       double precision, intent(in)                        :: eTime
-      integer :: tw, inode, time, locatx, locaty
+      integer :: tw, inode, time
       double precision, intent(out) :: Jsource(ntotv,1)
       
       !allocate(A_F(ntotv,1))
