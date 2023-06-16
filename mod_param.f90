@@ -2,7 +2,7 @@ module param
   
   implicit none
 
-  character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
+  character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
   character(len=14) :: testID
   character(len=4)  :: InitElemType, ProbType
   character(len=2)  :: refiType
@@ -22,7 +22,7 @@ module param
 
   contains
     
-    subroutine inputData(name_inputFile)
+    subroutine inputData(name_inputFile, mesh_file)
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       !                                                                                   !
       ! subrutina que lee todos los parametros de entrada para la simulacion,             !
@@ -31,11 +31,12 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      character(len=19)             :: name_inputFile
-      double precision  :: param_stab1, param_stab2 
-      character(len=180)            :: msg
-      character(len=*), parameter   :: fileplace = "./"
-      integer                       ::  stat, ii
+      character(len=19)               :: name_inputFile
+      double precision                :: Su, Sp 
+      character(len=180)              :: msg
+      character(len=*), parameter     :: fileplace = "./"
+      integer                         :: stat, ii
+      character(len=12), intent(out)  :: mesh_file
       
       
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
@@ -43,8 +44,8 @@ module param
       
       read(5, 100,iostat=stat,iomsg=msg) &
       InitElemType,ProbType,DimPr,ndofn,totGp,simul,postpro,&
-      initElem, initNodes, nne, i_exp, hnatu, refiType,&
-      kstab, ktaum, patau, n_val, Cu, ell, lambda,&
+      mesh_file, initNodes, initElem, nne, i_exp, hnatu, refiType,&
+      kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
       theta, time_ini, time_fin, max_time, u0cond,&
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       if (stat.ne.0) then
@@ -72,9 +73,8 @@ module param
       conma = 0.0
       reama = 0.0
       force = 0.0
-      helem = 0d0
-      param_stab1 = 0.0
-      param_stab2 = 0.0
+      Su    = 0.0
+      Sp    = 0.0
 
       
       if(ndofn.eq.1)then
@@ -186,35 +186,40 @@ module param
       
       if(kstab.eq.6)then
         !helem = 2.0**(-(i_exp)) 
-        helem = 0.2
-        print*,'helem: ', helem
+        print*,'Cu    : ', Cu
+        print*,'lambda: ', lambda
+        print*,'helem : ', helem
+        print*,'ℓ     : ', ell
         !Parameter of stabilization in augmented formulation
-        param_stab1 = Cu*lambda*(helem**2/ell**2)
-        param_stab2 = ell**2 / lambda
+        print*,' '  
+        Su = Cu*lambda*(helem**2/ell**2)
+        Sp = ell**2 / lambda
         
-        difma(1,1,1,1) = difma(1,1,1,1)*param_stab1
+        print*,'Su : ', Su
+        print*,'Sp : ', SP
+        
+        difma(1,1,1,1) = difma(1,1,1,1)*Su
+        difma(1,2,1,2) = difma(1,2,1,2)*Su
+        difma(2,1,2,1) = difma(2,1,2,1)*Su
+        difma(2,2,2,2) = difma(2,2,2,2)*Su
+        
+        difma(3,3,1,1) = difma(3,3,1,1)*Sp
+        difma(3,3,2,2) = difma(3,3,2,2)*Sp
+        
         difma(2,2,1,1) = difma(2,2,1,1)*lambda
-        difma(3,3,1,1) = difma(3,3,1,1)*param_stab2
-        
-        difma(1,2,1,2) = difma(1,2,1,2)*param_stab1
         difma(2,1,1,2) = difma(2,1,1,2)*lambda
-        
         difma(1,2,2,1) = difma(1,2,2,1)*lambda
-        difma(2,1,2,1) = difma(2,1,2,1)*param_stab1
-        
         difma(1,1,2,2) = difma(1,1,2,2)*lambda
-        difma(2,2,2,2) = difma(2,2,2,2)*param_stab1
-        difma(3,3,2,2) = difma(3,3,2,2)*param_stab2
       end if
       
       !Initial elemental and global variables, it will changes if refination is selected.
       initnevab = ndofn*nne
       initntotv = ndofn*initNodes
       
-      100 format(7/ 11x, A4,/ ,11x, A4,/, 5(11x,I5,/),         2/,&  !model parameters
-      &          4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
-      &          2(11x,I5,/), 5(11x,F15.5,/),                   2/,&  !stabi
-      &          11x,I1,/, 2(11x,f15.5,/), 11x,I7,/,11x,f7.2,/, 2/,&  !time
+      100 format(7/ 11x,A4,/ ,11x, A4,/, 5(11x,I5,/),            2/,&  !model parameters
+      &          11x,A12,/, 4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,    2/,&  !geometry
+      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),     2/,&  !stabi
+      &          11x,I1,/, 2(11x,f15.5,/), 11x,I7,/,11x,f7.2,/,   2/,&  !time
       &          11x,A14,/, 5(11x,A12,/), / )              !output files
      
       101 format(1/,F12.5,2/)
