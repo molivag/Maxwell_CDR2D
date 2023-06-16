@@ -41,15 +41,15 @@ module BoundVal
       ymin = minval(coord(2,:)) !the smallest number in y column
       ymax = maxval(coord(2,:)) !the greatest number in y column
       xmiddle =  xmax/2.0
-      ymiddle =  ymin/2.0
+      ymiddle =  ymax/2.0
       print*, ' '
       print*, '!================ Domain Dimensions ===========!'
       write(*,'(A)') '- xmin , xmax '
       write(*,'(A3,1x,I0,A,2x,I0)')' ', int(xmin),'  ,', int(xmax) 
       write(*,'(A9,I0)') '- ymax = ', int(ymax)
       write(*,'(A9,I0)') '- ymin = ', int(ymin)
-      write(*,'(A9,I0)') '- xhlf = ', int(xmiddle)
-      write(*,'(A9,I0)') '- yhlf = ', int(ymiddle)
+      write(*,'(A9,f5.2)') '- xhlf = ', real(xmiddle)
+      write(*,'(A9,f5.2)') '- yhlf = ', real(ymiddle)
       
       
       
