@@ -79,6 +79,7 @@ module timeInt
           end do
         case default
           write(*,*) 'No function in time defined'
+          stop
       end select
       
       shapeTime = u 
@@ -172,7 +173,7 @@ module timeInt
             
             call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
             AK_time  = (1.0/delta_t)*A_C + A_K !A_C + delta_t*A_K
-
+            
             call ApplyBVs(nofix,ifpre,presc,AK_time,A_F)
             call currDensity(time,shapeTime(time),Jsource) 
             rhs_time =  A_F + Jsource
@@ -201,11 +202,11 @@ module timeInt
             endif
             !---------- Printing and writing results -----------!
             print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
-            !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-            !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,' of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res'    , time, nt, time_fin, Ex_field)
             call GID_PostProcess(u_fut, 'profile', time, nt, time_fin, Ex_field)
+            
             u_pre = u_fut
+            
           end do
         !-------- Crank- Nicholson Scheme 
         case(3)
