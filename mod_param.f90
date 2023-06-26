@@ -184,33 +184,33 @@ module param
       !print*, srcLoc(1), srcLoc(2), srcType, signal 
       
       
-      if(kstab.eq.6)then
-        !helem = 2.0**(-(i_exp)) 
-        print*,'Cu    : ', Cu
-        print*,'lambda: ', lambda
-        print*,'helem : ', helem
-        print*,'ℓ     : ', ell
-        !Parameter of stabilization in augmented formulation
-        print*,' '  
-        Su = Cu*lambda*(helem**2/ell**2)
-        Sp = ell**2 / lambda
-        
-        print*,'Su : ', Su
-        print*,'Sp : ', SP
-        
-        difma(1,1,1,1) = difma(1,1,1,1)*Su
-        difma(1,2,1,2) = difma(1,2,1,2)*Su
-        difma(2,1,2,1) = difma(2,1,2,1)*Su
-        difma(2,2,2,2) = difma(2,2,2,2)*Su
-        
-        difma(3,3,1,1) = difma(3,3,1,1)*Sp
-        difma(3,3,2,2) = difma(3,3,2,2)*Sp
-        
-        difma(2,2,1,1) = difma(2,2,1,1)*lambda
-        difma(2,1,1,2) = difma(2,1,1,2)*lambda
-        difma(1,2,2,1) = difma(1,2,2,1)*lambda
-        difma(1,1,2,2) = difma(1,1,2,2)*lambda
-      end if
+      !if(kstab.eq.6)then
+      !  !helem = 2.0**(-(i_exp)) 
+      !  print*,'Cu    : ', Cu
+      !  print*,'lambda: ', lambda
+      !  print*,'helem : ', helem
+      !  print*,'ℓ     : ', ell
+      !  !Parameter of stabilization in augmented formulation
+      !  print*,' '  
+      !  Su = Cu*lambda*(helem**2/ell**2)
+      !  Sp = ell**2 / lambda
+      !  
+      !  print*,'Su : ', Su
+      !  print*,'Sp : ', SP
+      !  
+      !  difma(1,1,1,1) = difma(1,1,1,1)*Su
+      !  difma(1,2,1,2) = difma(1,2,1,2)*Su
+      !  difma(2,1,2,1) = difma(2,1,2,1)*Su
+      !  difma(2,2,2,2) = difma(2,2,2,2)*Su
+      !  
+      !  difma(3,3,1,1) = difma(3,3,1,1)*Sp
+      !  difma(3,3,2,2) = difma(3,3,2,2)*Sp
+      !  
+      !  difma(2,2,1,1) = difma(2,2,1,1)*lambda
+      !  difma(2,1,1,2) = difma(2,1,1,2)*lambda
+      !  difma(1,2,2,1) = difma(1,2,2,1)*lambda
+      !  difma(1,1,2,2) = difma(1,1,2,2)*lambda
+      !end if
       
       !Initial elemental and global variables, it will changes if refination is selected.
       initnevab = ndofn*nne
