@@ -1,22 +1,21 @@
 program DebyeEXP
 
   implicit none
-  REAL ::sigma_inf, sigma_0, m, tau, c
-  INTEGER, parameter::nfrec=41, nfrec_rel=12
-  INTEGER :: ND !No. de fun. debye debe ser 1 a 1.5 veces el numero de decadas de w
-  INTEGER :: Nf !No. de frec. a las que se muestreara sigmaIM(w)
+  
+  integer, parameter::nfrec=41, nfrec_rel=12
+  real              ::sigma_inf, sigma_0, m, tau, c
+  integer           :: ND !No. de fun. debye debe ser 1 a 1.5 veces el numero de decadas de w
+  integer           :: Nf !No. de frec. a las que se muestreara sigmaIM(w)
   !REAL :: gammaIM=0.0001 !Factor de regularización imaginarios
   !REAL :: gammaRE=0.0002 !Factor de regularización reales
   !REAL ::frecmin, frecmax
 
-  !en GNU, puedo definir los arreglos directamente de la siguiente manera
-  !puede o no llevar la opcion de dimensio
-  REAL(4):: ti(1:nfrec), w(1:nfrec)
-  REAL(4):: qr(1:nfrec_rel), taur(1:nfrec_rel), wr(1:nfrec_rel)
-  COMPLEX(4):: ColeCole(1:nfrec)
-  REAL(4):: ColeCole_real(1:nfrec), ColeCole_imag(1:nfrec)
-  REAL(4), allocatable,dimension(:) :: ci, cr, c_tot, A_imag, A_real, A, DiTci
-  REAL(4), allocatable,dimension(:,:) :: Di, Dr, D, DiT, DtD_imag
+  double precision                             :: ti(1:nfrec), w(1:nfrec)
+  double precision                             :: qr(1:nfrec_rel), taur(1:nfrec_rel), wr(1:nfrec_rel)
+  double precision                             :: ColeCole_real(1:nfrec), ColeCole_imag(1:nfrec)
+  double precision, allocatable, dimension(:)  :: ci, cr, c_tot, A_imag, A_real, A, DiTci
+  double precision, allocatable, dimension(:,:):: Di, Dr, D, DiT, DtD_imag
+  double complex                                    :: ColeCole(1:nfrec)
   integer :: i, p!, k, L
   !REAL, allocatable,dimension(:) :: frec
   !REAL,allocatable,dimension(:) :: w
@@ -44,31 +43,25 @@ program DebyeEXP
   print*
 
 
+  !Muestras
   ti(1)=-1.0
   do i=2,nfrec
     ti(i)= ti(i-1) + 0.1
   end do
 
-  print *,'Muestras:'
-  do i=1,nfrec
-   print *,ti(i) !esto se imprime solo para verificar
-  end do
-
+  !Frecuencias de muestreo
   do i=1,nfrec
    w(i)= 1*10**ti(i)
   end do
 
-  print*
-  print *,'Frecuencias de muestreo:'
+  print *,'Muestras                  Frecuencias de muestreo:'
   do i=1,nfrec
-   print *,w(i)
+   write(*,'(1x,I3,2x,2(f15.5))') i, ti(i), w(i)
   end do
 
   ! * * * * * ** * * * * * * * * * * * * * * * * * * * * * * * !
-  print*
   print*, '~ ~ ~ Parametros para la expansión de Debye ~ ~ ~'
-  print*
-
+  
   !el espaciado en el muestreoo
   qr(1)=1.1
   do i=2,nfrec_rel
@@ -83,23 +76,19 @@ program DebyeEXP
 
   !la frecuencia de muestreo (calculada)
   do i=1,nfrec_rel
-   wr(i)= 1/taur(i)
+    wr(i)= 1/taur(i)
   end do
 
   print*
   print *,'Frecuencias de relajación:'
   do i=1,nfrec_rel
-
-   print *,wr(i)
-
+    print *,wr(i)
   end do
 
 
   !Modelo Cole-Cole
-  !!!!!!!!!!!!!!!!!!!!
-
   do i= 1,nfrec
-   ColeCole(i)= sigma_inf*( 1 - ( m /( 1+(complex(0,1)*w(i)*tau)**c  ) ) )
+   ColeCole(i)= sigma_inf*( 1 - ( m /( 1+(cmplx(0,1)*w(i)*tau)**c  ) ) )
   end do
   !tambien puedo realizarlo de esta forma:
   !ColeCole(1:nfrec) = sigma_inf*( 1 - ( m /( 1+(complex(0,1)*w(1:nfrec)*tau)**c  ) ) )
@@ -111,21 +100,15 @@ program DebyeEXP
   !print*,realpart(ColeCole)
   !print*
   !print*,imagpart(ColeCole)
-
+  
   do i=1,nfrec
-    ColeCole_real(i)= realpart(ColeCole(i))
+    ColeCole_real(i)= real(ColeCole(i))
+    ColeCole_imag(i)=aimag(ColeCole(i))
   end do
-
-  do i=1,nfrec
-    ColeCole_imag(i)=imagpart(ColeCole(i))
-  end do
-
 
   !print*,'* * * * * * * * * * * * * * * * * * * * * * * * * * * * *'
   !PRINT*,ColeCole_real
   !print*,'* * * * * * * * * * * * * * * * * * * * * * * * * * * * *'
-
-
 
   !pesos parte Imaginaria
 
