@@ -41,13 +41,13 @@ module library
         Prob_Type = 'TRANSIENT'
       endif
       
-      if((InitElemType.eq.'QUAD').and.(nne.eq.4))then
+      if((ElemType.eq.'QUAD').and.(nne.eq.4))then
         OrderElemType = 'QUADRILATERAL Q1'
-      elseif((InitElemType.eq.'QUAD').and.(nne.eq.9))then
+      elseif((ElemType.eq.'QUAD').and.(nne.eq.9))then
         OrderElemType = 'QUADRILATERAL Q2'
-      elseif((InitElemType.eq.'TRIA').and.(nne.eq.3))then
+      elseif((ElemType.eq.'TRIA').and.(nne.eq.3))then
         OrderElemType = 'TRIANGULAR P1'
-      elseif((InitElemType.eq.'TRIA').and.(nne.eq.6))then
+      elseif((ElemType.eq.'TRIA').and.(nne.eq.6))then
         OrderElemType = 'TRIANGULAR P2'
       end if
       
@@ -60,7 +60,7 @@ module library
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
       write(*,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(*,"(A30,2x,a19  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(*,"(A30,2x,a12  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
       write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
@@ -84,9 +84,11 @@ module library
         end if
           print*, ' '
           print*,'!================= REFINMENT INFO ===============!'
-          write(*,"(A23,2x,a12,3X,A1)") ' - Refinement type:    ', bbbb,''
-          write(*,"(A23,2X,I6,1X,A10)") ' - Final elements:     ', nelem,'   '
-          write(*,"(A23,2X,I6,1X,A10)") ' - Final nodes:        ', nnodes, ' '
+          write(*,"(A30,2x,a12,3X,A1)") ' - Refinement type           : ', bbbb,''
+          write(*,"(A30,2X,I6,1X,A10)") ' - Elements after refinement : ', nelem,'   '
+          write(*,"(A30,2X,I6,1X,A10)") ' - Nodes after refinement    : ', nnodes, ' '
+          write(*,"(A30,2X,I6,1X,A10)") ' - Elm. Var. after refinement: ', nevab, ' '
+          write(*,"(A30,2X,I6,1X,A10)") ' - Tot. Var. after refinement: ', ntotv, ' '
       else
         write(*,'(A)') '> > >Error in refinment type'
       endif
@@ -167,6 +169,13 @@ module library
       else
         write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
       endif
+      write(*,'(A)') 
+      write(*,'(A)') 'Density Current'
+      if(ndofn.eq.1)then
+        write(*,"(1(f10.3,1x))") Icurr(1)
+      elseif(ndofn.eq.3)then
+        write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
+      endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
@@ -204,9 +213,10 @@ module library
       elseif(refiType.ne.'NO')then
         write(100,'(A)')'!================= REFINMENT INFO ===============!'
         write(100,"(A30,2x,a12,3X,A1 )") ' - Refinement type          : ', bbbb    ,' '
-        write(100,"(A30,2x,a13,3X,A1 )") ' - Final element type       : ', ElemType,' '
-        write(100,"(A30,2x,I6 ,1X,A10)") ' - Total Elements           : ', nelem   ,' '
-        write(100,"(A30,2x,I6 ,1X,A10)") ' - Total Nodal points       : ', nnodes  ,' '
+        write(100,"(A30,2X,I6,1X,A10)") ' - Elements after refinement : ', nelem,'   '
+        write(100,"(A30,2X,I6,1X,A10)") ' - Nodes after refinement    : ', nnodes, ' '
+        write(100,"(A30,2X,I6,1X,A10)") ' - Elm. Var. after refinement: ', nevab, ' '
+        write(100,"(A30,2X,I6,1X,A10)") ' - Tot. Var. after refinement: ', ntotv, ' '
         write(100,'(A)') 
       endif 
       if(ProbType.eq.'TIME')then
@@ -765,7 +775,7 @@ module library
       double precision, intent(in) :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
       double precision, intent(in) :: dvol, hmaxi
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
-      double precision ::  diff, convec, reac, cpcty, cte
+      double precision ::  diff, convec, reac, cpcty, coef
       double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       
       ievab=0
@@ -779,9 +789,14 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
-                  !if(kstab.eq.6)call param_stab(idofn, jdofn, i, j, hmaxi, cte) !conductivity tensor
-                  !if(kstab.eq.6)diff = diff+ dNdxy(i,inode) * cte * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
-                  diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+                  if(kstab.eq.6)call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
+                  !print"(A8, e12.5)",'Product ', cte * difma(idofn,jdofn,i,j)
+                  if(kstab.eq.6)diff = diff+ dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  !print"(A8, e12.5)",'diff ', diff
+                  !!diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  !print*, '- - - - - - - - - - - - - - - - - - -'
+                  !print*, ' '
                 end do
               end do
               convec=0.0
@@ -801,6 +816,109 @@ module library
       end do
       
     end subroutine Galerkin
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine param_stab(idofn, jdofn, i, j, helem, coeff)       
+      !***********************************************************!
+      !                                                           !
+      ! Subroutine which check the dofn, x and y position in the  !
+      ! diffusion tensor and take the coefficient to multiply     !
+      ! the term of the PDE to its corresponding coefficient.     !
+      !                                                           !
+      ! coeficients:                                              !
+      !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
+      !                                                           !
+      !  λ = 1/µ  = reluctivity of the medium                     !
+      !                                                           !
+      !  h = helem 
+      !                                                           !
+      !***********************************************************!
+      
+      implicit none
+      
+      integer, intent(in) :: idofn, jdofn, i, j
+      double precision, intent(in) :: helem
+      double precision, intent(out) :: coeff
+      
+      
+      !print*, 'getting into param_stab'
+      
+      coeff = 0.0 
+      !print'(A9,F10.5)', 'helem  : ', helem
+      !print'(A9,F10.5)', 'helem^2: ', helem**2
+      
+      if(idofn.eq.1)then
+        if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
+          if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+            coeff = Cu*lambda*(helem**2/ell**2)
+            !print'(A9,F10.5)', 'helem  : ', helem
+            !print'(A2,e12.5)','Su', coeff
+          end if
+         
+          if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+            coeff = lambda
+            !print'(A2,e12.5)','λ ', coeff
+          endif
+          
+        elseif(jdofn==2)then                           !difma(1,2,1,2)
+          if(i==1 .and. j==2)then
+            coeff = Cu*lambda*(helem**2/ell**2)
+            !print'(A9,F10.5)', 'helem  : ', helem
+            !print'(A2,e12.5)','Su', coeff
+          end if
+          
+          if(i==2.and.j==1)then                        !difma(1,2,2,1)
+            coeff = lambda
+            !print'(A3,e12.5)','λ ', coeff
+          end if
+        end if
+        
+      elseif(idofn==2)then
+        if(jdofn.eq.1)then
+          if(i==1 .and. j==2)then                      !difma(2,1,1,2)
+            coeff = lambda
+            !print'(A3,e12.5)', 'λ ', coeff
+          end if
+          
+          if(i==2 .and. j==1)then                      !difma(2,1,2,1)
+            coeff = Cu*lambda*(helem**2/ell**2)
+            !print'(A9,F10.5)', 'helem  : ', helem
+            !print'(A2,e12.5)','Su', coeff
+          endif
+         
+        elseif(jdofn==2)then
+          if(i==1 .and. j==1)then
+            coeff = lambda
+            !print'(A3,e12.5)','λ ', coeff
+          end if
+          
+          if(i==2.and.j==2)then                        !difma(2,2,2,2)
+            coeff = Cu*lambda*(helem**2/ell**2)
+            !print'(A9,F10.5)', 'helem  : ', helem
+            !print'(A2,e12.5)','Su', coeff
+          end if
+        end if
+        
+      elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
+        if( i==j )then
+          coeff = ell**2/lambda
+            !print'(A2,e12.5)','Sp', coeff
+        endif
+        
+      else
+        continue
+      end if
+      !close(10)
+      
+      15 continue 
+      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
+      !Next lines are to taste the 
+      !print*, 'helem,', h
+      !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
+      !print*, 'ell^2/µ', ell**2/lambda
+      
+    end subroutine param_stab
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -1197,99 +1315,6 @@ module library
       write(*,"(A30,2X,I6,1X,A9      )")' - Leading dimension of K   : ', ldAKban,' '
       
     end subroutine BandWidth
-    !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    !
-    subroutine param_stab(idofn, jdofn, i, j, hmaxi, coeff)       
-      !***********************************************************!
-      !                                                           !
-      ! Subroutine which check the dofn, x and y position in the  !
-      ! diffusion tensor and take the coefficient to multiply     !
-      ! the term of the PDE to its corresponding coefficient.     !
-      !                                                           !
-      ! coeficients:                                              !
-      !             Cuλ(h^2/ell^2),  λ  and   ell^2/λ             !
-      !                                                           !
-      !  λ = 1/µ  = reluctivity of the medium                     !
-      !                                                           !
-      !  h = 2^-i = hmaxi                                         !
-      !                                                           !
-      !***********************************************************!
-      
-      implicit none
-      
-      integer, intent(in) :: idofn, jdofn, i, j
-      double precision, intent(in) :: hmaxi
-      double precision, intent(out) :: coeff
-      
-      
-      !print*, 'getting into param_stab'
-      
-      coeff = 0.0 
-      !print*, 'helem^2', hmaxi**2
-      if(idofn.eq.1)then
-        if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
-          if(i==1 .and. j==1)then                      !difma(1,1,1,1)
-            coeff = Cu*lambda*(hmaxi**2/ell**2)
-            !print*,'Beta', coeff
-          end if
-         
-          if(i==2 .and. j==2)then                      !difma(1,1,2,2)
-            coeff = lambda
-          endif
-          
-        elseif(jdofn==2)then                           !difma(1,2,1,2)
-          if(i==1 .and. j==2)then
-            coeff = Cu*lambda*(hmaxi**2/ell**2)
-            !print*,'Beta', coeff
-          end if
-          
-          if(i==2.and.j==1)then                        !difma(1,2,2,1)
-            coeff = lambda
-          end if
-        end if
-        
-      elseif(idofn==2)then
-        if(jdofn.eq.1)then
-          if(i==1 .and. j==2)then                      !difma(2,1,1,2)
-            coeff = lambda
-          end if
-          
-          if(i==2 .and. j==1)then                      !difma(2,1,2,1)
-            coeff = Cu*lambda*(hmaxi**2/ell**2)
-            !print*,'Beta', coeff
-          endif
-         
-        elseif(jdofn==2)then
-          if(i==1 .and. j==1)then
-            coeff = lambda
-          end if
-          
-          if(i==2.and.j==2)then                        !difma(2,2,2,2)
-            coeff = Cu*lambda*(hmaxi**2/ell**2)
-            !print*,'gamma', coeff
-          end if
-        end if
-        
-      elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
-        if( i==j )then
-          coeff = ell**2/lambda
-            !print*,'gamma', coeff
-        endif
-        
-      else
-        continue
-      end if
-      !close(10)
-      
-      15 continue 
-      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-      !Next lines are to taste the 
-      !print*, 'hmaxi,', h
-      !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
-      !print*, 'ell^2/µ', ell**2/lambda
-      
-    end subroutine param_stab
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -1725,7 +1750,7 @@ module library
 
           ! Define variables
           ! I*ds = dipole moment, is set to I*ds=1
-          srcCurr=  Icurr(1)
+          srcCurr=  1.0
           ds     =  1.0
           sigma  =  1.0
           x      = 60.0 
@@ -1744,7 +1769,7 @@ module library
           ee  = 0.0
           
           delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)  
-          nt = time_ini
+          nt       = time_ini
           
           do i=1,max_time +2
             t(i) = nt 
@@ -1754,16 +1779,16 @@ module library
           
           r_vec= sqrt(x*x+y*y+z*z)
           spi  = sqrt(pi)
-          cc   = SrcCurr*ds/(4.*pi*sigma*r_vec**3)
+          cc   = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
           
           do i=1,max_time +2
             
-            theta = sqrt(mu*sigma/(4.*t(i)))
-            aa = 4./spi*theta**3*r_vec**3 + 6./spi*theta*r_vec
+            theta = sqrt(mu*sigma/(4.0*t(i)))
+            aa = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
             arg= -theta**2*r_vec**2
             ee = erfc(theta*r_vec)
-            aa = aa*exp(arg)+3.*ee
-            bb = 4./spi*theta**3*r_vec**3 + 2./spi*theta*r_vec
+            aa = aa*exp(arg)+3.0*ee
+            bb = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
             bb = bb*exp(arg)+ee
             
             ! geometry term
@@ -1775,7 +1800,7 @@ module library
             Texact_y(i) = ey
             Texact_z(i) = ez
             
-            !write(*,'(I5, F15.5, 3(E14.6))') i-1, t(i), Texact_x(i), Texact_y(i), Texact_z(i)
+            !write(*,'(I5, e15.5, 3(E14.6))') i-1, t(i), Texact_x(i), Texact_y(i), Texact_z(i)
           end do
           
         case(3) !new test of polynomial solution
