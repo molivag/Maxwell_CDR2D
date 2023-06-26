@@ -45,8 +45,22 @@ implicit none
 
   !------- Computing half bandwidth  --------!
   call BandWidth
+
+
+  print*,' '  
+  print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
+  print*,'Cu    : ', Cu
+  print*,'lambda: ', lambda
+  print*,'helem : ', helem
+  print*,'ℓ     : ', ell
+  print'(A9,e12.5)','Su     = ',Cu*lambda*(helem**2/ell**2)
+  print'(A9,e12.5)','Sp     = ',ell**2 / lambda
+  print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
+  print*,' '  
+  
   
   !---------- Global Matrix and Vector ------!
+  print*,'  •BUILDING GLOBAL MATRIX (K) AND VECTOR (F).....'
   call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
   !the allocate of A_K and A_F are inside of GlobalSystem
 
@@ -90,6 +104,8 @@ implicit none
     if(((ndofn.eq.1).or.(ndofn.eq.3)).and.(simul.eq.2))then
       print*,'delta source'
       do ii=1,nodalSrc
+        !if(ii.eq.2)Icurr(1) = -1.0
+        print*,Icurr
         A_F((srcLoc(ii)-1)*ndofn+1,1) = Icurr(1)
         A_F((srcLoc(ii)-1)*ndofn+2,1) = Icurr(2)
       end do
@@ -103,14 +119,15 @@ implicit none
     
     print*, ' '
     print*, '!================ MKL Solver ==================!'
+    print*,'  •SETTING VARIABLES FOR MKL LIBRARY.....'
     AK_LU = A_K     !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
     u_sol = A_F     !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
    
     !---------- Solving System of Equations by INTEL MKL solver -----------!
-    print*,'  •INITIALIZING BAND LU DECOMPOSITION.....'                                                    
+    print*,'  •PERFORMING LU BAND DECOMPOSITION.....'
     call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
     call MKLfactoResult('dgbtrf',info) 
-    print*,'  •SOLVING SYSTEM OF EQUATIONS..... '
+    print*,'  •SOLVING SYSTEM OF EQUATIONS.....'
     !---------- Computing nodal unknowns ux_i, uy_i and p_i ---------------!
     call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
     call MKLsolverResult('dgbtrs',info)
