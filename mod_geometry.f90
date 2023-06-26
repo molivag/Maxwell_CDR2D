@@ -9,8 +9,8 @@ use param
   integer           :: nelem, nnodes, nevab, ntotv
 
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
-  integer, parameter :: mxnod=20, mxelm=20000, mxpoi=20000 
-  integer, parameter :: mxnow=20, mxelw=40000, mxpow=30000
+  integer, parameter :: mxnod=20, mxelm=40000, mxpoi=30000 
+  integer, parameter :: mxnow=20, mxelw=50000, mxpow=50000
   
   contains
     
@@ -66,7 +66,7 @@ use param
         end if
       end do
       do i=1,3
-        read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
+        read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
         if ( stat /= 0 )then
           print*,'iostat= ',stat
           print*, msg
@@ -156,6 +156,12 @@ use param
       do ielem=1,nelem
         !*** 2D: NNODE = 3 --> NNODE = 4 6 & 7
         if(refiType.eq.'PS')then
+          !Si quiero que el refinado PS parta tambien de cuadrados entonces primero debo poner las lineas
+          !de dividir un cuadrado en 4 triangulos (es decir abajo la que crea el criss-cross pero en lugar
+          !de dividir en 4, divido en 2 y con ello ya tendre triangulos que luego seguira en el ciclo !here
+          !que agregara 3 nodos mas y luego uno al centro es decir todo queda igual solo agregar aqui previ
+          !al primer ciclo do, el ciclo de dividir un cuadrado en dos elementos y ya
+          if(ielem.eq.1)write(*,'(a)') 'Powell-Sabin refinement type selectd use triangle as a Initial element'
           if(nne.ne.3)then 
             write(*,'(a)') 'PS refinment not compatible with quadrilateral element'
             write(*,'(a)') '>>> Verify PS must be nne=3'
@@ -166,7 +172,7 @@ use param
               !Para construir el elemento de 7 nodos. Primero hay que construir el de 6
               !por eso la codicion dice mayor o igual, si pongo 7 entonces 
               !entrara al de 6 y luego al de 7
-              do idime=1,2
+              do idime=1,2 !here
                 coorw(idime,npoiw+1)= 0.5*(coord(idime,lnods(ielem,1))+coord(idime,lnods(ielem,2)))
                 coorw(idime,npoiw+2)= 0.5*(coord(idime,lnods(ielem,2))+coord(idime,lnods(ielem,3)))
                 coorw(idime,npoiw+3)= 0.5*(coord(idime,lnods(ielem,3))+coord(idime,lnods(ielem,1)))
