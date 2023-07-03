@@ -47,15 +47,15 @@ implicit none
   call BandWidth
 
 
-  print*,' '  
-  print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
-  print*,'Cu    : ', Cu
-  print*,'lambda: ', lambda
-  print*,'helem : ', helem
-  print*,'ℓ     : ', ell
-  print'(A9,e12.5)','Su     = ',Cu*lambda*(helem**2/ell**2)
-  print'(A9,e12.5)','Sp     = ',ell**2 / lambda
-  print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
+  !print*,' '  
+  !print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
+  !print*,'Cu    : ', Cu
+  !print*,'lambda: ', lambda
+  !print*,'helem : ', helem
+  !print*,'ℓ     : ', ell
+  !print'(A9,e12.5)','Su     = ',Cu*lambda*(helem**2/ell**2)
+  !print'(A9,e12.5)','Sp     = ',ell**2 / lambda
+  !print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
   print*,' '  
   
   
@@ -152,7 +152,9 @@ implicit none
   endif
 
   call cpu_time(finish)
-  write(*,'(A11,f9.2,A8)')' CPU-Time =', (finish-start)/60.0, ' minutes', ' '
+  write(*,'(A11,f15.5)   ')' CPU-Time =', start
+  write(*,'(A11,f15.5)   ')' CPU-Time =', finish
+  write(*,'(A11,f15.5,A8)')' CPU-Time =', (finish-start)/60.0, ' minutes', ' '
 
 end program main_CDR3d
 

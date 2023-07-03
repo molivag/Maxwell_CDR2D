@@ -39,7 +39,7 @@ module timeInt
       allocate( dummy(ldAKban,ntotv) )
       
       u  = 0.0
-      tw = 5 !time*width how strong the impulse is
+      tw = 3 !time*width how strong the impulse is
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
@@ -118,13 +118,14 @@ module timeInt
       double precision, allocatable, dimension(:,:)          :: AK_time, lhs_BDF2
 
 
-      double precision, dimension(ntotv,1)                   :: rhs_time, Jsource, F_plus_MU, rhs_BDF2, u_init
+      double precision, dimension(ntotv,1)                   :: Jsource, Jsource_pre
+      double precision, dimension(ntotv,1)                   :: rhs_time, F_plus_MU, rhs_BDF2, u_init
       double precision, dimension(max_time+1)                :: shapeTime
       
       double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut
       double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
       integer         , allocatable, dimension(:)            :: S_ipiv, S_iwork
-      double precision                                       :: delta_t, nt
+      double precision                                       :: delta_t, nt, ttt
       integer                                                :: time, info, workdim
       integer :: ii
       double precision, allocatable,dimension(:),intent(out) :: Ex_field
@@ -148,15 +149,17 @@ module timeInt
       time     = 0                                            !initializing the time
       delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
       nt       = time_ini
+      ttt      = 0.0
       
       call initialCondition(presc,ifpre, nofix, delta_t, shapeTime, u_init)
       !call initialCondition(presc,ifpre,nofix,basfun,dN_dxi,dN_deta,S_m,S_n,S_trans,S_nrhs,S_ipiv,S_ldSol,delta_t,Uinit) 
       
       u_pre  = u_init                                   !u in present time 
-      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
-      !call GlobalSystem(N, dN_dxi, dN_deta, Hesxieta, A_K, A_C ,A_F)
+      Jsource_pre = 0.0 !or equal to initial condition which actually is the value of u at boundary conds?
       
-      write(*,*) ' '
+      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+      
+      !write(*,*) ' '
       print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(u_pre, 'res'    , time, nt, time_fin, Ex_field)
       call GID_PostProcess(u_pre, 'profile', time, nt, time_fin, Ex_field)
@@ -166,28 +169,27 @@ module timeInt
       select case(theta)
         !-------- 1st-order Backward Difference 
         case(2) 
-          write(*,*)'              BDF1 Selected'
           !Time-stepping
-          do time = 1, max_time+1
+          write(*,*)'              BDF1 Selected'
+          do while(ttt < time_fin)
+           
+            u_pre = u_fut
+            !do time = 1, max_time+1
             nt = nt + delta_t!,time_fin,delta_t
+            time = time+1
             
             call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
-            AK_time  = (1.0/delta_t)*A_C + A_K !A_C + delta_t*A_K
+            AK_time  = (A_C/delta_t) + A_K 
             
             call ApplyBVs(nofix,ifpre,presc,AK_time,A_F)
-            call currDensity(time,shapeTime(time),Jsource) 
-            rhs_time =  A_F + Jsource
-            !rhs_time((srcLoc-1)*3+1,1) = 10
+            call currDensity(time,shapeTime(1),Jsource) 
             
-            !if(shapeTime(time).ne.0.0)then
-            !  do ii=1,ntotv
-            !    print"(I0,f10.5)", ii, Jsource(ii,1)
-            !  end do
-            !end if
+            !rhs_time =  A_F + Jsource
+            rhs_time =  A_F + 1/delta_t*(Jsource + Jsource_pre)
+            !print'(f15.5)', 1/delta_t*(Jsource + Jsource_pre) 
             
             !------------- Solver -------------!
             u_fut = rhs_time   !here mkl will rewrite u_fut by the solution vector
-            !u_fut = Jsource   !here mkl will rewrite u_fut by the solution vector
             !--- Factorizing Matrix
             call dgbtrf(S_m, S_n, lowban, upban, AK_time, ldAKban, S_ipiv, info)
             if(info.ne.0)then
@@ -200,12 +202,16 @@ module timeInt
               call MKLsolverResult('dgbtrs',info) 
               print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
             endif
+           
             !---------- Printing and writing results -----------!
             print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(u_fut, 'res'    , time, nt, time_fin, Ex_field)
             call GID_PostProcess(u_fut, 'profile', time, nt, time_fin, Ex_field)
             
-            u_pre = u_fut
+            !---------- Updating Variables ---------------------! 
+            Jsource_pre = Jsource
+            
+            ttt = ttt+delta_t
             
           end do
         !-------- Crank- Nicholson Scheme 

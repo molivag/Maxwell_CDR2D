@@ -5,47 +5,47 @@
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
  
 # > > > > > > > Model Parameters
-ElemType = TRIA             !Could be QUAD or TRIA
-ProbType = TIMr             !Problem type TIME=transient, other=static
+ElemType = TRIA
+ProbType = TIME             !Problem type TIME=transient, other=static
 DimPr    = 2                !Dimension del problema
 ndofn    = 3                !Degrees of freedom
-totGp    = 7                !1,4,9 for Q, 1,3,7 for P
+totGp    = 3                !1,4,9 for Q, 1,3,7 for P
 simul    = 2                !1=LdomT2; 2=FullSpace; 3=PolyMaxwell; 4=PolyStokes; 5=Cavity-Driven Flow 
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
 
 # > > > > > > > Geometry
-meshfile = dBoxPS64.msh     !File .msh that contains the mesh
-nnodes   = 4225             !struc            !Total nodal points
-nelem    = 8192             !struc             !Total elements
+meshfile = dBoxPS32.msh     !File .msh that contains the mesh
+nnodes   = 1089             !struc            !Total nodal points
+nelem    = 2048             !struc             !Total elements
 nne      = 3                !Nodes per element Q:4-9; P:3-6
 i_exp    = 0                !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 1.0              !Reference element length
-refiType = PS               !NONE; PS=Powell-Sabin; CB=Crossed-Box
+refiType = PS               !NONE; PS=Powell-Sabin; CC=Criss-Cross
 
 # > > > > > > > Stabilization
 kstab    = 6                !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
 ktaum    = 0                !Tau matrix: 0, 1, 2 
 patau    = 0.0              !Parameter to obtain tau
 n_val    = 0.0              !n parameter in exact solution, for simul=1
-helem    = 0.05              !Characteristic mesh size (maximum element size among the mesh)
-Cu       = 1.0            !Algorithmic constant
-ell      = 2.0            !Constante de longitud  
-1/mu=λ   = 795774.71545      !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
+helem    = 0.05             !Characteristic mesh size (maximum element size among the mesh)
+Cu       = 5.0              !Algorithmic constant
+ell      = 2.0              !Constante de longitud  
+1/mu=λ   = 795774.71545     !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
 
 # > > > > > > > Time Discretization
 theta    = 2                !BDF1=2 ;CN=3; BDF2=4
-time_ini = 0.00000          !Starting time simulation (simulation always starts at 0?)
-time_fin = 0.01             !0.00001          !Time simulated (total time simulated [s])
-max_time = 100              !Time steps
+time_ini = 0.000000         !Starting time simulation (simulation always starts at 0?)
+time_fin = 0.69e-5           !0.00001          !Time simulated (total time simulated [s])
+max_time = 200              !Time steps
 u0cond   = 0.0              !Value of initial condition (could be defined here or codeing at mod_timeInt.f90)
 
 # > > > > > > > Name outPut Files
-testID   = 64_SandBoxPS      !data file with input parameters in each iteration Res/results
-Postpro  = 64_SandBoxPS   
+testID   = SandBoxPS_TEM01      !data file with input parameters in each iteration Res/results
+Postpro  = SandBoxPS_TEM   
 Error    = xxxxxxxxxxxx
-Cordina  = coord_PS_64_
-Conecti  = conec_PS_64_
-Profile  = xxxxxxxxxxxx 
+Cordina  = xxxxxxxxxxxx
+Conecti  = xxxxxxxxxxxx
+Profile  = SandBoxPS_TEM   
 
 # > > > > > > > Physical Properties
 #DIFMA_xx                   !Diffusion tensor
@@ -85,11 +85,11 @@ Profile  = xxxxxxxxxxxx
 
 #Nodal source Location
 nodalSrc = 1                !Number of nodes will contain the source
-1655
+425                         !659 for CC meshes
 
 #Time waveform
 signal   = 1                !Signal in time: 1=step-on; 2=step-off; 3=triangular
 
 # > > > > > > > Nodal receiver Locations
 nodalRec = 1                !Number of nodes as a receiver
-8                         !659                         !Directo en la fuente
+681                         !659                         !Directo en la fuente
