@@ -128,54 +128,54 @@ module library
           write(*,"(A29,2x,A10,1X,A10)") ' - Method Selected          : ', dddd,' '
         endif
         write(*,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
-        write(*,"(A29,2X,E13.5,1X,A11)") ' - Total time simulation    : ', time_fin,' '
+        write(*,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
         write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', max_time,' '
         write(*,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
       else
         continue
       endif
       
-      print*, ' '
-      print*,'!============ TENSOR COEFFICIENTS  ============!'
-      print*, 'Diffusion'
-      do i = 1,dimPr
-        do j = 1,DimPr
-          print"(A,2I1)", 'k_',i,j
-          do k = 1,ndofn
-            print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      print*, ' '  
-      print*, 'Convection'
-      do k = 1, DimPr
-        print"(A,2I1)",'A_',k
-        do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
-        end do
-      end do
-        print*,' '
-      print*,'Reaction'
-      do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
-      end do
-      print*, ' '
-      print*, 'External Forces'
-      if(ndofn.eq.1)then
-        write(*,"(3(f10.5,1x))") force(1)
-      elseif(ndofn.eq.2)then
-        write(*,"(2(f10.5,1x))") force(1), force(2)
-      else
-        write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
-      endif
-      write(*,'(A)') 
-      write(*,'(A)') 'Density Current'
-      if(ndofn.eq.1)then
-        write(*,"(1(f10.3,1x))") Icurr(1)
-      elseif(ndofn.eq.3)then
-        write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-      endif
+      !print*, ' '
+      !print*,'!============ TENSOR COEFFICIENTS  ============!'
+      !print*, 'Diffusion'
+      !do i = 1,dimPr
+      !  do j = 1,DimPr
+      !    print"(A,2I1)", 'k_',i,j
+      !    do k = 1,ndofn
+      !      print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
+      !    end do
+      !    !print*,' '
+      !  end do
+      !end do
+      !print*, ' '  
+      !print*, 'Convection'
+      !do k = 1, DimPr
+      !  print"(A,2I1)",'A_',k
+      !  do i = 1, ndofn
+      !    write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
+      !  end do
+      !end do
+      !  print*,' '
+      !print*,'Reaction'
+      !do i=1,ndofn
+      !  write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
+      !end do
+      !print*, ' '
+      !print*, 'External Forces'
+      !if(ndofn.eq.1)then
+      !  write(*,"(3(f10.5,1x))") force(1)
+      !elseif(ndofn.eq.2)then
+      !  write(*,"(2(f10.5,1x))") force(1), force(2)
+      !else
+      !  write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
+      !endif
+      !write(*,'(A)') 
+      !write(*,'(A)') 'Density Current'
+      !if(ndofn.eq.1)then
+      !  write(*,"(1(f10.3,1x))") Icurr(1)
+      !elseif(ndofn.eq.3)then
+      !  write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
+      !endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
@@ -234,7 +234,7 @@ module library
           write(100,"(A29,2x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
         endif
         write(100,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
-        write(100,"(A29,2X,E13.5,1X,A11)") ' - Total time simulation    : ', time_fin,' '
+        write(100,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
         write(100,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', max_time,' '
         write(100,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
       else
@@ -1753,8 +1753,8 @@ module library
           srcCurr=  1.0
           ds     =  1.0
           sigma  =  1.0
-          x      = 60.0 
-          y      =-26.0
+          x      =  0.5 
+          y      =  0.0
           z      =  0.0
           mu     =  1.0/lambda 
 
@@ -2577,17 +2577,15 @@ module library
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           
-          
           select case(theta)
           case(2)
+          !MassMa = matmul(Ce,time_cont
           Fe_time = Fe + matmul(Ce,time_cont)
           case(3)
           rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
           Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
           endselect
-        
-                                                                                                
-                                                                                                
+          
         end do
         
         
