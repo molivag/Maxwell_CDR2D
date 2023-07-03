@@ -192,8 +192,8 @@ module sourceTerm
       !selectcase(srcType)
        ! case(1) !source parallel to x-axis
           do inode=1,nodalSrc
-            Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-            Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+            Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)!*eTime
+            Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)!*eTime
           end do
           
         !case(2) !source parallel to y-axis
