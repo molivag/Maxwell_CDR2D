@@ -4,14 +4,15 @@ module param
 
   character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
   character(len=14) :: testID
-  character(len=4)  :: InitElemType, ProbType
+  character(len=4)  :: ProbType, ElemType, initElemType
   character(len=2)  :: refiType
-  integer           :: initnevab, initntotv, nBVs, nBVscol, nband, max_time, simul
+  integer           :: nBVs, nBVscol, nband, t_steps, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
-  integer           :: initElem, initNodes, DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
+  integer           :: DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   integer           :: i_exp, nodalSrc, nodalRec, skipline, postpro, signal, srcType!, srcLoc
+  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem
   real              :: hnatu, patau
-  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, u0cond
+  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -32,7 +33,7 @@ module param
       implicit none
       
       character(len=19)               :: name_inputFile
-      double precision                :: Su, Sp 
+      !double precision                :: Su, Sp 
       character(len=180)              :: msg
       character(len=*), parameter     :: fileplace = "./"
       integer                         :: stat, ii
@@ -43,12 +44,12 @@ module param
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100,iostat=stat,iomsg=msg) &
-      InitElemType,ProbType,DimPr,ndofn,totGp,simul,postpro,&
-      mesh_file, initNodes, initElem, nne, i_exp, hnatu, refiType,&
+      ProbType,DimPr,ndofn,totGp,simul,postpro,&
+      mesh_file, nne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
-      theta, time_ini, time_fin, max_time, u0cond,&
+      theta, time_ini, time_fin, t_steps, &
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
-      if (stat.ne.0) then
+      if (stat.ne.0)then
         print*, ' '
         print*,'!============ STATUS READING INPUT FILE. ============!'
         print "(A38,I4)", "- Status while reading input file is: ", stat
@@ -73,9 +74,6 @@ module param
       conma = 0.0
       reama = 0.0
       force = 0.0
-      Su    = 0.0
-      Sp    = 0.0
-
       
       if(ndofn.eq.1)then
         read(5,101) difma(1,1,1,1), difma(1,1,1,2)
@@ -107,31 +105,37 @@ module param
         difma(1,1,1,1), difma(1,2,1,1), difma(1,3,1,1), &
         difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1), &
         difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
-        
+        if(stat.ne.0)then
+          print'(A9,I3)','iostat= ',stat
+          print'(A8,1x,A180)','iomsg = ',msg
+        end if
+
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
         difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2), &
         difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+       
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
         difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1), &
         difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+      
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
         difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2), &
         difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+     
         
         read(5,103,iostat=stat,iomsg=msg) &
         conma(1,1,1), conma(1,2,1), conma(1,3,1), &
         conma(2,1,1), conma(2,2,1), conma(2,3,1), &
         conma(3,1,1), conma(3,2,1), conma(3,3,1)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        if(stat.ne.0)then
+          print'(A9,I3)','iostat= ',stat
+          print'(A8,1x,A180)','iomsg = ',msg
+        end if
         
         read(5,103,iostat=stat,iomsg=msg) &
         conma(1,1,2), conma(1,2,2), conma(1,3,2), &
@@ -146,16 +150,25 @@ module param
         if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
         
        read(5,107,iostat=stat,iomsg=msg) force(1), force(2), force(3)
-        if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+        if(stat.ne.0)then
+          print'(A9,I3)','iostat= ',stat
+          print'(A8,1x,A180)','iomsg = ',msg
+        end if
         
       end if
       
       if(ndofn.eq.1)then
         read(5,105,iostat=stat,iomsg=msg) Icurr(1)
-        if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+        if(stat.ne.0)then
+          print'(A9,I3)','iostat= ',stat
+          print'(A8,1x,A180)','iomsg = ',msg
+        end if
       elseif(ndofn.eq.3)then
         read(5,107,iostat=stat,iomsg=msg) Icurr(1), Icurr(2), Icurr(3)
-        if (stat.ne.0)print'(A8,1x,A180)','force iomsg = ',msg
+        if(stat.ne.0)then
+          print'(A9,I3)','iostat= ',stat
+          print'(A8,1x,A180)','iomsg = ',msg
+        end if
       else
         write(*,*) 'Source must be 1 or 3 DoF'
       endif
@@ -179,8 +192,6 @@ module param
       !print*, 'RecLoc', recLoc(1)
       
       close(5)
-      !stop 
-      
       !print*, srcLoc(1), srcLoc(2), srcType, signal 
       
       
@@ -213,14 +224,12 @@ module param
       !end if
       
       !Initial elemental and global variables, it will changes if refination is selected.
-      initnevab = ndofn*nne
-      initntotv = ndofn*initNodes
       
-      100 format(7/ 11x,A4,/ ,11x, A4,/, 5(11x,I5,/),            2/,&  !model parameters
-      &          11x,A12,/, 4(11x,I7,/), 11x,F7.2,/, 11x,A2,/,    2/,&  !geometry
+      100 format(7/ ,11x, A4,/, 5(11x,I5,/),            2/,&  !model parameters
+      &          11x,A12,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,    2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),     2/,&  !stabi
-      &          11x,I1,/, 2(11x,f15.5,/), 11x,I7,/,11x,f7.2,/,   2/,&  !time
-      &          11x,A14,/, 5(11x,A12,/), / )              !output files
+      &          11x,I1,/, 2(11x,f15.5,/), 11x,I7,/,              2/,&  !time
+      &          11x,A14,/, 5(11x,A12,/), 2/ )              !output files
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
