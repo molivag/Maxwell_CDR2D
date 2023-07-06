@@ -87,8 +87,9 @@ implicit none
     print*, "!=============== Time Integration =============! "
      !call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
     !&                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
-    call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, time_ini, time_fin, max_time, u0cond,&
-    &                      nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim, Ex_field)
+    call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,&
+      & time_ini, time_fin, t_steps, nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs,&
+      & S_ipiv, S_ldSol, workdim, Ex_field)
    
     call Res_Matlab(Ex_field)
    
@@ -104,7 +105,7 @@ implicit none
     if(((ndofn.eq.1).or.(ndofn.eq.3)).and.(simul.eq.2))then
       print*,'delta source'
       do ii=1,nodalSrc
-        !if(ii.eq.2)Icurr(1) = -1.0
+        !if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
         print*,Icurr
         A_F((srcLoc(ii)-1)*ndofn+1,1) = Icurr(1)
         A_F((srcLoc(ii)-1)*ndofn+2,1) = Icurr(2)
