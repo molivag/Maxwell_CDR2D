@@ -5,8 +5,7 @@ use param
 
   double precision, allocatable, dimension(:,:)     :: coord !, coordRef
   integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
-  character(len=4)  :: ElemType
-  integer           :: nelem, nnodes, nevab, ntotv
+  !character(len=4)  :: ElemType, initElemType
 
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
   integer, parameter :: mxnod=20, mxelm=40000, mxpoi=30000 
@@ -27,26 +26,20 @@ use param
       character(len=12), intent(in)   :: file_mesh
       character(len=180)              :: msg
       double precision                :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
-      integer                         :: ielem, jpoin, idime, i,j, stat
+      integer                         :: ielem, jpoin, idime, i,j, stat, dmy
       integer                         :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
       integer                         :: npoiw,nelew,nnodw, npoif
+      integer                         :: initOrderElem
       
       
       open(5, file=fileplace//file_mesh,status='old', action='read',IOSTAT=stat, IOMSG=msg)
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
-      nelem = initElem
-      nnodes= initNodes
-      
-      allocate( lnods(initElem,nne))
-      allocate( coord(Dimpr,initNodes))
-      lnods = 0.0
-      coord = 0.0
       
       !do i=1,skipline
       !read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       !end do
-      do i=1,2
+      do i=1,1
         read(5,*) !se salta todas las lineas del archivo .msh comenzando a leer nodos
         if ( stat /= 0 )then
           print*, ' ' 
@@ -58,6 +51,11 @@ use param
           stop
         end if
       end do
+      
+      read(5,*) initNodes
+      nnodes = initNodes
+      allocate( coord(Dimpr,initNodes))
+      coord = 0.0 
       do i=1,nnodes !number of total nodes
         read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
         IF ( stat /= 0 )then
@@ -65,16 +63,29 @@ use param
           print*, msg
         end if
       end do
-      do i=1,3
+      do i=1,2
         read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
         if ( stat /= 0 )then
           print*,'iostat= ',stat
           print*, msg
         endif
       end do
-      do i=1,nelem
-        read(5,*,iostat=stat,iomsg=msg) ielem,(lnods(ielem,j), j =1,nne)
+
+
+      
+      read(5,*) initElem 
         IF ( stat /= 0 )then
+          print*,'iostat= ',stat
+          print*, msg
+        END IF
+      nelem = initElem
+      allocate( lnods(initElem,nne))
+      lnods = 0.0
+      !mshType  = 1                !Mesh builder 1=GID; 2=GMSH       
+      do i=1,nelem
+        !read(5,*,iostat=stat,iomsg=msg) ielem,(lnods(ielem,j), j =1,nne)
+        read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, dmy,dmy, dmy, (lnods(ielem,j), j =1,nne)
+        IF ( stat /= 0 )then!
           print*,'iostat= ',stat
           print*, msg
         END IF
@@ -82,14 +93,31 @@ use param
       
       close(5)
       
+      select case(initOrderElem)
+      case(2)
+        initElemType = 'TRIA'
+      case(9)
+        initElemType = 'TRIA' !2nd Order (6node) Triangle 
+      case(3)
+        initElemType = 'QUAD'
+      case(10)
+        initElemType = 'QUAD' !2nd Order (9node) Quadrilateral 
+      case default
+        write(*,'(A)') 'error >>>> The initElemType must be 2, 9, 3 or 10'
+        stop
+      end select
+      
+      initnevab = ndofn*nne
+      initntotv = ndofn*initNodes
+      
       if(refiType.eq.'NO')then
-        ElemType = InitElemType
+        ElemType = initElemType
         nevab    = initnevab
         ntotv    = initntotv
         
         goto 101
         
-      elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
+      elseif(refiType.eq.'PS'.or.refitype.eq.'CC')then
         !
         !***  Undertakes the mesh change
         !
@@ -102,20 +130,19 @@ use param
         !***  Checks if there are repeated nodes and reallocate coord and lnods
         ! 
         call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif,tempo,tlnod)
-        
         !
         !* Recounting of nodes and elements after the refination
         !
         nnodes = npoif
         nelem  = nelew 
         nne    = nnodw
+        nevab  = ndofn*nne
+        ntotv  = ndofn*nnodes
         
       end if
      
       101 continue
       
-      nevab = ndofn*nne
-      ntotv = ndofn*nnodes
       
     end subroutine readMesh
     !
@@ -143,7 +170,7 @@ use param
       integer         , intent(out), dimension(mxelw,mxnow) :: lnodw
       integer         , intent(out) :: nnodw ,npoiw
       
-      !***  Initializations
+      !***  initializations
       do idime=1,DimPr
         do ipoin=1,nnodes
           coorw(idime,ipoin)=coord(idime,ipoin)
@@ -161,7 +188,7 @@ use param
           !de dividir en 4, divido en 2 y con ello ya tendre triangulos que luego seguira en el ciclo !here
           !que agregara 3 nodos mas y luego uno al centro es decir todo queda igual solo agregar aqui previ
           !al primer ciclo do, el ciclo de dividir un cuadrado en dos elementos y ya
-          if(ielem.eq.1)write(*,'(a)') 'Powell-Sabin refinement type selectd use triangle as a Initial element'
+          if(ielem.eq.1)write(*,'(a)') 'Powell-Sabin refinement type selectd use triangle as a initial element'
           if(nne.ne.3)then 
             write(*,'(a)') 'PS refinment not compatible with quadrilateral element'
             write(*,'(a)') '>>> Verify PS must be nne=3'
@@ -192,11 +219,11 @@ use param
             !endif
           endif
           
-        elseif(refiType.eq.'CB')then
+        elseif(refiType.eq.'CC')then
           if(nne.ne.4)then
             
-            write(*,'(a)') 'CB refinment not compatible with triangular element'
-            write(*,'(a)') '>>> Verify CB must be nne=4'
+            write(*,'(a)') 'CC refinment not compatible with triangular element'
+            write(*,'(a)') '>>> Verify CC must be nne=4'
             stop
           else
             continue
@@ -285,15 +312,15 @@ use param
             lnodw(nelew+5,3)=lnod_add(ielem,7)
             nelew=nelew+5
             
-            ElemType = InitElemType
+            ElemType = initElemType
            
           endif
           
-        elseif(refiType.eq.'CB')then
+        elseif(refiType.eq.'CC')then
           if(nne.ne.4)then
             
-            write(*,'(a)') 'CB refinment not compatible with triangular element'
-            write(*,'(a)') '>>> Verify CB must be nne=4'
+            write(*,'(a)') 'CC refinment not compatible with triangular element'
+            write(*,'(a)') '>>> Verify CC must be nne=4'
             stop
           else
             continue
