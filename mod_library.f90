@@ -64,23 +64,23 @@ module library
       write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', initelem,'   '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', initnodes, ' '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', nelem,'   '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', nnodes, ' '
       write(*,"(A30,2X,I6   ,1X,A10)") ' - DoF per node             : ', ndofn, '  '
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodes per element        : ', nne, '    '
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Element variabless       : ', initnevab    ,'  '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Element variabless       : ', nevab    ,'  '
+      write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', ntotv    ,'  '
       write(*,"(A29,3X,f11.4,1X,A10)") ' - Characteristic mesh size : ', helem,' '
       write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Length reference element : ', hnatu        ,' '
       
       if(refiType.eq.'NO')then
         write(*,"(A30,2x,a6,3X,A10)") ' - Refinement type          : ','  NONE',' '
-      elseif(refiType.eq.'PS'.or.refitype.eq.'CB')then
+      elseif(refiType.eq.'PS'.or.refitype.eq.'CC')then
         if(refitype.eq.'PS')then
           bbbb = 'Powell-Sabin'
-        elseif(refiType.eq.'CB')then
-          bbbb = 'Cross-Box'
+        elseif(refiType.eq.'CC')then
+          bbbb = 'Criss-Cross'
         end if
           print*, ' '
           print*,'!================= REFINMENT INFO ===============!'
@@ -114,7 +114,7 @@ module library
       
       print*, ' '
       if(ProbType.eq.'TIME')then
-        delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
+        delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
         print*,'!============ TIME DISCRETIZATION =============!'
         if((theta.eq.2).or.(theta.eq.4))then
           if(theta.eq.2)then
@@ -125,57 +125,57 @@ module library
           write(*,"(A29,2X,A10,1X,A10)") ' - Method Selected          : ', cccc,' '
         elseif(theta.eq.3)then
           dddd = 'Cranck-Nicholson'
-          write(*,"(A29,2x,A10,1X,A10)") ' - Method Selected          : ', dddd,' '
+          write(*,"(A29,3x,A16,1X,A10)") ' - Method Selected          : ', dddd,' '
         endif
         write(*,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
         write(*,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
-        write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', max_time,' '
+        write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
         write(*,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
       else
         continue
       endif
       
-      !print*, ' '
-      !print*,'!============ TENSOR COEFFICIENTS  ============!'
-      !print*, 'Diffusion'
-      !do i = 1,dimPr
-      !  do j = 1,DimPr
-      !    print"(A,2I1)", 'k_',i,j
-      !    do k = 1,ndofn
-      !      print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
-      !    end do
-      !    !print*,' '
-      !  end do
-      !end do
-      !print*, ' '  
-      !print*, 'Convection'
-      !do k = 1, DimPr
-      !  print"(A,2I1)",'A_',k
-      !  do i = 1, ndofn
-      !    write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
-      !  end do
-      !end do
-      !  print*,' '
-      !print*,'Reaction'
-      !do i=1,ndofn
-      !  write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
-      !end do
-      !print*, ' '
-      !print*, 'External Forces'
-      !if(ndofn.eq.1)then
-      !  write(*,"(3(f10.5,1x))") force(1)
-      !elseif(ndofn.eq.2)then
-      !  write(*,"(2(f10.5,1x))") force(1), force(2)
-      !else
-      !  write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
-      !endif
-      !write(*,'(A)') 
-      !write(*,'(A)') 'Density Current'
-      !if(ndofn.eq.1)then
-      !  write(*,"(1(f10.3,1x))") Icurr(1)
-      !elseif(ndofn.eq.3)then
-      !  write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-      !endif
+      !  print*, ' '
+    !  print*,'!============ TENSOR COEFFICIENTS  ============!'
+    !  print*, 'Diffusion'
+    !  do i = 1,dimPr
+    !    do j = 1,DimPr
+    !      print"(A,2I1)", 'k_',i,j
+    !      do k = 1,ndofn
+    !        print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
+    !      end do
+    !      !print*,' '
+    !    end do
+    !  end do
+    !  print*, ' '  
+    !  print*, 'Convection'
+    !  do k = 1, DimPr
+    !    print"(A,2I1)",'A_',k
+    !    do i = 1, ndofn
+    !      write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
+    !    end do
+    !  end do
+    !    print*,' '
+    !  print*,'Reaction'
+    !  do i=1,ndofn
+    !    write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
+    !  end do
+    !  print*, ' '
+    !  print*, 'External Forces'
+    !  if(ndofn.eq.1)then
+    !    write(*,"(3(f10.5,1x))") force(1)
+    !  elseif(ndofn.eq.2)then
+    !    write(*,"(2(f10.5,1x))") force(1), force(2)
+    !  else
+    !    write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
+    !  endif
+    !  write(*,'(A)') 
+    !  write(*,'(A)') 'Density Current'
+    !  if(ndofn.eq.1)then
+    !    write(*,"(1(f10.3,1x))") Icurr(1)
+    !  elseif(ndofn.eq.3)then
+    !    write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
+    !  endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
@@ -184,8 +184,8 @@ module library
         bbbb = '    NONE'
       elseif(refiType.eq.'PS')then
         bbbb = 'Powell-Sabin'
-      elseif(refiType.eq.'CB')then
-        bbbb = 'Cross-Box'
+      elseif(refiType.eq.'CC')then
+        bbbb = 'Criss-Cross'
       else
         write(*,'(A)') '> > >Error in refinment type'
       endif
@@ -200,12 +200,12 @@ module library
       write(100,"(A30,2x,a19  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
       write(100,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(100,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', initelem,'   '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', initnodes, ' '
+      write(100,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', nelem,'   '
+      write(100,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', nnodes, ' '
       write(100,"(A30,2X,I6   ,1X,A10)") ' - DoF per node             : ', ndofn, '  '
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Nodes per element        : ', nne, '    '
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
+      write(100,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', ntotv    ,'  '
       write(100,"(A29,3X,f11.4,1X,A10)") ' - Element size             : ', helem,' '
       if(refiType.eq.'NO')then
         write(100,"(A30,2x,a7 ,3X,A10)") ' - Refinement type          : ', '  NONE',' '
@@ -220,7 +220,7 @@ module library
         write(100,'(A)') 
       endif 
       if(ProbType.eq.'TIME')then
-        delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
+        delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
         write(100,'(A)')'!============ TIME DISCRETIZATION =============!'
         if((theta.eq.2).or.(theta.eq.4))then
           if(theta.eq.2)then
@@ -231,11 +231,11 @@ module library
           write(100,"(A29,2X,A  ,1X,A10)") ' - Method Selected          : ', cccc,' '
         elseif(theta.eq.3)then
           dddd = 'Cranck-Nicholson'
-          write(100,"(A29,2x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
+          write(100,"(A29,3x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
         endif
         write(100,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
         write(100,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
-        write(100,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', max_time,' '
+        write(100,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
         write(100,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
       else
         continue
@@ -1671,9 +1671,9 @@ module library
       double precision, dimension(1, ntotv) :: solution_T
       !double precision, dimension(1,nnodes) :: xcoor, ycoor
       !double precision, dimension(nnodes)   :: x, y
-      !double precision, dimension(max_time) :: t
+      !double precision, dimension(t_steps) :: t
       double precision, dimension(nnodes)       :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
-      double precision, dimension(max_time+2)   :: Texact_y, Texact_x, Texact_z, t
+      double precision, dimension(t_steps+2)   :: Texact_y, Texact_x, Texact_z, t
       double precision     :: aa, bb, cc, dd, ee, x, y, z, ds, sigma, srcCurr, r_vec, spi
       double precision     :: theta,ex,ey,ez, nt, delta_t, arg
       double precision     :: sum_error, error_EM, error_p, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
@@ -1768,10 +1768,10 @@ module library
           aa  = 0.0
           ee  = 0.0
           
-          delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)  
+          delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)  
           nt       = time_ini
           
-          do i=1,max_time +2
+          do i=1,t_steps +2
             t(i) = nt 
             nt   = nt + delta_t
             !if(i.le.6)t(i)=0.0
@@ -1781,7 +1781,7 @@ module library
           spi  = sqrt(pi)
           cc   = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
           
-          do i=1,max_time +2
+          do i=1,t_steps +2
             
             theta = sqrt(mu*sigma/(4.0*t(i)))
             aa = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
@@ -1872,7 +1872,7 @@ module library
       if(ProbType.eq.'TIME')then
         print*, 'xxxxxxxxxxxxxxx'
         write(111,'(A)')'%  Time         step         ex             ey             ez'
-        do itime = 1, max_time+2
+        do itime = 1, t_steps+2
           write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
         end do
       else
@@ -2336,7 +2336,7 @@ module library
       character(len=15)                                    :: Elem_Type
       double precision, dimension(1, ntotv)                :: Sol_T
       double precision, dimension(1,nnodes)                :: xcor, ycor
-      double precision, dimension(max_time+1), intent(out) :: Ex_field
+      double precision, dimension(t_steps+1), intent(out) :: Ex_field
       integer                                              :: ipoin, ii, ielem, inode, time2
       
       double precision :: delta_t, timeStep2
@@ -2346,7 +2346,7 @@ module library
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
-      delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)
+      delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)
       
       
       ext1 = ".post.msh"
@@ -2459,12 +2459,12 @@ module library
         write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
         !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
 
-        !if( time == max_time+1 ) then
+        !if( time == t_steps+1 ) then
         !  write(300,"(A)") ' '
         !  write(300,"(A)") '% - - - - - - - Component ey'
         !  if(time == 0) write(300,"(A)") '% time       timeStep          receiver1'
         !  timeStep2 = 0.0
-        !  do time2 = 1, max_time+1
+        !  do time2 = 1, t_steps+1
         !    timeStep2 = timeStep2 + delta_t
         !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
         !  end do
@@ -2481,7 +2481,7 @@ module library
       close(300)        !mismo archivo escribiendo a continuacion de donde se quedo el archivo anterior
       
       !la siguiente instruccion debe usarse con timeStep no con time pero solo es para avanzar
-      if(time == max_time+1.and.activity.eq."profile") then
+      if(time == t_steps+1.and.activity.eq."profile") then
       !if(timeStep == time_final+1) then
         print*, ' '
         print"(1x, A21,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
@@ -2497,7 +2497,7 @@ module library
       
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-      904 format(2x,I0,2x,f15.6,2x,99(e15.6))    !format to print the profile file
+      904 format(2x,I5,1x,e15.6,2x,99(e15.6))    !format to print the profile file
       906 format(I7,2(3x,f9.4)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
@@ -2516,7 +2516,7 @@ module library
     
     
     
-    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t, ugl_pre , A_F)
+    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,Mu)
       
       use sourceTerm
       
@@ -2526,8 +2526,8 @@ module library
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
       !double precision, dimension(3,nne), intent(in)     :: Hesxieta
+      integer                               , intent(in) :: S_ldSol
       double precision, dimension(ndofn)        :: EMsource
-      integer, intent(in)                                :: S_ldSol
       double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
       double precision, dimension(3,nne)        :: HesXY
@@ -2535,7 +2535,7 @@ module library
       double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
       double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
       !double precision, dimension(3,3)          :: tauma
-      double precision, dimension(nne,DimPr)                :: element_nodes
+      double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ, delta_t
       integer                                   :: igaus, ibase, ielem
@@ -2544,15 +2544,12 @@ module library
       allocate( A_F(ntotv, 1) )
       !allocate(ugl_pre(S_ldSol,1) )
       
-                                                                                                
       A_F = 0.0
       do ielem = 1, nelem 
-        !gather
-        Ke = 0.0
-        Fe = 0.0    !Fe(nevab)
-        Ce = 0.0
+       
+        Ke = 0.0; Ce = 0.0; Fe = 0.0   
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
-        !call SetElementNodes(ielem, element_nodes, nodeIDmap)
+        !gather
         call gather(nodeIDmap, ugl_pre, ue_pre)
         time_cont = ue_pre * 1.0/delta_t
         
@@ -2564,7 +2561,7 @@ module library
           !Jinv = inv2x2(Jaco)
           dvol = detJ *  weigp(igaus,1)
           !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
@@ -2579,7 +2576,6 @@ module library
           
           select case(theta)
           case(2)
-          !MassMa = matmul(Ce,time_cont
           Fe_time = Fe + matmul(Ce,time_cont)
           case(3)
           rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
