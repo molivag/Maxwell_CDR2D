@@ -106,27 +106,36 @@ module param
         difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1), &
         difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
         if(stat.ne.0)then
-          print'(A9,I3)','iostat= ',stat
-          print'(A8,1x,A180)','iomsg = ',msg
+          print'(A17,I4)','iostat_DIFMA_xx= ',stat
+          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
         end if
 
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
         difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2), &
         difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
-       
+        if(stat.ne.0)then
+          print'(A17,I4)','iostat_DIFMA_xy= ',stat
+          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
+        end if
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
         difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1), &
         difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
-      
+        if(stat.ne.0)then
+          print'(A17,I4)','iostat_DIFMA_yx= ',stat
+          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
+        end if
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
         difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2), &
         difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
-     
+        if(stat.ne.0)then
+          print'(A17,I4)','iostat_DIFMA_yy= ',stat
+          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
+        end if
         
         read(5,103,iostat=stat,iomsg=msg) &
         conma(1,1,1), conma(1,2,1), conma(1,3,1), &
@@ -134,14 +143,14 @@ module param
         conma(3,1,1), conma(3,2,1), conma(3,3,1)
         if(stat.ne.0)then
           print'(A9,I3)','iostat= ',stat
-          print'(A8,1x,A180)','iomsg = ',msg
+          print'(A8,1x,A180)','iomsg_CONMA= ',msg
         end if
         
         read(5,103,iostat=stat,iomsg=msg) &
         conma(1,1,2), conma(1,2,2), conma(1,3,2), &
         conma(2,1,2), conma(2,2,2), conma(2,3,2), &
         conma(3,1,2), conma(3,2,2), conma(3,3,2)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        if (stat.ne.0)print'(A8,1x,A180)','iomsg_CONMA = ',msg
         
         read(5,103,iostat=stat,iomsg=msg) &
         reama(1,1), reama(1,2), reama(1,3), &
@@ -228,7 +237,7 @@ module param
       100 format(7/ ,11x, A4,/, 5(11x,I5,/),            2/,&  !model parameters
       &          11x,A12,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,    2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),     2/,&  !stabi
-      &          11x,I1,/, 2(11x,f15.5,/), 11x,I7,/,              2/,&  !time
+      &          11x,I1,/, 2(11x,e15.5,/), 11x,I7,              2/,&  !time
       &          11x,A14,/, 5(11x,A12,/), 2/ )              !output files
      
       101 format(1/,F12.5,2/)
