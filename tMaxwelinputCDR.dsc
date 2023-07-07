@@ -5,7 +5,6 @@
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
  
 # > > > > > > > Model Parameters
-ElemType = TRIA
 ProbType = TIME             !Problem type TIME=transient, other=static
 DimPr    = 2                !Dimension del problema
 ndofn    = 3                !Degrees of freedom
@@ -14,13 +13,11 @@ simul    = 2                !1=LdomT2; 2=FullSpace; 3=PolyMaxwell; 4=PolyStokes;
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
 
 # > > > > > > > Geometry
-meshfile = dBoxPS32.msh     !File .msh that contains the mesh
-nnodes   = 1089             !struc            !Total nodal points
-nelem    = 2048             !struc             !Total elements
+meshfile = gmsh_TEM.msh     !File .msh that contains the mesh
 nne      = 3                !Nodes per element Q:4-9; P:3-6
 i_exp    = 0                !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 1.0              !Reference element length
-refiType = PS               !NONE; PS=Powell-Sabin; CC=Criss-Cross
+refiType = NO               !NONE; PS=Powell-Sabin; CC=Criss-Cross
 
 # > > > > > > > Stabilization
 kstab    = 6                !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
@@ -34,18 +31,17 @@ ell      = 2.0              !Constante de longitud
 
 # > > > > > > > Time Discretization
 theta    = 2                !BDF1=2 ;CN=3; BDF2=4
-time_ini = 0.000000         !Starting time simulation (simulation always starts at 0?)
-time_fin = 0.69e-5           !0.00001          !Time simulated (total time simulated [s])
-max_time = 200              !Time steps
-u0cond   = 0.0              !Value of initial condition (could be defined here or codeing at mod_timeInt.f90)
+time_ini = 0.00e+0           !Starting time simulation (simulation always starts at 0?)
+time_fin = 0.69e-5           !Total time simulated in [s]  --> 1800 microseconds
+t_steps  = 50              !Time steps
 
 # > > > > > > > Name outPut Files
-testID   = SandBoxPS_TEM01      !data file with input parameters in each iteration Res/results
-Postpro  = SandBoxPS_TEM   
-Error    = xxxxxxxxxxxx
-Cordina  = xxxxxxxxxxxx
-Conecti  = xxxxxxxxxxxx
-Profile  = SandBoxPS_TEM   
+testID   = rmshPS_13BDTEM01      !data file with input parameters in each iteration Res/results
+Postpro  = rmshPS_13BDTEM   
+Error    = xxxxxxxxxxx
+Cordina  = xxxxxxxxxxx
+Conecti  = xxxxxxxxxxx
+Profile  = rmshPS_5BDTEM  
 
 # > > > > > > > Physical Properties
 #DIFMA_xx                   !Diffusion tensor
@@ -85,11 +81,11 @@ Profile  = SandBoxPS_TEM
 
 #Nodal source Location
 nodalSrc = 1                !Number of nodes will contain the source
-425                         !659 for CC meshes
+7                           !for CC meshes
 
 #Time waveform
 signal   = 1                !Signal in time: 1=step-on; 2=step-off; 3=triangular
 
 # > > > > > > > Nodal receiver Locations
 nodalRec = 1                !Number of nodes as a receiver
-681                         !659                         !Directo en la fuente
+64                          !Directo en la fuente
