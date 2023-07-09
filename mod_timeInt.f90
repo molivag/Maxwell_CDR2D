@@ -30,17 +30,17 @@ module timeInt
       integer, dimension(ndofn,nBVs)               ,intent(in) :: ifpre
       integer, dimension(nBVs)                     ,intent(in) :: nofix
       double precision, allocatable, dimension(:,:)            :: dummy
-      double precision, dimension(max_time+1)                  :: u
+      double precision, dimension(t_steps+1)                  :: u
       integer                                                  :: tw, t
       double precision, dimension(ntotv,1)         ,intent(out):: Uinit
-      double precision, dimension(max_time+1)      ,intent(out):: shapeTime
+      double precision, dimension(t_steps+1)      ,intent(out):: shapeTime
       double precision                             ,intent(out):: delta_t
       
       allocate( dummy(ldAKban,ntotv) )
       
       u  = 0.0
       tw = 3 !time*width how strong the impulse is
-      delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
+      delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
       
@@ -48,7 +48,7 @@ module timeInt
       !--Select a signal shape function in time
       select case(signal)
         case(1) !step-on
-          do t = 1, max_time+1
+          do t = 1, t_steps+1
             if(t.le.tw)then
               u(t) = 0.0
             elseif(t.gt.tw)then!.and.t.le.2*tw)then
@@ -58,7 +58,7 @@ module timeInt
             endif
           end do
         case(2) !step off
-          do t = 1, max_time+1
+          do t = 1, t_steps+1
             if(t.le.tw)then
               u(t) = 1.0
             elseif(t.gt.tw.and.t.le.2*tw)then
@@ -68,7 +68,7 @@ module timeInt
             endif
           end do
         case(3) !triangular
-          do t = 1, max_time+1
+          do t = 1, t_steps+1
             if(t.le.tw)then
               u(t) = 1.0/tw * t
             elseif(tw.lt.t.and.t.lt.2*tw)then
@@ -84,7 +84,7 @@ module timeInt
       
       shapeTime = u 
       
-      !do t =1,max_time+1
+      !do t =1,t_steps+1
       !  print"(I0, 1x, f5.3)", t, shapeTime(t)
       !end do
       
@@ -98,7 +98,7 @@ module timeInt
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine Timeintegration(basfun,dN_dxi,dN_deta, hes_xixi,hes_xieta,hes_etaeta, &
-      &                        time_ini,time_fin,max_time,u0cond,nofix, ifpre, presc,&
+      &                        time_ini,time_fin,t_steps, nofix, ifpre, presc,&
       &                        S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim, Ex_field)
       
       implicit none
@@ -111,8 +111,8 @@ module timeInt
       integer, dimension(ndofn,nBVs)         ,intent(in)     :: ifpre
       integer, dimension(nBVs)               ,intent(in)     :: nofix
       character(len=1)                       ,intent(in)     :: S_trans
-      integer                                ,intent(in)     :: S_m, S_n, S_nrhs, S_ldSol, max_time
-      double precision                       ,intent(in)     :: time_ini, time_fin, u0cond
+      integer                                ,intent(in)     :: S_m, S_n, S_nrhs, S_ldSol, t_steps
+      double precision                       ,intent(in)     :: time_ini, time_fin
       ! - - Local Variables - -!
       double precision, allocatable, dimension(:,:)          :: A_K, A_C, A_F
       double precision, allocatable, dimension(:,:)          :: AK_time, lhs_BDF2
@@ -120,7 +120,7 @@ module timeInt
 
       double precision, dimension(ntotv,1)                   :: Jsource, Jsource_pre
       double precision, dimension(ntotv,1)                   :: rhs_time, F_plus_MU, rhs_BDF2, u_init
-      double precision, dimension(max_time+1)                :: shapeTime
+      double precision, dimension(t_steps+1)                :: shapeTime
       
       double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut
       double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
@@ -139,7 +139,7 @@ module timeInt
       allocate( u_fut(S_ldSol, 1))
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
       allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
-      allocate( Ex_field(max_time+1))
+      allocate( Ex_field(t_steps+1))
       
       u_curr   = 0.0
       u_pre    = 0.0
@@ -147,7 +147,7 @@ module timeInt
       rhs_time = 0.0
       AK_time  = 0.0
       time     = 0                                            !initializing the time
-      delta_t  = ( time_fin - time_ini ) / (max_time + 1.0)   !Step size
+      delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       nt       = time_ini
       ttt      = 0.0
       
@@ -174,7 +174,7 @@ module timeInt
           do while(ttt < time_fin)
            
             u_pre = u_fut
-            !do time = 1, max_time+1
+            !do time = 1, t_steps+1
             nt = nt + delta_t!,time_fin,delta_t
             time = time+1
             
@@ -182,7 +182,7 @@ module timeInt
             AK_time  = (A_C/delta_t) + A_K 
             
             call ApplyBVs(nofix,ifpre,presc,AK_time,A_F)
-            call currDensity(time,shapeTime(1),Jsource) 
+            call currDensity(time,shapeTime(4),Jsource) 
             
             !rhs_time =  A_F + Jsource
             rhs_time =  A_F + 1/delta_t*(Jsource + Jsource_pre)
@@ -218,7 +218,7 @@ module timeInt
         case(3)
           write(*,*)'    Crank-Nicholson method Selected'  
           !!Time-stepping
-          !do time = 1, max_time +1
+          !do time = 1, t_steps +1
           !  nt = nt + delta_t!,time_fin,delta_t  
           !  call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
           !  !call GlobalSystem_Time(N, dN_dxi, dN_deta, Hesxieta, S_ldsol, delta_t, u_pre, A_F)
@@ -244,7 +244,7 @@ module timeInt
           !  !---------- Printing and writing results -----------!
           !  print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
           !  !if(time.eq.1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
-          !  !if(time.eq.max_time+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
+          !  !if(time.eq.t_steps+1)print'(A11,I3,A3,F8.3,A5,F8.3,A5)',' time step:',time,' =',nt,'   of',time_fin,' seg'
           !  call GID_PostProcess(u_fut,'res', time, nt, time_fin)
           !  u_pre = u_fut
           !  
@@ -288,7 +288,7 @@ module timeInt
           !!Una vez calculado el tiempo presente Ucurr a partir del tiempo pasado Uprev
           !!usando BDF1. Calculamos BDF2
           !
-          !do time = 2, max_time +1 !Empieza en 2?
+          !do time = 2, t_steps +1 !Empieza en 2?
           !  nt = nt + delta_t!,time_fin,delta_t
 
           !  ! Uprev(Un-1) --> computed throug the initial cond for time 1   
