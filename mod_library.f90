@@ -2395,10 +2395,10 @@ module library
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
-            write(200,"(A29, I0, A)") 'Result "DoF" "Concentration" ', time,' Scalar OnNodes'
+            write(200,"(A29, I0, A)") 'Result "E" "E-field" ', time,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux '
+            write(200,*) '#',   'No    ','             ex '
             !  se escribe el res para el caso escalar de un grado de libertad
             write(200,914)
             do ipoin = 1, nnodes
@@ -2409,19 +2409,19 @@ module library
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
           case(2)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', time,' Vector OnNodes'
+            write(200,"(A29, I4, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux ','               uy '
+            write(200,*) '#',   'No    ','             ex ','               ey '
             do ipoin = 1, nnodes
               write(200,918) ipoin, Sol_T(1, ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
             end do
             write(200,"(A)") 'End Values'
           case(3)
-            write(200,"(A29, I3, A)") 'Result "DoF" "Concentration" ', time,' Vector OnNodes'
-            write(200,"(A)") 'ComponentNames "u" "v" "w" "" '
+            write(200,"(A29, I3, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+            write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
             write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ux ','               uy'
+            write(200,*) '#',   'No    ','             ex ','               ey'
            ! do ipoin = 1, nnodes
            !   write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
            ! end do
@@ -2429,7 +2429,7 @@ module library
               write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
             end do
             write(200,"(A)") 'End Values'
-            write(200,"(A22, I3, A)") 'Result "P" "Preassure"', time,' Scalar OnNodes'
+            write(200,"(A24, I4, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','     P '
@@ -2516,7 +2516,7 @@ module library
     
     
     
-    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,Mu)
+    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
       
       use sourceTerm
       
