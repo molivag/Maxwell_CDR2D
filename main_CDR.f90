@@ -105,7 +105,7 @@ implicit none
     if(((ndofn.eq.1).or.(ndofn.eq.3)).and.(simul.eq.2))then
       print*,'delta source'
       do ii=1,nodalSrc
-        !if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
+        if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
         print*,Icurr
         A_F((srcLoc(ii)-1)*ndofn+1,1) = Icurr(1)
         A_F((srcLoc(ii)-1)*ndofn+2,1) = Icurr(2)
