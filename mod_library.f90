@@ -127,7 +127,7 @@ module library
           dddd = 'Cranck-Nicholson'
           write(*,"(A29,3x,A16,1X,A10)") ' - Method Selected          : ', dddd,' '
         endif
-        write(*,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
+        write(*,"(A29,3X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
         write(*,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
         write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
         write(*,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
@@ -233,7 +233,7 @@ module library
           dddd = 'Cranck-Nicholson'
           write(100,"(A29,3x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
         endif
-        write(100,"(A29,2X,F13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
+        write(100,"(A29,3X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
         write(100,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
         write(100,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
         write(100,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
@@ -1667,20 +1667,23 @@ module library
       character(len=*), parameter :: fileplace = "Res/Exact_Solutions/"
       character(len=*), parameter :: fileplace2 = "Res/Geometry/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      
+      double precision, dimension(ntotv, 1)             :: E_field_exac
+      double precision, dimension(t_steps+1)            :: Ex_field
+     
       double precision, dimension(1, ntotv) :: solution_T
       !double precision, dimension(1,nnodes) :: xcoor, ycoor
       !double precision, dimension(nnodes)   :: x, y
       !double precision, dimension(t_steps) :: t
       double precision, dimension(nnodes)       :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
-      double precision, dimension(t_steps+2)   :: Texact_y, Texact_x, Texact_z, t
+      double precision, dimension(t_steps+1)   :: Texact_y, Texact_x, Texact_z, t
       double precision     :: aa, bb, cc, dd, ee, x, y, z, ds, sigma, srcCurr, r_vec, spi
       double precision     :: theta,ex,ey,ez, nt, delta_t, arg
       double precision     :: sum_error, error_EM, error_p, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
       double precision     :: fi, psi, der_fi, der_psi, mu, errL2_x, errL2_y, errL2_p
+      double precision     ::  srcX_ini, srcY_ini, srcX_end, srcY_end
       !double precision     :: SrcCurr, z, sigma, ds
       character(len=4)     :: extension!, File_Solution
-      integer              :: ipoin, ielem, inode, i, itime
+      integer              :: ipoin, ielem, inode, i, itime, ii
       
       
       extension =".dat"
@@ -1747,61 +1750,83 @@ module library
           !Nota: Esta solucion analitica determina el campo electrico en un punto de la malla (x,y)
           !para usarse de comparacion se requiere ejecutar el codigo y luego en el post-proceso 
           !extraer en un punto determinado ux e uy para todos los tiempos simulados
-
+          
           ! Define variables
           ! I*ds = dipole moment, is set to I*ds=1
-          srcCurr=  1.0
-          ds     =  1.0
-          sigma  =  1.0
-          x      =  0.5 
-          y      =  0.0
-          z      =  0.0
-          mu     =  1.0/lambda 
-
-          print*,' '
-          print*,'x', x
-          print*,'y', y
-          print*,'mu', mu
-          print*,' '
+          srcCurr  =  1.0
+          ds       =  1.0
+          sigma    =  1.0
+          mu       =  1.0/lambda 
+          srcX_ini = coord(1,srcLoc(1)) 
+          srcY_ini = coord(2,srcLoc(1)) 
+          srcX_end = coord(1,srcLoc(2)) 
+          srcY_end = coord(2,srcLoc(2)) 
           
+          nt  = time_ini
           arg = 0.0
           aa  = 0.0
           ee  = 0.0
+          ex  = 0.0; ey = 0.0; ez = 0.0
+          E_field_exac  = 0.0 
+          ii = 0.0
           
           delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)  
-          nt       = time_ini
           
-          do i=1,t_steps +2
+          do i=1,t_steps +1
             t(i) = nt 
             nt   = nt + delta_t
             !if(i.le.6)t(i)=0.0
           end do
           
-          r_vec= sqrt(x*x+y*y+z*z)
           spi  = sqrt(pi)
-          cc   = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
           
-          do i=1,t_steps +2
-            
-            theta = sqrt(mu*sigma/(4.0*t(i)))
-            aa = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
-            arg= -theta**2*r_vec**2
-            ee = erfc(theta*r_vec)
-            aa = aa*exp(arg)+3.0*ee
-            bb = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
-            bb = bb*exp(arg)+ee
-            
-            ! geometry term
-            ex=cc * (aa*x**2/r_vec**2 - bb)
-            ey=cc * aa*x*y/r_vec**2
-            ez=cc * aa*x*z/r_vec**2
-            
-            Texact_x(i) = ex
-            Texact_y(i) = ey
-            Texact_z(i) = ez
-            
-            !write(*,'(I5, e15.5, 3(E14.6))') i-1, t(i), Texact_x(i), Texact_y(i), Texact_z(i)
+          write(*,*) ' Writing exact solution'
+          do i=1,t_steps +1
+            !print*, i
+            do inode = 1, nnodes  
+              x = coord(1,inode)
+              y = coord(2,inode)
+              z = 0.0
+              
+              !if((x.eq.srcX_ini).and.(y.eq.srcY_ini))then
+              !  srcCurr = Icurr(1)*ii
+              !  !srcCurr =  -1.0
+              !  print*,"inicio"
+              !elseif((x.eq.srcX_end).and.(y.eq.srcY_end))then
+              !  srcCurr = Icurr(1)*ii
+              !  !srcCurr =  1.0
+              !  print*,"fin"
+              !else
+              !  srcCurr= 0.0
+              !end if
+              
+              r_vec= sqrt(x*x+y*y+z*z)
+              cc   = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
+              !print*,'esto es cc: ', cc
+              
+              theta = sqrt(mu*sigma/(4.0*t(i)))
+              aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
+              arg   = -theta**2*r_vec**2
+              ee    = erfc(theta*r_vec)
+              aa    = aa*exp(arg)+3.0*ee
+              bb    = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
+              bb    = bb*exp(arg)+ee
+              
+              ! geometry term
+              ex=cc * (aa*x**2/r_vec**2 - bb)
+              ey=cc * aa*x*y/r_vec**2
+              ez=cc * aa*x*z/r_vec**2
+              !write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
+              E_field_exac(ndofn*inode-2,1) = ex
+              E_field_exac(ndofn*inode-1,1) = ey
+              E_field_exac(ndofn*inode-0,1) = ez
+            end do
+              !write(*,'(I5, e15.5, 3(E14.6))') i-1, t(i), E_field_exac( 
+              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
+              ii = ii+1.0
           end do
+           
+          call GID_PostProcess(2,E_field_exac, 'msh', 0, t(1), time_fin, Ex_field) 
           
         case(3) !new test of polynomial solution
           
@@ -1872,7 +1897,7 @@ module library
       if(ProbType.eq.'TIME')then
         print*, 'xxxxxxxxxxxxxxx'
         write(111,'(A)')'%  Time         step         ex             ey             ez'
-        do itime = 1, t_steps+2
+        do itime = 1, t_steps+1
           write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
         end do
       else
@@ -1901,7 +1926,7 @@ module library
       write(*,"(A7,A16,A23,A)") ' -File ',File_Nodal_Vals//extension,'written succesfully in ',fileplace
       close(111)
       ! = = = = = = End writing FEM and Exact solutions
-
+                                                                                                         
       ! = = = = = = Begin write geometry
       open(unit=444, file= fileplace2//coord_name//extension, ACTION="write", STATUS="replace")
       open(unit=333, file= fileplace2//conec_name//extension, ACTION="write", STATUS="replace")
@@ -1919,7 +1944,7 @@ module library
       close(333)
       close(444)
       ! = = = = = = End write geometry
-
+                                                                                                         
      
       902 format(1x,i5,10(1x,i5))
       903 format(A7,A16,A5,A16,A23,A)
@@ -2319,7 +2344,7 @@ module library
     !- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- -
     ! Agregamos las rutinas de tiempo del commit 625fbee: May2 2022
     
-    subroutine GID_PostProcess(solution, activity, time, timeStep, time_final, Ex_field)
+    subroutine GID_PostProcess(id,solution, activity, time, timeStep, time_final, Ex_field)
       
       implicit none
       external                                             :: fdate 
@@ -2337,7 +2362,7 @@ module library
       double precision, dimension(1, ntotv)                :: Sol_T
       double precision, dimension(1,nnodes)                :: xcor, ycor
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
-      integer                                              :: ipoin, ii, ielem, inode, time2
+      integer                                              :: ipoin, ii, ielem, inode, time2,id
       
       double precision :: delta_t, timeStep2
       
@@ -2348,10 +2373,14 @@ module library
       
       delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)
       
-      
-      ext1 = ".post.msh"
-      ext2 = ".post.res"
-      ext3 = ".dat"
+      if(id.eq.1)then 
+        ext1 = ".post.msh"
+        ext2 = ".post.res"
+        ext3 = ".dat"
+      elseif(id.eq.2)then
+        ext1 = ".ppost.msh"
+        ext2 = ".ppost.res"
+      endif
       if(ElemType.eq.'QUAD')then
         Elem_Type = 'Quadrilateral'
       elseif(ElemType.eq.'TRIA')then
