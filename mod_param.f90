@@ -237,8 +237,8 @@ module param
       100 format(7/ ,11x, A4,/, 5(11x,I5,/),            2/,&  !model parameters
       &          11x,A12,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,    2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),     2/,&  !stabi
-      &          11x,I1,/, 2(11x,e15.5,/), 11x,I7,              2/,&  !time
-      &          11x,A14,/, 5(11x,A12,/), 2/ )              !output files
+      &          11x,I1,/, 2(11x,e15.5,/), 11x,I7,/,              2/,&  !time
+      &          11x,A14,/, 5(11x,A12,/),1/ )              !output files
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
