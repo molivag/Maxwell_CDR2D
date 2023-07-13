@@ -4,313 +4,6 @@ module library
   use biunit
 
   contains
-    
-    subroutine GeneralInfo(name_inputFile, geometry_File)
-      external :: fdate
-      
-      character(len=*), parameter :: fileplace = "Info/"
-      character(len=19)           :: name_inputFile
-      character(len=5)            :: file_name 
-      character(len=24)           :: date
-      character(len=4)            :: aaaa, cccc
-      character(len=9)            :: Prob_Type
-      character(len=12)           :: bbbb, geometry_File
-      character(len=16)           :: dddd, OrderElemType
-      double precision            :: delta_t
-      integer :: i,j, k, l
-      
-      if(kstab.eq.0)then
-        aaaa = 'NONE'
-      elseif(kstab.eq.1)then
-        aaaa = 'SUPG'
-      elseif(kstab.eq.2)then
-        aaaa = 'GLS'
-      elseif(kstab.eq.3 .or. kstab.eq.5)then
-        aaaa = 'SGS'
-      elseif(kstab.eq.4)then
-        aaaa = 'CG'
-      elseif(kstab.eq.6)then
-        aaaa = 'MAVF'
-      else
-        write(*,'(A)') '> > >Error in stabilization method'
-      endif
-     
-      if(ProbType.ne.'TIME')then
-        Prob_Type = 'STATIC'
-      else
-        Prob_Type = 'TRANSIENT'
-      endif
-      
-      if((ElemType.eq.'QUAD').and.(nne.eq.4))then
-        OrderElemType = 'QUADRILATERAL Q1'
-      elseif((ElemType.eq.'QUAD').and.(nne.eq.9))then
-        OrderElemType = 'QUADRILATERAL Q2'
-      elseif((ElemType.eq.'TRIA').and.(nne.eq.3))then
-        OrderElemType = 'TRIANGULAR P1'
-      elseif((ElemType.eq.'TRIA').and.(nne.eq.6))then
-        OrderElemType = 'TRIANGULAR P2'
-      end if
-      
-      
-     
-      call fdate(date)
-      print*, ' '
-      print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
-      print*, ' '
-      print*,' ',date
-      print*,'!================= GENERAL INFO ===============!'
-      write(*,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(*,"(A30,2x,a12  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
-      write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
-      write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', nelem,'   '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', nnodes, ' '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - DoF per node             : ', ndofn, '  '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Nodes per element        : ', nne, '    '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Element variabless       : ', nevab    ,'  '
-      write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', ntotv    ,'  '
-      write(*,"(A29,3X,f11.4,1X,A10)") ' - Characteristic mesh size : ', helem,' '
-      write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Length reference element : ', hnatu        ,' '
-      
-      if(refiType.eq.'NO')then
-        write(*,"(A30,2x,a6,3X,A10)") ' - Refinement type          : ','  NONE',' '
-      elseif(refiType.eq.'PS'.or.refitype.eq.'CC')then
-        if(refitype.eq.'PS')then
-          bbbb = 'Powell-Sabin'
-        elseif(refiType.eq.'CC')then
-          bbbb = 'Criss-Cross'
-        end if
-          print*, ' '
-          print*,'!================= REFINMENT INFO ===============!'
-          write(*,"(A30,2x,a12,3X,A1)") ' - Refinement type           : ', bbbb,''
-          write(*,"(A30,2X,I6,1X,A10)") ' - Elements after refinement : ', nelem,'   '
-          write(*,"(A30,2X,I6,1X,A10)") ' - Nodes after refinement    : ', nnodes, ' '
-          write(*,"(A30,2X,I6,1X,A10)") ' - Elm. Var. after refinement: ', nevab, ' '
-          write(*,"(A30,2X,I6,1X,A10)") ' - Tot. Var. after refinement: ', ntotv, ' '
-      else
-        write(*,'(A)') '> > >Error in refinment type'
-      endif
-      
-      print*, ' '
-      if(kstab.eq.0)then
-        print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
-      elseif(kstab.eq.6)then
-        print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A30,2x, A10 ,1X,A10)") ' - Stabilization method     : ', aaaa   ,' '
-        write(*,"(A30,2X,f13.5,1X,A10)") ' - Reluctivity of medium (λ): ', lambda ,' '
-        write(*,"(A30,1X,f13.5,1X,A10)") ' - Algorithmic constant (Cu): ', Cu     ,' '
-        write(*,"(A31,2X,f13.5,1X,A10)") ' - Constante of length (ℓ)  : ', ell    ,' '
-        write(*,"(A30,2X,e16.5,1X,A10)") ' - Stab. param.1 (Su)       : ', Cu*lambda*(helem**2/ell**2),'   '
-        write(*,"(A30,2X,e16.5,2X,A10)") ' - Stab. param.2 (Sp)       : ', ell**2 / lambda,'   '
-      else
-        print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A30,2x,a4  ,3X,A1 )")  ' - Stabilization method     : ', aaaa   ,' '
-        write(*,"(A30,2x,I2  ,3X,A1 )")  ' - Type of Tau matrix       : ', ktaum  ,' '
-        write(*,"(A30,2X,f3.1,1X,A10)")  ' - Param. to obtain TAU     : ', patau  ,' '
-      endif
-      
-      print*, ' '
-      if(ProbType.eq.'TIME')then
-        delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
-        print*,'!============ TIME DISCRETIZATION =============!'
-        if((theta.eq.2).or.(theta.eq.4))then
-          if(theta.eq.2)then
-            cccc = 'BDF1'
-          else
-            cccc = 'BDF2'
-          endif
-          write(*,"(A29,2X,A10,1X,A10)") ' - Method Selected          : ', cccc,' '
-        elseif(theta.eq.3)then
-          dddd = 'Cranck-Nicholson'
-          write(*,"(A29,3x,A16,1X,A10)") ' - Method Selected          : ', dddd,' '
-        endif
-        write(*,"(A29,3X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
-        write(*,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
-        write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
-        write(*,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
-      else
-        continue
-      endif
-      
-      !  print*, ' '
-    !  print*,'!============ TENSOR COEFFICIENTS  ============!'
-    !  print*, 'Diffusion'
-    !  do i = 1,dimPr
-    !    do j = 1,DimPr
-    !      print"(A,2I1)", 'k_',i,j
-    !      do k = 1,ndofn
-    !        print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
-    !      end do
-    !      !print*,' '
-    !    end do
-    !  end do
-    !  print*, ' '  
-    !  print*, 'Convection'
-    !  do k = 1, DimPr
-    !    print"(A,2I1)",'A_',k
-    !    do i = 1, ndofn
-    !      write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
-    !    end do
-    !  end do
-    !    print*,' '
-    !  print*,'Reaction'
-    !  do i=1,ndofn
-    !    write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
-    !  end do
-    !  print*, ' '
-    !  print*, 'External Forces'
-    !  if(ndofn.eq.1)then
-    !    write(*,"(3(f10.5,1x))") force(1)
-    !  elseif(ndofn.eq.2)then
-    !    write(*,"(2(f10.5,1x))") force(1), force(2)
-    !  else
-    !    write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
-    !  endif
-    !  write(*,'(A)') 
-    !  write(*,'(A)') 'Density Current'
-    !  if(ndofn.eq.1)then
-    !    write(*,"(1(f10.3,1x))") Icurr(1)
-    !  elseif(ndofn.eq.3)then
-    !    write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-    !  endif
-      
-      file_name ="test_"
-      open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
-      
-      if(refiType.eq.'NO')then
-        bbbb = '    NONE'
-      elseif(refiType.eq.'PS')then
-        bbbb = 'Powell-Sabin'
-      elseif(refiType.eq.'CC')then
-        bbbb = 'Criss-Cross'
-      else
-        write(*,'(A)') '> > >Error in refinment type'
-      endif
-      
-      write(100,'(A)')'- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
-      write(100,'(A)')
-      write(100,'(A8,1x,A14)') 'test ID: ',testID
-      write(100,'(A)') " "
-      write(100,'(A)') date
-      write(100,'(A)')'!================= GENERAL INFO ===============!'
-      write(100,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(100,"(A30,2x,a19  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
-      write(100,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
-      write(100,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', nelem,'   '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Nodal points             : ', nnodes, ' '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - DoF per node             : ', ndofn, '  '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Nodes per element        : ', nne, '    '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
-      write(100,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', ntotv    ,'  '
-      write(100,"(A29,3X,f11.4,1X,A10)") ' - Element size             : ', helem,' '
-      if(refiType.eq.'NO')then
-        write(100,"(A30,2x,a7 ,3X,A10)") ' - Refinement type          : ', '  NONE',' '
-        write(100,'(A)')
-      elseif(refiType.ne.'NO')then
-        write(100,'(A)')'!================= REFINMENT INFO ===============!'
-        write(100,"(A30,2x,a12,3X,A1 )") ' - Refinement type          : ', bbbb    ,' '
-        write(100,"(A30,2X,I6,1X,A10)") ' - Elements after refinement : ', nelem,'   '
-        write(100,"(A30,2X,I6,1X,A10)") ' - Nodes after refinement    : ', nnodes, ' '
-        write(100,"(A30,2X,I6,1X,A10)") ' - Elm. Var. after refinement: ', nevab, ' '
-        write(100,"(A30,2X,I6,1X,A10)") ' - Tot. Var. after refinement: ', ntotv, ' '
-        write(100,'(A)') 
-      endif 
-      if(ProbType.eq.'TIME')then
-        delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
-        write(100,'(A)')'!============ TIME DISCRETIZATION =============!'
-        if((theta.eq.2).or.(theta.eq.4))then
-          if(theta.eq.2)then
-            cccc = 'BDF1'
-          else
-            cccc = 'BDF2'
-          endif
-          write(100,"(A29,2X,A  ,1X,A10)") ' - Method Selected          : ', cccc,' '
-        elseif(theta.eq.3)then
-          dddd = 'Cranck-Nicholson'
-          write(100,"(A29,3x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
-        endif
-        write(100,"(A29,3X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
-        write(100,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
-        write(100,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
-        write(100,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
-      else
-        continue
-      endif
-      if(kstab.eq.0)then
-        write(100,'(A)') 
-        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''  
-      !write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
-      elseif(kstab.eq.6)then
-        write(100,'(A)') 
-        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        
-        write(100,"(A30,2x, A10 ,1X,A10)") ' - Stabilization method     : ', aaaa   ,' '
-        write(100,"(A30,2X,f13.5,1X,A10)") ' - Reluctivity of medium (λ): ', lambda ,' '
-        write(100,"(A30,1X,f13.5,1X,A10)") ' - Algorithmic constant (Cu): ', Cu     ,' '
-        write(100,"(A31,2X,f13.5,1X,A10)") ' - Constante of length (ℓ)  : ', ell    ,' '
-        write(100,"(A30,2X,e16.5,1X,A10)") ' - Stab. param.1 (Su)       : ', Cu*lambda*(helem**2/ell**2),'   '
-        write(100,"(A30,2X,e16.5,2X,A10)") ' - Stab. param.2 (Sp)       : ', ell**2 / lambda,'   '
-      else
-        write(100,'(A)') 
-        write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A30,2X,A10  ,2X,A10)") ' - Stabilization method     : ', aaaa   ,' '
-        write(100,"(A30,2X,f10.3,2X,A10)") ' - Type of Tau matrix       : ', ktaum  ,' '
-        write(100,"(A30,2X,f10.3,2X,A10)") ' - Param. to obtain TAU     : ', patau  ,' '
-      endif
-      write(100,'(A)') 
-      write(100,'(A)') 
-      write(100,'(A)')'!============ TENSOR COEFFICIENTS  ============!'
-      write(100,'(A)') 'Diffusion'
-      write(100,'(A)') 
-      do i = 1,dimPr
-        do j = 1,DimPr
-          write(100,"(A,2I1)") 'k_',i,j
-          do k = 1,ndofn
-            write(100,"(e15.7,1x,e15.7, 1x, e15.7)") ( difma(k,l,i,j), l=1,ndofn)
-          end do
-          !print*,' '
-        end do
-      end do
-      write(100,'(A)')
-      write(100,'(A)') 'Convection'
-      do k = 1, DimPr
-        write(100,"(A,2I1)")'A_',k
-        do i = 1, ndofn
-          write(100,"(f10.3, 1x, f10.3, 1x, f10.3)") ( conma(i,j,k) ,j=1, ndofn)
-        end do
-      end do
-      write(100,'(A)') 
-      write(100,'(A)') 'Reaction'
-      do i=1,ndofn
-        write(100,"(f10.3, 1x, f10.3, 1x, f10.3)" ) ( reama(i,j) ,j=1,ndofn)
-      end do
-        write(100,'(A)') 
-      write(100,'(A)') 'External Forces'
-      if(ndofn.eq.1)then
-        write(100,"(1(f10.3,1x))") force(1)
-      elseif(ndofn.eq.2)then
-        write(100,"(2(f10.3,1x))") force(1), force(2)
-      else
-        write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
-      endif
-      
-      write(100,'(A)') 
-      write(100,'(A)') 'Density Current'
-      if(ndofn.eq.1)then
-        write(100,"(1(f10.3,1x))") Icurr(1)
-      elseif(ndofn.eq.3)then
-        write(100,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-      endif
-      
-      
-      close(100)
-      
-    endsubroutine GeneralInfo
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
@@ -1677,7 +1370,7 @@ module library
       double precision, dimension(nnodes)       :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
       double precision, dimension(t_steps+1)   :: Texact_y, Texact_x, Texact_z, t
       double precision     :: aa, bb, cc, dd, ee, x, y, z, ds, sigma, srcCurr, r_vec, spi
-      double precision     :: theta,ex,ey,ez, nt, delta_t, arg
+      double precision     :: theta,ex,ey,ez, nt, arg
       double precision     :: sum_error, error_EM, error_p, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
       double precision     :: fi, psi, der_fi, der_psi, mu, errL2_x, errL2_y, errL2_p
       double precision     ::  srcX_ini, srcY_ini, srcX_end, srcY_end
@@ -1770,9 +1463,9 @@ module library
           E_field_exac  = 0.0 
           ii = 0.0
           
-          delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)  
+          !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)  
           
-          do i=1,t_steps +1
+          do i=1,t_steps 
             t(i) = nt 
             nt   = nt + delta_t
             !if(i.le.6)t(i)=0.0
@@ -2364,14 +2057,14 @@ module library
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
       integer                                              :: ipoin, ii, ielem, inode, time2,id
       
-      double precision :: delta_t, timeStep2
+      !double precision :: delta_t, timeStep2
       
       
       Sol_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
-      delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)
+      !delta_t 1e-3 ( time_fin - time_ini ) / (t_steps + 1.0)
       
       if(id.eq.1)then 
         ext1 = ".post.msh"
@@ -2545,7 +2238,8 @@ module library
     
     
     
-    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
+    !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
+    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_F)
       
       use sourceTerm
       
@@ -2566,7 +2260,7 @@ module library
       !double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ, delta_t
+      double precision                          :: dvol, hmaxi, detJ!, delta_t
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_F
       
@@ -2656,71 +2350,71 @@ module library
     
     
     
-    subroutine TimeLevels(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, Ucurr, Uprev, F_plus_MU)
-      
-      use sourceTerm
-      
-      
-      implicit none
-      
-      double precision, allocatable, dimension(:,:), intent(in out) :: Uprev, Ucurr
-      double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
-      double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
-      !double precision, dimension(3,nne), intent(in)    :: Hesxieta
-      double precision, dimension(ndofn)        :: EMsource
-      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
-      double precision, dimension(DimPr,nne)    :: dN_dxy
-      double precision, dimension(3,nne)        :: HesXY
-      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
-      double precision, dimension(nevab, nevab) :: Ke, Ce
-      double precision, dimension(nevab)        :: Fe, Fe_time, ue_prev, ue_curr, AvrgeTime
-      !double precision, dimension(3,3)          :: tauma
-      double precision, dimension(nne,DimPr)                :: element_nodes
-      integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ, delta_t
-      integer                                   :: igaus, ibase, ielem
-      double precision, dimension(ntotv, 1), intent(out)  :: F_plus_MU
-      
-      !allocate( F_plus_MU )
-      F_plus_MU = 0.0
-    
-      do ielem = 1, nelem 
-        Ke = 0.0; Fe = 0.0; Ce = 0.0
-        call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
-        call gather(nodeIDmap, Uprev, ue_prev)
-        call gather(nodeIDmap, Ucurr, ue_curr)
-        AvrgeTime =  (2*ue_curr + 0.5*ue_prev) / delta_t 
-        
-        !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
-        do igaus = 1, TotGp
-          call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          !Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = m22det(Jaco)
-          !Jinv = inv2x2(Jaco)
-          !dvol = detJ *  weigp(igaus,1)
-          !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
-          hmaxi = elemSize(Jinv)
-          do ibase = 1, nne
-            basis(ibase) = N(ibase,igaus)
-          end do
-          
-          
-          !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
-          call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
-          call Galerkin_prevTime(dvol, basis, Ce, Fe)
-          !call TauMat(hmaxi,tauma)
-          !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
-          !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
-          Fe_time = Fe - matmul(Ce,AvrgeTime)
-        end do
-    
-        call Assemb_Glob_Vec(nodeIDmap, Fe_time, F_plus_MU) !Assemble Global Source vector F
-        
-      end do
-      
-    end subroutine TimeLevels
+    !subroutine TimeLevels(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, Ucurr, Uprev, F_plus_MU)
+    !  
+    !  use sourceTerm
+    !  
+    !  
+    !  implicit none
+    !  
+    !  double precision, allocatable, dimension(:,:), intent(in out) :: Uprev, Ucurr
+    !  double precision, dimension(nne,TotGp), intent(in):: N, dN_dxi, dN_deta
+    !  double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+    !  !double precision, dimension(3,nne), intent(in)    :: Hesxieta
+    !  double precision, dimension(ndofn)        :: EMsource
+    !  double precision, dimension(nne)          :: basis, xi_cor, yi_cor
+    !  double precision, dimension(DimPr,nne)    :: dN_dxy
+    !  double precision, dimension(3,nne)        :: HesXY
+    !  double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
+    !  double precision, dimension(nevab, nevab) :: Ke, Ce
+    !  double precision, dimension(nevab)        :: Fe, Fe_time, ue_prev, ue_curr, AvrgeTime
+    !  !double precision, dimension(3,3)          :: tauma
+    !  double precision, dimension(nne,DimPr)                :: element_nodes
+    !  integer, dimension(nne)                   :: nodeIDmap
+    !  double precision                          :: dvol, hmaxi, detJ, delta_t
+    !  integer                                   :: igaus, ibase, ielem
+    !  double precision, dimension(ntotv, 1), intent(out)  :: F_plus_MU
+    !  
+    !  !allocate( F_plus_MU )
+    !  F_plus_MU = 0.0
+    !
+    !  do ielem = 1, nelem 
+    !    Ke = 0.0; Fe = 0.0; Ce = 0.0
+    !    call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
+    !    call gather(nodeIDmap, Uprev, ue_prev)
+    !    call gather(nodeIDmap, Ucurr, ue_curr)
+    !    AvrgeTime =  (2*ue_curr + 0.5*ue_prev) / delta_t 
+    !    
+    !    !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
+    !    do igaus = 1, TotGp
+    !      call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
+    !      !Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
+    !      !detJ = m22det(Jaco)
+    !      !Jinv = inv2x2(Jaco)
+    !      !dvol = detJ *  weigp(igaus,1)
+    !      !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
+    !      call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+    !      hmaxi = elemSize(Jinv)
+    !      do ibase = 1, nne
+    !        basis(ibase) = N(ibase,igaus)
+    !      end do
+    !      
+    !      
+    !      !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
+    !      call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+    !      call Galerkin_prevTime(dvol, basis, Ce, Fe)
+    !      !call TauMat(hmaxi,tauma)
+    !      !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+    !      !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+    !      !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe)
+    !      Fe_time = Fe - matmul(Ce,AvrgeTime)
+    !    end do
+    !
+    !    call Assemb_Glob_Vec(nodeIDmap, Fe_time, F_plus_MU) !Assemble Global Source vector F
+    !    
+    !  end do
+    !  
+    !end subroutine TimeLevels
 
 
 
