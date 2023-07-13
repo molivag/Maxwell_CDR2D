@@ -8,11 +8,11 @@ module param
   character(len=2)  :: refiType
   integer           :: nBVs, nBVscol, nband, t_steps, simul
   integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
-  integer           :: DimPr, nne, ndofn, totGp, kstab, ktaum, maxband, theta
+  integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta
   integer           :: i_exp, nodalSrc, nodalRec, skipline, postpro, signal, srcType!, srcLoc
   integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem
   real              :: hnatu, patau
-  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin
+  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:,:,:) :: difma
@@ -33,7 +33,7 @@ module param
       implicit none
       
       character(len=19)               :: name_inputFile
-      !double precision                :: Su, Sp 
+      double precision                :: tsteps
       character(len=180)              :: msg
       character(len=*), parameter     :: fileplace = "./"
       integer                         :: stat, ii
@@ -45,9 +45,9 @@ module param
       
       read(5, 100,iostat=stat,iomsg=msg) &
       ProbType,DimPr,ndofn,totGp,simul,postpro,&
-      mesh_file, nne, i_exp, hnatu, refiType,&
+      mesh_file, initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
-      theta, time_ini, time_fin, t_steps, &
+      theta, time_ini, time_fin, delta_t, &
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       if (stat.ne.0)then
         print*, ' '
@@ -203,6 +203,13 @@ module param
       close(5)
       !print*, srcLoc(1), srcLoc(2), srcType, signal 
       
+      time_fin = 20*delta_t
+      delta_t  = time_ini
+      
+      tsteps   = (time_fin/ delta_t) + 1
+      print*, 'stpes', tsteps
+      t_steps = floor(tsteps) !redondeo al numero inmediato superior 
+      print*, 'time stpes ', t_steps
       
       !if(kstab.eq.6)then
       !  !helem = 2.0**(-(i_exp)) 
@@ -234,10 +241,10 @@ module param
       
       !Initial elemental and global variables, it will changes if refination is selected.
       
-      100 format(7/ ,11x, A4,/, 5(11x,I5,/),            2/,&  !model parameters
-      &          11x,A12,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,    2/,&  !geometry
-      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),     2/,&  !stabi
-      &          11x,I1,/, 2(11x,e15.5,/), 11x,I7,/,              2/,&  !time
+      100 format(7/ ,11x, A4,/, 5(11x,I5,/),                    2/,&  !model parameters
+      &          11x,A12,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
+      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),   2/,&  !stabi
+      &          11x,I1,/, 3(11x,e15.7,/),                      2/,&  !time
       &          11x,A14,/, 5(11x,A12,/),1/ )              !output files
      
       101 format(1/,F12.5,2/)
