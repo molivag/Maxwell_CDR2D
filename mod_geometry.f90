@@ -26,7 +26,7 @@ use param
       character(len=12), intent(in)   :: file_mesh
       character(len=180)              :: msg
       double precision                :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
-      integer                         :: ielem, jpoin, idime, i,j, stat, dmy
+      integer                         :: ielem, jpoin, idime, i,j, stat, dmy, gmsh_nne
       integer                         :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
       integer                         :: npoiw,nelew,nnodw, npoif
       integer                         :: initOrderElem
@@ -39,18 +39,16 @@ use param
       !do i=1,skipline
       !read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       !end do
-      do i=1,1
-        read(5,*) !se salta todas las lineas del archivo .msh comenzando a leer nodos
-        if ( stat /= 0 )then
-          print*, ' ' 
-          print*, 'error in read mesh module geometry' 
-          print'(A9,I3)','iostat= ',stat
-          print'(A8,1x,A180)','iomsg= ',msg
-          print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
-          print*, ' ' 
-          stop
-        end if
-      end do
+      read(5,*) !se salta todas las lineas del archivo .msh comenzando a leer nodos
+      if ( stat /= 0 )then
+        print*, ' ' 
+        print*, 'error in read mesh module geometry' 
+        print'(A9,I3)','iostat= ',stat
+        print'(A8,1x,A180)','iomsg= ',msg
+        print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
+        print*, ' ' 
+        stop
+      end if
       
       read(5,*) initNodes
       nnodes = initNodes
@@ -70,8 +68,10 @@ use param
           print*, msg
         endif
       end do
-
-
+      
+      !do jpoin = 1, nnodes
+      !  print'(i5, 2x,2(F16.9))', jpoin, (coord(idime,jpoin),idime=1,DimPr)
+      !end do
       
       read(5,*) initElem 
         IF ( stat /= 0 )then
@@ -79,35 +79,72 @@ use param
           print*, msg
         END IF
       nelem = initElem
-      allocate( lnods(initElem,nne))
+      allocate( lnods(initElem,initnne))
       lnods = 0.0
       !mshType  = 1                !Mesh builder 1=GID; 2=GMSH       
       do i=1,nelem
-        !read(5,*,iostat=stat,iomsg=msg) ielem,(lnods(ielem,j), j =1,nne)
-        read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, dmy,dmy, dmy, (lnods(ielem,j), j =1,nne)
+        read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, dmy,dmy, gmsh_nne, (lnods(ielem,j), j =1,initnne)
         IF ( stat /= 0 )then!
           print*,'iostat= ',stat
           print*, msg
         END IF
       end do
+      read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
+      
+      !do i = 1, nelem
+      !  print'(i5, 2x,5(I6))', i, (lnods(i,j),j=1,initnne)
+      !end do
       
       close(5)
       
       select case(initOrderElem)
       case(2)
         initElemType = 'TRIA'
+        gmsh_nne = 3
+        if(initnne.eq.gmsh_nne)then
+          continue
+        else
+          write(*,'(A)') 'Error in nne, program stop inside Geometry module'
+          write(*,'(A40, I6)') 'Number of nodes in the element must be: ', gmsh_nne
+          stop
+        endif
+        
       case(9)
         initElemType = 'TRIA' !2nd Order (6node) Triangle 
+        gmsh_nne = 6
+        if(initnne.eq.gmsh_nne)then
+          continue
+        else
+          write(*,'(A)') 'Error in nne, program stop inside Geometry module'
+          write(*,'(A40, I6)') 'Number of nodes in the element must be: ', gmsh_nne
+          stop
+        endif
       case(3)
         initElemType = 'QUAD'
+        gmsh_nne = 4
+        if(initnne.eq.gmsh_nne)then
+          continue
+        else
+          write(*,'(A)') 'Error in nne, program stop inside Geometry module'
+          write(*,'(A40, I6)') 'Number of nodes in the element must be: ', gmsh_nne
+          stop
+        endif
       case(10)
         initElemType = 'QUAD' !2nd Order (9node) Quadrilateral 
+        gmsh_nne = 9
+        if(initnne.eq.gmsh_nne)then
+          continue
+        else
+          write(*,'(A)') 'Error in nne, program stop inside Geometry module'
+          write(*,'(A40, I6)') 'Number of nodes in the element must be: ', gmsh_nne
+          stop
+        endif
       case default
         write(*,'(A)') 'error >>>> The initElemType must be 2, 9, 3 or 10'
         stop
       end select
       
-      initnevab = ndofn*nne
+      initnevab = ndofn*initnne
       initntotv = ndofn*initNodes
       
       if(refiType.eq.'NO')then
@@ -189,7 +226,7 @@ use param
           !que agregara 3 nodos mas y luego uno al centro es decir todo queda igual solo agregar aqui previ
           !al primer ciclo do, el ciclo de dividir un cuadrado en dos elementos y ya
           if(ielem.eq.1)write(*,'(a)') 'Powell-Sabin refinement type selectd use triangle as a initial element'
-          if(nne.ne.3)then 
+          if(initnne.ne.3)then 
             write(*,'(a)') 'PS refinment not compatible with quadrilateral element'
             write(*,'(a)') '>>> Verify PS must be nne=3'
             stop
@@ -220,7 +257,7 @@ use param
           endif
           
         elseif(refiType.eq.'CC')then
-          if(nne.ne.4)then
+          if(initnne.ne.4)then
             
             write(*,'(a)') 'CC refinment not compatible with triangular element'
             write(*,'(a)') '>>> Verify CC must be nne=4'
@@ -273,7 +310,7 @@ use param
       do ielem=1,nelem
         !*** 2D: NNODE = 3 --> NNODE = 4 6 & 7
         if(refiType.eq.'PS')then
-          if(nne.ne.3)then 
+          if(initnne.ne.3)then 
             write(*,'(a)') 'PS refinment not compatible with quadrilateral element'
             write(*,'(a)') '>>> Verify PS must be nne=3'
             stop
@@ -317,7 +354,7 @@ use param
           endif
           
         elseif(refiType.eq.'CC')then
-          if(nne.ne.4)then
+          if(initnne.ne.4)then
             
             write(*,'(a)') 'CC refinment not compatible with triangular element'
             write(*,'(a)') '>>> Verify CC must be nne=4'
