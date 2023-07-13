@@ -5,7 +5,7 @@ module timeInt
 
   contains
 
-    subroutine initialCondition(presc,ifpre, nofix, delta_t, shapeTime, Uinit) 
+    subroutine initialCondition(presc,ifpre, nofix, shapeTime, Uinit) 
       
       !* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
       ! Routine to proyect the initial condition into the FE space:
@@ -34,13 +34,13 @@ module timeInt
       integer                                                  :: tw, t
       double precision, dimension(ntotv,1)         ,intent(out):: Uinit
       double precision, dimension(t_steps+1)      ,intent(out):: shapeTime
-      double precision                             ,intent(out):: delta_t
+      !double precision                             ,intent(out):: delta_t
       
       allocate( dummy(ldAKban,ntotv) )
       
       u  = 0.0
-      tw = 3 !time*width how strong the impulse is
-      delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
+      tw = 1 !time*width how strong the impulse is
+      !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
       
@@ -125,7 +125,7 @@ module timeInt
       double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut
       double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
       integer         , allocatable, dimension(:)            :: S_ipiv, S_iwork
-      double precision                                       :: delta_t, nt, ttt
+      double precision                                       :: nt, ttt
       integer                                                :: time, info, workdim
       integer :: ii
       double precision, allocatable,dimension(:),intent(out) :: Ex_field
@@ -147,11 +147,11 @@ module timeInt
       rhs_time = 0.0
       AK_time  = 0.0
       time     = 0                                            !initializing the time
-      delta_t  = ( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
+      !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       nt       = time_ini
       ttt      = 0.0
       
-      call initialCondition(presc,ifpre, nofix, delta_t, shapeTime, u_init)
+      call initialCondition(presc,ifpre, nofix, shapeTime, u_init)
       !call initialCondition(presc,ifpre,nofix,basfun,dN_dxi,dN_deta,S_m,S_n,S_trans,S_nrhs,S_ipiv,S_ldSol,delta_t,Uinit) 
       
       u_pre  = u_init                                   !u in present time 
@@ -161,8 +161,9 @@ module timeInt
       
       !write(*,*) ' '
       print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
-      call GID_PostProcess(u_pre, 'res'    , time, nt, time_fin, Ex_field)
-      call GID_PostProcess(u_pre, 'profile', time, nt, time_fin, Ex_field)
+      call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
+      call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
+      call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
      
@@ -171,21 +172,21 @@ module timeInt
         case(2) 
           !Time-stepping
           write(*,*)'              BDF1 Selected'
-          do while(ttt < time_fin)
+          !do while(ttt < time_fin)
            
+          do time = 1, t_steps
             u_pre = u_fut
-            !do time = 1, t_steps+1
             nt = nt + delta_t!,time_fin,delta_t
-            time = time+1
+            !time = time+1
             
-            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,delta_t,u_pre,A_F)
+            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,A_F)
             AK_time  = (A_C/delta_t) + A_K 
             
             call ApplyBVs(nofix,ifpre,presc,AK_time,A_F)
             call currDensity(time,shapeTime(4),Jsource) 
             
-            !rhs_time =  A_F + Jsource
-            rhs_time =  A_F + 1/delta_t*(Jsource + Jsource_pre)
+            rhs_time =  A_F + Jsource/delta_t
+            !rhs_time =  A_F + 1/delta_t*(Jsource + Jsource_pre)
             !print'(f15.5)', 1/delta_t*(Jsource + Jsource_pre) 
             
             !------------- Solver -------------!
@@ -205,13 +206,13 @@ module timeInt
            
             !---------- Printing and writing results -----------!
             print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
-            call GID_PostProcess(u_fut, 'res'    , time, nt, time_fin, Ex_field)
-            call GID_PostProcess(u_fut, 'profile', time, nt, time_fin, Ex_field)
+            call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
+            call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
             
             !---------- Updating Variables ---------------------! 
             Jsource_pre = Jsource
             
-            ttt = ttt+delta_t
+            !ttt = ttt+delta_t
             
           end do
         !-------- Crank- Nicholson Scheme 
@@ -335,9 +336,6 @@ module timeInt
       !print*, 'Shape of Global F: ',shape(rhs_time)
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
-      nt = 0.0
-      call GID_PostProcess(u_pre, 'msh', time, nt, time_fin, Ex_field)
-      print*, ' '
       DEALLOCATE( AK_time, u_pre, u_fut)
       
       
