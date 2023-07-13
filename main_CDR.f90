@@ -1,5 +1,5 @@
 program main_CDR3d
-  use param; use geometry; use biunit
+  use param; use geometry; use biunit; use inputInfo
   use library; use boundVal; use timeInt; use sourceTerm
 
 implicit none
