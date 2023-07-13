@@ -13,11 +13,11 @@ simul    = 2                !1=LdomT2; 2=FullSpace; 3=PolyMaxwell; 4=PolyStokes;
 pospro   = 2                !Execution of post-processing routine 1=yes, 2=no
 
 # > > > > > > > Geometry
-meshfile = gmsh_TEM.msh     !File .msh that contains the mesh
+meshfile = gmsh_EM1.msh     !File .msh that contains the mesh
 nne      = 3                !Nodes per element Q:4-9; P:3-6
 i_exp    = 0                !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 1.0              !Reference element length
-refiType = NO               !NONE; PS=Powell-Sabin; CC=Criss-Cross
+refiType = PS               !NONE; PS=Powell-Sabin; CC=Criss-Cross
 
 # > > > > > > > Stabilization
 kstab    = 6                !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
@@ -25,23 +25,23 @@ ktaum    = 0                !Tau matrix: 0, 1, 2
 patau    = 0.0              !Parameter to obtain tau
 n_val    = 0.0              !n parameter in exact solution, for simul=1
 helem    = 0.05             !Characteristic mesh size (maximum element size among the mesh)
-Cu       = 5.0              !Algorithmic constant
-ell      = 2.0              !Constante de longitud  
+Cu       = 1000.0              !Algorithmic constant
+ell      = 86.0              !Constante de longitud  
 1/mu=λ   = 795774.71545     !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
 
 # > > > > > > > Time Discretization
 theta    = 2                !BDF1=2 ;CN=3; BDF2=4
-time_ini = 0.00e+0           !Starting time simulation (simulation always starts at 0?)
-time_fin = 0.69e-5           !Total time simulated in [s]  --> 1800 microseconds
-t_steps  = 50              !Time steps
+time_ini = 0.500e-15        !Starting time simulation (simulation always starts at 0?)
+time_fin = 0.1000e-2        !Total time simulated in [s]  --> 1800 microseconds
+delta_t  = 0.5000e-15        !Time steps
 
 # > > > > > > > Name outPut Files
-testID   = rmshPS_13BDTEM01      !data file with input parameters in each iteration Res/results
-Postpro  = rmshPS_13BDTEM   
+testID   = psTemp10_TEMloc      !data file with input parameters in each iteration Res/results
+Postpro  = psTemp10_TEM 
 Error    = xxxxxxxxxxx
 Cordina  = xxxxxxxxxxx
 Conecti  = xxxxxxxxxxx
-Profile  = rmshPS_5BDTEM  
+Profile  = psTemp10_TEM
 
 # > > > > > > > Physical Properties
 #DIFMA_xx                   !Diffusion tensor
@@ -80,12 +80,13 @@ Profile  = rmshPS_5BDTEM
 1.0 , 0.0 , 0.0
 
 #Nodal source Location
-nodalSrc = 1                !Number of nodes will contain the source
-7                           !for CC meshes
+nodalSrc = 2                !Number of nodes will contain the source
+55                          !632                         !145
+56                          !640                         !143
 
 #Time waveform
 signal   = 1                !Signal in time: 1=step-on; 2=step-off; 3=triangular
 
 # > > > > > > > Nodal receiver Locations
 nodalRec = 1                !Number of nodes as a receiver
-64                          !Directo en la fuente
+72                          !712                         !136                          !32
