@@ -1367,8 +1367,8 @@ module library
       !double precision, dimension(1,nnodes) :: xcoor, ycoor
       !double precision, dimension(nnodes)   :: x, y
       !double precision, dimension(t_steps) :: t
-      double precision, dimension(nnodes)       :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
-      double precision, dimension(t_steps+1)   :: Texact_y, Texact_x, Texact_z, t
+      double precision, dimension(nnodes)    :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
+      double precision, dimension(t_steps)   :: Texact_y, Texact_x, Texact_z, t
       double precision     :: aa, bb, cc, dd, ee, x, y, z, ds, sigma, srcCurr, r_vec, spi
       double precision     :: theta,ex,ey,ez, nt, arg
       double precision     :: sum_error, error_EM, error_p, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
@@ -1446,14 +1446,14 @@ module library
           
           ! Define variables
           ! I*ds = dipole moment, is set to I*ds=1
-          srcCurr  =  1.0
+          SrcCurr  =  1.0
           ds       =  1.0
           sigma    =  1.0
           mu       =  1.0/lambda 
-          srcX_ini = coord(1,srcLoc(1)) 
-          srcY_ini = coord(2,srcLoc(1)) 
-          srcX_end = coord(1,srcLoc(2)) 
-          srcY_end = coord(2,srcLoc(2)) 
+          !srcX_ini = coord(1,srcLoc(1)) 
+          !srcY_ini = coord(2,srcLoc(1)) 
+          !srcX_end = coord(1,srcLoc(2)) 
+          !srcY_end = coord(2,srcLoc(2)) 
           
           nt  = time_ini
           arg = 0.0
@@ -1474,28 +1474,15 @@ module library
           spi  = sqrt(pi)
           
           write(*,*) ' Writing exact solution'
-          do i=1,t_steps +1
+          do i=1,t_steps
             !print*, i
             do inode = 1, nnodes  
               x = coord(1,inode)
               y = coord(2,inode)
               z = 0.0
               
-              !if((x.eq.srcX_ini).and.(y.eq.srcY_ini))then
-              !  srcCurr = Icurr(1)*ii
-              !  !srcCurr =  -1.0
-              !  print*,"inicio"
-              !elseif((x.eq.srcX_end).and.(y.eq.srcY_end))then
-              !  srcCurr = Icurr(1)*ii
-              !  !srcCurr =  1.0
-              !  print*,"fin"
-              !else
-              !  srcCurr= 0.0
-              !end if
-              
               r_vec= sqrt(x*x+y*y+z*z)
               cc   = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
-              !print*,'esto es cc: ', cc
               
               theta = sqrt(mu*sigma/(4.0*t(i)))
               aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
@@ -1506,9 +1493,9 @@ module library
               bb    = bb*exp(arg)+ee
               
               ! geometry term
-              ex=cc * (aa*x**2/r_vec**2 - bb)
-              ey=cc * aa*x*y/r_vec**2
-              ez=cc * aa*x*z/r_vec**2
+              ex    = cc * (aa*x**2/r_vec**2 - bb)
+              ey    = cc * aa*x*y/r_vec**2
+              ez    = cc * aa*x*z/r_vec**2
               !write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
               E_field_exac(ndofn*inode-2,1) = ex
               E_field_exac(ndofn*inode-1,1) = ey
@@ -1590,7 +1577,7 @@ module library
       if(ProbType.eq.'TIME')then
         print*, 'xxxxxxxxxxxxxxx'
         write(111,'(A)')'%  Time         step         ex             ey             ez'
-        do itime = 1, t_steps+1
+        do itime = 1, t_steps
           write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
         end do
       else
@@ -2203,10 +2190,11 @@ module library
       close(300)        !mismo archivo escribiendo a continuacion de donde se quedo el archivo anterior
       
       !la siguiente instruccion debe usarse con timeStep no con time pero solo es para avanzar
-      if(time == t_steps+1.and.activity.eq."profile") then
-      !if(timeStep == time_final+1) then
+      !if(time == t_steps+1.and.activity.eq."profile") then
+      if((time == t_steps).and.(activity.ne."profile")) then
         print*, ' '
         print"(1x, A21,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
+        print*, ' '
       endif
       
       !if(simul.eq.6.and.ndofn.1)then
