@@ -160,8 +160,9 @@ module timeInt
       call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
       !write(*,*) ' '
-      print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
+      write(*,*) ' '
+      print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
       call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
       print*, 'Starting time integration. . . . .'
@@ -185,9 +186,9 @@ module timeInt
             call ApplyBVs(nofix,ifpre,presc,AK_time,A_F)
             call currDensity(time,shapeTime(4),Jsource) 
             
-            rhs_time =  A_F + Jsource/delta_t
+            rhs_time =  A_F - Jsource/delta_t
             !rhs_time =  A_F + 1/delta_t*(Jsource + Jsource_pre)
-            !print'(f15.5)', 1/delta_t*(Jsource + Jsource_pre) 
+            !print'(f15.5)',Jsource/delta_t
             
             !------------- Solver -------------!
             u_fut = rhs_time   !here mkl will rewrite u_fut by the solution vector
@@ -210,8 +211,7 @@ module timeInt
             call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
             
             !---------- Updating Variables ---------------------! 
-            Jsource_pre = Jsource
-            
+            !Jsource_pre = Jsource
             !ttt = ttt+delta_t
             
           end do
