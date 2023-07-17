@@ -138,9 +138,33 @@ module inputInfo
       print*, ' '
       print*,'!============ Source Parameters =============!'
       write(*,'(A)') ' -Location'
-      write(*,*)'         Source ini       Source end' 
-      write(*,'(A,F6.3,A,F6.3,A,A,F6.3,A,F6.3,A)') &
-        &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(2)),') ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),')'
+      if(nodalSrc.eq.1)then
+        write(*,'(A)')' -Source point' 
+        write(*,'(A,F6.3,A,F6.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') '
+        print*, ' '
+        write(*,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        print*, ' '
+        write(*,'(A)') ' -Dipole lenght: Single source point'
+      elseif(nodalSrc.eq.2)then
+        write(*,*)'           Begining            End' 
+        write(*,'(A,F6.3,A,F6.3,A,A,F6.3,A,F6.3,A)') &
+          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),')'
+        print*, ' '
+        write(*,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        print*, ' '
+        write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+      else
+        write(*,*)'           Begining            End' 
+        write(*,'(A,F6.3,A,F6.3,A,A,F6.3,A,F6.3,A)') &
+          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') ',&
+          &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),')'
+        print*, ' '
+        write(*,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        !write(*,'(I6)') nodalSrc 
+        print*, ' '
+        write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+        !write(*,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+      end if
       print*, ' '
       write(*,'(A)') ' -Intensity current'
       if(ndofn.eq.1)then
@@ -149,7 +173,7 @@ module inputInfo
         write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
       endif
       
-      !  print*, ' '
+      !write(*,'(A)') 
       !print*,'!============ TENSOR COEFFICIENTS  ============!'
       !print*, 'Diffusion'
       !do i = 1,dimPr
@@ -184,12 +208,6 @@ module inputInfo
       !  write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
       !endif
       !write(*,'(A)') 
-      !write(*,'(A)') 'Density Current'
-      !if(ndofn.eq.1)then
-      !  write(*,"(1(f10.3,1x))") Icurr(1)
-      !elseif(ndofn.eq.3)then
-      !  write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-      !endif
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
@@ -211,7 +229,7 @@ module inputInfo
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
       write(100,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(100,"(A30,2x,a19  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(100,"(A30,2x,a12  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
       write(100,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(100,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', initelem,'   '
@@ -280,9 +298,37 @@ module inputInfo
       write(100,'(A)') 
       write(100,'(A)')'!============ Source Parameters =============!'
       write(100,'(A)') ' -Location'
-      write(100,'(A)')'         Source ini       Source end' 
-      write(100,'(A,F6.3,A,F6.3,A,A,F6.3,A,F6.3,A)') &
-        &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(2)),') ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),')'
+      if(nodalSrc.eq.1)then
+        write(100,'(A)')' -Source point' 
+        write(100,'(A,F6.3,A,F6.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') '
+        write(100,'(A)') 
+        write(100,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(100,'(A)') 
+        write(100,'(A)') ' -Dipole lenght: Single source point'
+      elseif(nodalSrc.eq.2)then
+        write(100,*)'           Begining            End' 
+        write(100,'(A,F6.3,A,F6.3,A,A,F6.3,A,F6.3,A)') &
+          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),')'
+        write(100,'(A)') 
+        write(100,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(100,'(A)') 
+        write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+      else
+        write(100,'(A)')'           Begining            End' 
+        write(100,'(A,F6.3,A,F6.3,A,A,F6.3,A,F6.3,A)') &
+          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') ',&
+          &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),')'
+        write(100,'(A)') 
+        write(100,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        !write(100,'(I6)') nodalSrc 
+        write(100,'(A)') 
+        write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+        !write(100,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+      end if
+      
+      
+      
+      
       write(100,'(A)') 
       write(100,'(A)') ' -Intensity current'
       if(ndofn.eq.1)then
@@ -326,15 +372,6 @@ module inputInfo
       else
         write(100,"(3(f10.3,1x))") force(1), force(2), force(3)
       endif
-      
-      write(100,'(A)') 
-      write(100,'(A)') 'Density Current'
-      if(ndofn.eq.1)then
-        write(100,"(1(f10.3,1x))") Icurr(1)
-      elseif(ndofn.eq.3)then
-        write(100,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-      endif
-      
       
       close(100)
       
