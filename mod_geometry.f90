@@ -3,8 +3,8 @@ use param
   
   implicit none
 
-  double precision, allocatable, dimension(:,:)     :: coord !, coordRef
-  integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
+  !double precision, allocatable, dimension(:,:)     :: coord !, coordRef
+  !integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
   !character(len=4)  :: ElemType, initElemType
 
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
