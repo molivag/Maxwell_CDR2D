@@ -25,23 +25,23 @@ ktaum    = 0                !Tau matrix: 0, 1, 2
 patau    = 0.0              !Parameter to obtain tau
 n_val    = 0.0              !n parameter in exact solution, for simul=1
 helem    = 0.05             !Characteristic mesh size (maximum element size among the mesh)
-Cu       = 1000.0              !Algorithmic constant
-ell      = 86.0              !Constante de longitud  
+Cu       = 100.0              !Algorithmic constant
+ell      = 10.0              !Constante de longitud  
 1/mu=λ   = 795774.71545     !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
 
 # > > > > > > > Time Discretization
 theta    = 2                !BDF1=2 ;CN=3; BDF2=4
 time_ini = 0.500e-15        !Starting time simulation (simulation always starts at 0?)
 time_fin = 0.1000e-2        !Total time simulated in [s]  --> 1800 microseconds
-delta_t  = 0.5000e-15        !Time steps
+steps    = 5               !Time steps
 
 # > > > > > > > Name outPut Files
-testID   = psTemp10_TEMloc      !data file with input parameters in each iteration Res/results
-Postpro  = psTemp10_TEM 
+testID   = check07_TEMloc      !data file with input parameters in each iteration Res/results
+Postpro  = check07_TEM 
 Error    = xxxxxxxxxxx
 Cordina  = xxxxxxxxxxx
 Conecti  = xxxxxxxxxxx
-Profile  = psTemp10_TEM
+Profile  = xxxxxxxxxxx
 
 # > > > > > > > Physical Properties
 #DIFMA_xx                   !Diffusion tensor
@@ -80,9 +80,12 @@ Profile  = psTemp10_TEM
 1.0 , 0.0 , 0.0
 
 #Nodal source Location
-nodalSrc = 2                !Number of nodes will contain the source
-55                          !632                         !145
-56                          !640                         !143
+nodalSrc = 5                !Number of nodes will contain the source
+55
+1165
+7
+1440
+56
 
 #Time waveform
 signal   = 1                !Signal in time: 1=step-on; 2=step-off; 3=triangular
