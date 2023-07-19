@@ -151,6 +151,7 @@ use param
         ElemType = initElemType
         nevab    = initnevab
         ntotv    = initntotv
+        nne      = initnne
         
         goto 101
         
