@@ -191,17 +191,9 @@ module timeInt
             !--- Factorizing Matrix
             call dgbtrf(S_m, S_n, lowban, upban, LHS, ldAKban, S_ipiv, info)
             call checkMKL('f',time,info)
-            if(info.ne.0)then
-              call MKLfactoResult('dgbtrf',info) 
-              print'(A32,I3)', '<<<Error in factorization at time: ', time
-            endif
             !--- Solving System of Eqns
             call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, LHS, ldAKban, S_ipiv, u_fut, S_ldSol, info )
             call checkMKL('s',time,info)
-            if(info.ne.0)then
-              call MKLsolverResult('dgbtrs',info) 
-              print'(A32,I3)', '<<<Error in solving system of equation at time: ', time
-            endif
            
             !---------- Printing and writing results -----------!
             print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
