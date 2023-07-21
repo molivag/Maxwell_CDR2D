@@ -1637,6 +1637,30 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
+    subroutine checkMKL(typpe, time,info)
+      
+      implicit none
+      
+      character(1), intent(in) :: typpe
+      integer     , intent(in) :: info, time
+      
+      select case(typpe)
+        case('f')
+          if(info.ne.0)then
+            print'(A34,I0)', '<<<Error in factorization at time: ', time
+            call MKLfactoResult('dgbtrf',info) 
+          endif
+        case('s')
+          if(info.ne.0)then
+            print'(A48,I0)', '<<<Error in solving system of equation at time: ', time
+            call MKLsolverResult('dgbtrs',info) 
+          endif
+      end select
+      
+    end subroutine checkMKL
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine MKLfactoResult( routine_name, num )
       implicit none
       
