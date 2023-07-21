@@ -6,7 +6,7 @@ implicit none
 
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   character(len=19)                                 :: name_inputFile
-  character(len=12)                                 :: geometry_File
+  character(len=13)                                 :: geometry_File
   double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc !,Jsource
   double precision, allocatable, dimension(:,:)     :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:)     :: hes_xixi, hes_xieta, hes_etaeta
@@ -91,7 +91,7 @@ implicit none
       & time_ini, time_fin, t_steps, nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs,&
       & S_ipiv, S_ldSol, workdim, Ex_field)
    
-    call Res_Matlab(Ex_field)
+    !call Res_Matlab(Ex_field)
    
     !---------- Memory Relase -----------!
     deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
@@ -138,7 +138,7 @@ implicit none
     
     !---------- Print and write results -----------------------------------!
     call GID_results(u_sol, grad_u_sol) 
-    call Res_Matlab(u_sol)
+    !call Res_Matlab(u_sol)
     
     !print*, ' '
     !print*, 'Shape of Global K: ',shape(A_K)

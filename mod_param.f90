@@ -39,7 +39,7 @@ module param
       character(len=180)              :: msg
       character(len=*), parameter     :: fileplace = "./"
       integer                         :: stat, ii
-      character(len=12), intent(out)  :: mesh_file
+      character(len=13), intent(out)  :: mesh_file
       
       
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
@@ -236,7 +236,7 @@ module param
       !Initial elemental and global variables, it will changes if refination is selected.
       
       100 format(7/ ,11x, A4,/, 5(11x,I5,/),                    2/,&  !model parameters
-      &          11x,A12,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
+      &          11x,A13,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),   2/,&  !stabi
       !&          11x,I1,/, 3(11x,e15.7,/),                      2/,&  !time
       &          11x,I1,/, 2(11x,e15.7,/),11x,I5,/,               2/,&  !time
