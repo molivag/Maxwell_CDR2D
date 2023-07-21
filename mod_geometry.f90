@@ -23,7 +23,7 @@ use param
       implicit none
       
       character(len=*), parameter     :: fileplace = "Msh/"
-      character(len=12), intent(in)   :: file_mesh
+      character(len=13), intent(in)   :: file_mesh
       character(len=180)              :: msg
       double precision                :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
       integer                         :: ielem, jpoin, idime, i,j, stat, dmy, gmsh_nne
@@ -32,7 +32,7 @@ use param
       integer                         :: initOrderElem
       
       
-      open(5, file=fileplace//file_mesh,status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      open(5, file=fileplace//file_mesh, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       
