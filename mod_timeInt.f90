@@ -120,7 +120,7 @@ module timeInt
 
       double precision, dimension(ntotv,1)                   :: Jsource, Jsource_pre
       double precision, dimension(ntotv,1)                   :: RHS, F_plus_MU, rhs_BDF2, u_init
-      double precision, dimension(t_steps+1)                :: shapeTime
+      double precision, dimension(t_steps+1)                 :: shapeTime
       
       double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut, Mu_pre
       double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
@@ -144,6 +144,7 @@ module timeInt
       u_curr = 0.0
       u_pre  = 0.0
       u_fut  = 0.0
+      Mu_pre = 0.0
       RHS    = 0.0
       LHS    = 0.0
       time   = 0                                            !initializing the time
@@ -172,17 +173,14 @@ module timeInt
           !do while(ttt < time_fin)
            
           do time = 1, t_steps
-            u_pre = u_fut
             nt = nt + delta_t!,time_fin,delta_t
             !time = time+1
             
-            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,A_F)
+            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C/delta_t) + A_K 
-            
-            call ApplyBVs(nofix,ifpre,presc,LHS,A_F)
             call currDensity(time,shapeTime(4),Jsource) 
-            
-            RHS = A_F - Jsource/delta_t
+            RHS = A_F + Mu_pre - Jsource/delta_t
+            call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
             !RHS =  A_F + 1/delta_t*(Jsource + Jsource_pre)
             !print'(f15.5)',Jsource/delta_t
             
@@ -203,6 +201,7 @@ module timeInt
             !---------- Updating Variables ---------------------! 
             !Jsource_pre = Jsource
             !ttt = ttt+delta_t
+            u_pre = u_fut
             
           end do
         !-------- Crank- Nicholson Scheme 
