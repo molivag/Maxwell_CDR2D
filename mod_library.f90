@@ -2251,7 +2251,7 @@ module library
     
     
     !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
-    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_F)
+    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
       
       use sourceTerm
       
@@ -2268,21 +2268,21 @@ module library
       double precision, dimension(3,nne)        :: HesXY
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
-      double precision, dimension(nevab)        :: Fe, Fe_time, ue_pre, time_cont
+      double precision, dimension(nevab)        :: Fe, Mu_time, ue_pre, time_cont
       !double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ!, delta_t
       integer                                   :: igaus, ibase, ielem
-      double precision, allocatable, dimension(:,:), intent(out)  :: A_F
+      double precision, allocatable, dimension(:,:), intent(out)  :: A_M
       
-      allocate( A_F(ntotv, 1) )
+      allocate( A_M(ntotv, 1) )
       !allocate(ugl_pre(S_ldSol,1) )
       
-      A_F = 0.0
+      A_M = 0.0
       do ielem = 1, nelem 
        
-        Ke = 0.0; Ce = 0.0; Fe = 0.0   
+        Ke = 0.0; Ce = 0.0; Fe = 0.0; Mu_time = 0.0 
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !gather
         call gather(nodeIDmap, ugl_pre, ue_pre)
@@ -2309,20 +2309,21 @@ module library
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           
+          !estas multiplicaciones deberias ser globales pero por la matriz en banda se deben 
+          !hacer locales, es lo mismo.
           select case(theta)
           case(2)
-          Fe_time = Fe + matmul(Ce,time_cont)
+          Mu_time = matmul(Ce,time_cont) 
           case(3)
           rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
-          Fe_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+          Mu_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
           endselect
           
         end do
         
-        
         !call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
         !call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
-        call Assemb_Glob_Vec(nodeIDmap, Fe_time, A_F) !Assemble Global Source vector F
+        call Assemb_Glob_Vec(nodeIDmap, Mu_time, A_M) !Assemble Global Source vector F
         
       end do
       
