@@ -1468,7 +1468,6 @@ module library
           do i=1,t_steps 
             t(i) = nt 
             nt   = nt + delta_t
-            !if(i.le.6)t(i)=0.0
           end do
           
           spi  = sqrt(pi)
@@ -1506,7 +1505,7 @@ module library
               ii = ii+1.0
           end do
            
-          call GID_PostProcess(2,E_field_exac, 'msh', 0, t(1), time_fin, Ex_field) 
+          !call GID_PostProcess(2,E_field_exac, 'msh', 0, t(1), time_fin, Ex_field) 
           
         case(3) !new test of polynomial solution
           
@@ -2128,7 +2127,7 @@ module library
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
-            write(200,"(A29, I0, A)") 'Result "E" "E-field" ', time,' Scalar OnNodes'
+            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ex '
@@ -2142,7 +2141,7 @@ module library
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
           case(2)
-            write(200,"(A29, I4, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ex ','               ey '
@@ -2151,7 +2150,7 @@ module library
             end do
             write(200,"(A)") 'End Values'
           case(3)
-            write(200,"(A29, I3, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ex ','               ey'
@@ -2162,7 +2161,7 @@ module library
               write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
             end do
             write(200,"(A)") 'End Values'
-            write(200,"(A24, I4, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
+            write(200,"(A24, I0, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','     P '
@@ -2251,7 +2250,7 @@ module library
     
     
     !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
-    subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
+    subroutine prevTime(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
       
       use sourceTerm
       
@@ -2328,7 +2327,7 @@ module library
       end do
       
       
-    end subroutine GlobalSystem_Time
+    end subroutine prevTime
 
 
 
