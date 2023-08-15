@@ -176,12 +176,10 @@ module sourceTerm
       
       implicit none
       
-      !double precision,allocatable, dimension(:,:), intent(in) :: A_F
       double precision, intent(in)                        :: eTime
       integer :: tw, inode, time
       double precision, intent(out) :: Jsource(ntotv,1)
       
-      !allocate(A_F(ntotv,1))
       
       Jsource = 0.0
       !locatx= (srcLoc(inode)-1)*ndofn+1
@@ -189,20 +187,11 @@ module sourceTerm
       
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
       
-      !selectcase(srcType)
-       ! case(1) !source parallel to x-axis
-          do inode=1,nodalSrc 
-            !print*,inode
-            Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-            Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
-            !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime; print*,'x'
-          end do
-          
-        !case(2) !source parallel to y-axis
-        !case(3) !source in a diagonal direction
-        !case default
-          !write(*,*) 'Source type not available'
-      !end select
+      do inode=1,nodalSrc 
+        Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+        Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
+        if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+      end do
       
     end subroutine   
     !          
