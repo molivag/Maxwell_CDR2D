@@ -2285,7 +2285,7 @@ module library
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !gather
         call gather(nodeIDmap, ugl_pre, ue_pre)
-        time_cont = ue_pre * 1.0/delta_t
+        time_cont = ue_pre
         
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
