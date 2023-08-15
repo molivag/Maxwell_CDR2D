@@ -26,20 +26,20 @@ module timeInt
      
       !external                                      :: dgbtrf, dgbtrs, dgbrfs
      
-      double precision, dimension(ndofn,nBVs)      ,intent(in) :: presc
-      integer, dimension(ndofn,nBVs)               ,intent(in) :: ifpre
-      integer, dimension(nBVs)                     ,intent(in) :: nofix
-      double precision, allocatable, dimension(:,:)            :: dummy
-      double precision, dimension(t_steps+1)                  :: u
-      integer                                                  :: tw, t
-      double precision, dimension(ntotv,1)         ,intent(out):: Uinit
-      double precision, dimension(t_steps+1)      ,intent(out):: shapeTime
+      double precision, dimension(ndofn,nBVs)       ,intent(in) :: presc
+      integer, dimension(ndofn,nBVs)                ,intent(in) :: ifpre
+      integer, dimension(nBVs)                      ,intent(in) :: nofix
+      double precision, allocatable, dimension(:,:)             :: dummy
+      double precision, dimension(t_steps)                      :: u
+      integer                                                   :: tw, t
+      double precision, dimension(ntotv,1)         ,intent(out) :: Uinit
+      double precision, dimension(t_steps)         ,intent(out) :: shapeTime
       !double precision                             ,intent(out):: delta_t
       
       allocate( dummy(ldAKban,ntotv) )
       
-      u  = 0.0
-      tw = 1 !time*width how strong the impulse is
+      u  = 1.0
+      tw = 3 !time*width how strong the impulse is
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
@@ -48,17 +48,17 @@ module timeInt
       !--Select a signal shape function in time
       select case(signal)
         case(1) !step-on
-          do t = 1, t_steps+1
+          do t = 1, t_steps
             if(t.le.tw)then
               u(t) = 0.0
-            elseif(t.gt.tw)then!.and.t.le.2*tw)then
-              u(t) = 1.0
+            !elseif(t.gt.10*tw)then!.and.t.le.2*tw)then
+            !  u(t) = 0.0
             !elseif(t.gt.2*tw)then
-             ! u(t) = 1.0
+            ! u(t) = 1.0
             endif
           end do
         case(2) !step off
-          do t = 1, t_steps+1
+          do t = 1, t_steps
             if(t.le.tw)then
               u(t) = 1.0
             elseif(t.gt.tw.and.t.le.2*tw)then
@@ -68,7 +68,7 @@ module timeInt
             endif
           end do
         case(3) !triangular
-          do t = 1, t_steps+1
+          do t = 1, t_steps
             if(t.le.tw)then
               u(t) = 1.0/tw * t
             elseif(tw.lt.t.and.t.lt.2*tw)then
@@ -84,7 +84,7 @@ module timeInt
       
       shapeTime = u 
       
-      !do t =1,t_steps+1
+      !do t =1,t_steps
       !  print"(I0, 1x, f5.3)", t, shapeTime(t)
       !end do
       
@@ -176,13 +176,12 @@ module timeInt
             nt = nt + delta_t!,time_fin,delta_t
             !time = time+1
             
-            call GlobalSystem_Time(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
-            LHS  = (A_C/delta_t) + A_K 
-            call currDensity(time,shapeTime(4),Jsource) 
-            RHS = A_F + Mu_pre - Jsource/delta_t
+            call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
+            LHS  = (A_C/delta_t) + A_K
+            call currDensity(time,shapeTime(time),Jsource) 
+            RHS = (A_F + (1/delta_t)*Mu_pre - Jsource)
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
-            !RHS =  A_F + 1/delta_t*(Jsource + Jsource_pre)
-            !print'(f15.5)',Jsource/delta_t
+            !print'(f15.5)',RHS
             
             !------------- Solver -------------!
             u_fut = RHS   !here mkl will rewrite u_fut by the solution vector
@@ -190,7 +189,7 @@ module timeInt
             call dgbtrf(S_m, S_n, lowban, upban, LHS, ldAKban, S_ipiv, info)
             call checkMKL('f',time,info)
             !--- Solving System of Eqns
-            call dgbtrs(S_trans, S_n, lowban, upban, S_nrhs, LHS, ldAKban, S_ipiv, u_fut, S_ldSol, info )
+            call dgbtrs(S_trans,S_n,lowban,upban,S_nrhs,LHS,ldAKban,S_ipiv,u_fut,S_ldSol,info )
             call checkMKL('s',time,info)
            
             !---------- Printing and writing results -----------!
