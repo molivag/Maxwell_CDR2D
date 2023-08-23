@@ -1369,11 +1369,13 @@ module library
       !double precision, dimension(t_steps) :: t
       double precision, dimension(nnodes)    :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
       double precision, dimension(t_steps)   :: Texact_y, Texact_x, Texact_z, t
-      double precision     :: aa, bb, cc, dd, ee, x, y, z, ds, sigma, srcCurr, r_vec, spi
+      double precision     :: aa, bb, cc, dd, ee, ds, sigma, mu, SrcCurr, r_vec, spi
+      double precision     :: x, y, z, x1, y1, x2, y2
       double precision     :: theta,ex,ey,ez, nt, arg
-      double precision     :: sum_error, error_EM, error_p, x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
-      double precision     :: fi, psi, der_fi, der_psi, mu, errL2_x, errL2_y, errL2_p
-      double precision     ::  srcX_ini, srcY_ini, srcX_end, srcY_end
+      double precision     :: sum_error, error_EM, error_p, errL2_x, errL2_y, errL2_p
+      double precision     :: x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
+      double precision     :: fi, psi, der_fi, der_psi 
+      double precision     :: rho1, rho2 
       !double precision     :: SrcCurr, z, sigma, ds
       character(len=4)     :: extension!, File_Solution
       integer              :: ipoin, ielem, inode, i, itime, ii
@@ -1395,7 +1397,7 @@ module library
       uySol = 0.0
       multi = 1E-10
       
-      select case(simul)
+      select case(exacSol)
         case(1)
           aa = (2.0/3.0)*n_val
           bb = 0.0
@@ -1446,14 +1448,10 @@ module library
           
           ! Define variables
           ! I*ds = dipole moment, is set to I*ds=1
-          SrcCurr  =  1.0
+          SrcCurr  =  Icurr(1)
           ds       =  1.0
           sigma    =  1.0
           mu       =  1.0/lambda 
-          !srcX_ini = coord(1,srcLoc(1)) 
-          !srcY_ini = coord(2,srcLoc(1)) 
-          !srcX_end = coord(1,srcLoc(2)) 
-          !srcY_end = coord(2,srcLoc(2)) 
           
           nt  = time_ini
           arg = 0.0
@@ -1537,10 +1535,11 @@ module library
         case(4)
           goto 115 
         case(5)
-          print*,'No analytic solution'
+         
         case(6)
           print*,'DC simulation No analytic solution'
       end select
+     
       error_EM = sqrt(error_EM/nnodes)
       error_p = sqrt(error_p/nnodes)
      
@@ -1580,7 +1579,7 @@ module library
           write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
         end do
       else
-        if(simul.eq.2)goto 10 
+        if(exacSol.eq.2)goto 10 
         if(ndofn.eq.3)then
           do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
             write(111,'(A)') '%      FEM_x             FEM_y             Exact_x           Exact_y'
@@ -1605,7 +1604,7 @@ module library
       write(*,"(A7,A16,A23,A)") ' -File ',File_Nodal_Vals//extension,'written succesfully in ',fileplace
       close(111)
       ! = = = = = = End writing FEM and Exact solutions
-                                                                                                         
+      
       ! = = = = = = Begin write geometry
       open(unit=444, file= fileplace2//coord_name//extension, ACTION="write", STATUS="replace")
       open(unit=333, file= fileplace2//conec_name//extension, ACTION="write", STATUS="replace")
@@ -1623,7 +1622,7 @@ module library
       close(333)
       close(444)
       ! = = = = = = End write geometry
-                                                                                                         
+      
      
       902 format(1x,i5,10(1x,i5))
       903 format(A7,A16,A5,A16,A23,A)
