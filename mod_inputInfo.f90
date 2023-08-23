@@ -142,24 +142,24 @@ module inputInfo
         write(*,'(A)')' -Source point' 
         write(*,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) '
         print*, ' '
-        write(*,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
         print*, ' '
         write(*,'(A)') ' -Dipole lenght: Single source point'
       elseif(nodalSrc.eq.2)then
-        write(*,*)'           Begining            End' 
+        write(*,*)'              Begining                End' 
         write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
           &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
         print*, ' '
-        write(*,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
         print*, ' '
         write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
       else
-        write(*,*)'           Begining            End' 
+        write(*,*)'              Begining                End' 
         write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
           &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
           &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),' )'
         print*, ' '
-        write(*,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
         !write(*,'(I6)') nodalSrc 
         print*, ' '
         write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
@@ -248,8 +248,8 @@ module inputInfo
         write(100,"(A30,2x,a12,3X,A1 )")' - Refinement type           : ', bbbb    ,' '
         write(100,"(A30,2X,I6,1X,A10)") ' - Elements after refinement : ', nelem,'   '
         write(100,"(A30,2X,I6,1X,A10)") ' - Nodes after refinement    : ', nnodes, ' '
-        write(100,"(A30,2X,I6,1X,A10)") ' - Elm. Var. after refinement: ', nevab, ' '
-        write(100,"(A30,2X,I6,1X,A10)") ' - Tot. Var. after refinement: ', ntotv, ' '
+        write(100,"(A30,2X,I6,1X,A10)") ' - Elm unkns after refinement: ', nevab, ' '
+        write(100,"(A30,2X,I6,1X,A10)") ' - Glb unkns after refinement: ', ntotv, ' '
       endif 
       if(kstab.eq.0)then
         write(100,'(A)') 
@@ -288,7 +288,7 @@ module inputInfo
           dddd = 'Cranck-Nicholson'
           write(100,"(A29,3x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
         endif
-        write(100,"(A29,3X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
+        write(100,"(A29,6X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
         write(100,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
         write(100,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
         write(100,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
@@ -302,24 +302,24 @@ module inputInfo
         write(100,'(A)')' -Source point' 
         write(100,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') '
         write(100,'(A)') 
-        write(100,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(100,'(A25,2(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
         write(100,'(A)') 
         write(100,'(A)') ' -Dipole lenght: Single source point'
       elseif(nodalSrc.eq.2)then
-        write(100,*)'           Begining            End' 
+        write(100,'(A)')'              Begining                End' 
         write(100,'(A,F8.3,A,F8.3,A,A,F6.3,A,F8.3,A)') &
           &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
         write(100,'(A)') 
-        write(100,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
         write(100,'(A)') 
         write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
       else
-        write(100,'(A)')'           Begining            End' 
+        write(100,'(A)')'              Begining                End' 
         write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
           &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
           &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),' )'
         write(100,'(A)') 
-        write(100,'(A25,I0)')' -Nodes involves source: ', nodalSrc 
+        write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
         !write(100,'(I6)') nodalSrc 
         write(100,'(A)') 
         write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
