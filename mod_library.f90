@@ -1535,6 +1535,40 @@ module library
         case(4)
           goto 115 
         case(5)
+          print*,'Double Line Source exact solution'
+          E_field_exac  = 0.0 
+          SrcCurr = Icurr(1)
+          sigma = 1.0
+          mu    = 1.0/lambda 
+          ez    = 0.0
+          ii    = 0.0
+          nt    = time_ini
+          
+          do i=1,t_steps 
+            t(i) = nt 
+            nt   = nt + delta_t
+          end do
+          
+          do i = 1, t_steps
+            do inode = 1,nnodes
+              x = coord(1,inode)
+              y = coord(2,inode)
+              theta= sqrt((mu*sigma/4.0*t(i)))
+              x1 = coord(1,Srcloc(1)) 
+              y1 = coord(2,Srcloc(1))
+              x2 = coord(1,Srcloc(2))
+              y2 = coord(2,Srcloc(2))
+              rho1 = sqrt( (x - x1)**2 + (y-y1)**2 )
+              rho2 = sqrt( (x - x2)**2 + (y-y2)**2 )
+              aa = rho1**2
+              bb = rho2**2
+              
+              ez = -(mu*SrcCurr/4.0*sigma*t(i)) * ( exp(aa*theta**2) + exp(bb*theta**2) )
+              E_field_exac(ndofn*inode-2,1) = ez
+            end do
+              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
+              ii = ii+1.0
+          end do
          
         case(6)
           print*,'DC simulation No analytic solution'
