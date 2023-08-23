@@ -145,7 +145,7 @@ module BoundVal
         nBVscol = 5
         
       elseif(ndofn .eq. 3)then
-        select case(simul)
+        select case(BCsProb)
           case(1)
             aa = (2.0/3.0)*n_val
             cc = (n_val/3.0) - (1.0/2.0)
