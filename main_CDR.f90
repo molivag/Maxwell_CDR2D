@@ -91,7 +91,7 @@ implicit none
       & time_ini, time_fin, t_steps, nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs,&
       & S_ipiv, S_ldSol, workdim, Ex_field)
    
-    !call Res_Matlab(Ex_field)
+    call Res_Matlab(Ex_field)
    
     !---------- Memory Relase -----------!
     deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
@@ -102,7 +102,7 @@ implicit none
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)
-    if(((ndofn.eq.1).or.(ndofn.eq.3)).and.(simul.eq.2))then
+    if(((ndofn.eq.1).or.(ndofn.eq.3)).and.(exacSol.eq.2))then
       print*,'delta source'
       do ii=1,nodalSrc
         if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
