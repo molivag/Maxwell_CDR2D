@@ -33,7 +33,7 @@ module sourceTerm
         !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
       end do
       
-      select case(simul)
+      select case(exacSol)
        
         case(0)
           EMsource(1) = force(1)
@@ -191,6 +191,7 @@ module sourceTerm
         Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
         Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
         if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+        !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
       end do
       
     end subroutine   
