@@ -14,7 +14,7 @@ BCsProb  = 2              !1=Ldomain; 2=Maxwell; 3=manufMaxwell; 4=manufStokes; 
 postpro  = 2              !Execution of post-processing routine 1=yes, 2=no
 
 # > > > > > > > Geometry
-meshfile = 07gmsh_EM.msh  !File .msh that contains the mesh
+meshfile = 08gmsh_EM.msh  !File .msh that contains the mesh
 nne      = 4              !Nodes per element Q:4-9; P:3-6
 i_exp    = 0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 1.0            !Reference element length
@@ -33,17 +33,17 @@ ell      = 120.0          !Constante de longitud
 # > > > > > > > Time Discretization
 theta    = 2              !BDF1=2 ;CN=3; BDF2=4
 time_ini = 0.0000e+0      !Starting time simulation (simulation always starts at 0?)
-time_fin = 6.2700e-3      !Total time simulated in [s]  --> 1800 microseconds
-steps    = 5000          !Time steps
+time_fin = 0.1000e+0      !Total time simulated in [s]  --> 1800 microseconds
+steps    = 200             !Time steps
 Src_ON   = 2              !Time at Source is turned ON
 
 # > > > > > > > Name outPut Files
-testID   = chkSolWS-01_acua      !data file with input parameters in each iteration Res/results
-Postpro  = chkSolWS-01 
-Error    = gxxxxxxxxxx
-Cordina  = ChkSolu_cor
-Conecti  = ChkSolu_con
-Profile  = 82yneg23_Li
+testID   = struSolWS-01_acua      !data file with input parameters in each iteration Res/results
+Postpro  = struSolWS-01 
+Error    = struxxxxxxxx
+Cordina  = struSolu_cor
+Conecti  = struSolu_con
+Profile  = struneg23_Li
 
 # > > > > > > > Physical Properties
 #DIFMA_xx                  !Diffusion tensor
@@ -82,16 +82,15 @@ Profile  = 82yneg23_Li
 10.0 , 0.0 , 0.0
 
 #Nodal source Location
-nodalSrc = 2               !Number of nodes will contain the source
-101                        !line source: Dirichlet->45 66 ; Neumann->31 34  ; dipole 55 1165 7 1440 56
-128
+nodalSrc = 1             !Number of nodes will contain the source
+68                     !line source: Dirichlet->45 66 ; Neumann->31 34  ; dipole 55 1165 7 1440 56
 
 #Time waveform
-signal   = 1               !Signal in time: 1=step-on; 2=step-off; 3=triangular
+signal   = 1           !Signal in time: 1=step-on; 2=step-off; 3=triangular
 
 # > > > > > > > Nodal receiver Locations
-nodalRec = 1               !Number of nodes as a receiver
-1160                   !Same receiver (74) in both cases, for Neumann 64 (ultima sim decia 50, verif)
+nodalRec = 1           !Number of nodes as a receiver
+1002                    !Same receiver (1160) in both cases, for Neumann 64 (ultima sim decia 50, verif)
 
 
 
