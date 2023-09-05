@@ -2085,8 +2085,9 @@ module library
       implicit none
       external                                             :: fdate 
       
-      character(len=*), parameter                          :: fileplace = "Pos/"
-      character(len=*), parameter                          :: fileplace2 = "Res/FEM_TEM/"
+      character(len=*), parameter  :: fileplace = "Pos/"
+      character(len=*), parameter  :: fileplace2 = "Res/FEM_TEM/"
+      character(len=*), parameter  :: fileplace3 = "Exact_Sol_TEM/2D_DoubleLine_WholeSpace/"
       character(len=24)                                    :: date
       double precision, dimension(ntotv, 1),intent(in)     :: solution
       character(*)                         ,intent(in)     :: activity
@@ -2098,7 +2099,9 @@ module library
       double precision, dimension(1, ntotv)                :: Sol_T
       double precision, dimension(1,nnodes)                :: xcor, ycor
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
-      integer                                              :: ipoin, ii, ielem, inode, time2,id
+      integer                                              :: ipoin, ii, ielem, inode, time2,id 
+      integer          :: id_poin
+      double precision :: x_profile
       
       !double precision :: delta_t, timeStep2
       
@@ -2137,6 +2140,7 @@ module library
         do ipoin = 1, nnodes
           write(100,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
         end do
+       
         write(100,"(A)") 'End Coordinates'
         write(100,"(A)") 'Elements'
         do ielem=1,nelem
@@ -2235,6 +2239,28 @@ module library
         !  end do
         !endif
         
+      elseif(activity == "spatial")then
+        id_poin=0
+        open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
+        do ipoin =1,nnodes
+          if(ycor(1,ipoin).eq.0.0)then
+            id_poin = id_poin+1
+            write(10,906) ipoin, xcor(1,ipoin)
+          else
+            continue
+          endif
+        end do
+        close(10)
+        
+        open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
+        open(unit=6, file=fileplace3//"6M_FEM_Ex.dat", ACTION="write", STATUS="replace")
+        !allocate(efile_profile(id))
+        do ii = 1,id_poin
+          read(5,*) ipoin, x_profile
+          write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2)
+        end do
+        close(5)
+        
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
         close(200)
@@ -2268,7 +2294,7 @@ module library
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
-      918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
+      918 format(I7,3x,E14.6,3x,E14.6) !format for res velocity
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
