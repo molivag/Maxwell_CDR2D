@@ -270,7 +270,7 @@ module inputInfo
         write(100,'(A)') 
         write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
         write(100,"(A30,2X,A10  ,2X,A10)") ' - Stabilization method     : ', aaaa   ,' '
-        write(100,"(A30,2X,f10.3,2X,A10)") ' - Type of Tau matrix       : ', ktaum  ,' '
+        write(100,"(A30,2X,I2   ,2X,A10)") ' - Type of Tau matrix       : ', ktaum  ,' '
         write(100,"(A30,2X,f10.3,2X,A10)") ' - Param. to obtain TAU     : ', patau  ,' '
       endif
       if(ProbType.eq.'TIME')then
