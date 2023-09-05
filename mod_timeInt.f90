@@ -39,7 +39,7 @@ module timeInt
       allocate( dummy(ldAKban,ntotv) )
       
       u  = 1.0
-      tw = 3 !time*width how strong the impulse is
+      tw = 1 !time*width how strong the impulse is
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
@@ -196,6 +196,9 @@ module timeInt
             print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
             call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
+            if(time.eq.t_steps)then
+              call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
+            endif
             
             !---------- Updating Variables ---------------------! 
             !Jsource_pre = Jsource
