@@ -176,21 +176,34 @@ module sourceTerm
       
       implicit none
       
+      double precision, parameter :: pi = 4*atan(1.d0)
       double precision, intent(in)                        :: eTime
       integer :: tw, inode, time
+      double precision :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S
       double precision, intent(out) :: Jsource(ntotv,1)
       
-      
       Jsource = 0.0
-      !locatx= (srcLoc(inode)-1)*ndofn+1
-      !locaty= (srcLoc(inode)-1)*ndofn+2
-      
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
+      theta_loop=90.
+      theta_loop=theta_loop*pi/180. ! theta=-30 deg
+      S =20*20 ! not needed, cancels out
+      Mr=Icurr(1)*S 
+      Mx=Mr*sin(theta_loop)
+      My=Mr*cos(theta_loop)
+      Curr_x= Mx/S
+      Curr_y= My/S
       
       do inode=1,nodalSrc 
-        Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-        Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
-        if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+        !! # # # # # # source: Time derivative of Density Current
+        !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+        !Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
+        !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+        !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+        
+        ! # # # # # # source: Magnetic Moment
+        Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+        Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
+        if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
         !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
       end do
       
