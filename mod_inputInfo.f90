@@ -307,7 +307,7 @@ module inputInfo
         write(100,'(A)') ' -Dipole lenght: Single source point'
       elseif(nodalSrc.eq.2)then
         write(100,'(A)')'              Begining                End' 
-        write(100,'(A,F8.3,A,F8.3,A,A,F6.3,A,F8.3,A)') &
+        write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
           &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
         write(100,'(A)') 
         write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
