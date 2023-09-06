@@ -648,281 +648,281 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    !subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
-    !  
-    !  !***************************************************************************
-    !  !
-    !  ! Perturbation of the test function according to the type of method:
-    !  !
-    !  !   SUPG    :                 A_i   V,i           (kstab=1)
-    !  !   GLS     : -(K_ij V,j),i + A_i   V,i + S   V   (kstab=2)
-    !  !   SGS, TG :  (K_ij V,j),i + A^t_i V,i - S^t V   (kstab=3,5)
-    !  !   CG      :            diag(A_i)  V,i           (kstab=4)
-    !  !***************************************************************************
-    !  
-    !  implicit none
-    !  
-    !  double precision, intent(in)     :: workm(2,2),derxy(2),basis
-    !  integer                          :: idofn, jdofn, k, l
-    !  double precision                 :: prod1, prod2, prod3
-    !  double precision, intent(in out) :: pertu
-    !  
-    !  
-    !  ! SUPG
-    !  if(kstab.eq.1) then
-    !    prod1=0.0
-    !    do k=1,2
-    !      prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
-    !    end do
-    !    pertu=prod1
-    !    
-    !    ! galerkin least squares
-    !  else if(kstab.eq.2)then
-    !    prod1=0.0
-    !    do k=1,2
-    !      prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
-    !    end do
-    !    prod2=0.0
-    !    do k=1,2
-    !      do l=1,2
-    !        !call param_stab(jdofn,idofn,k,l,cte1)
-    !        !prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
-    !        prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
-    !      end do
-    !    end do
-    !    prod3=reama(jdofn,idofn)*basis
-    !    pertu=-prod2+prod1+prod3
-    !    
-    !    ! subgrid scale & taylor galerkin
-    !  else if((kstab.eq.3).or.(kstab.eq.5)) then
-    !    prod1=0.0
-    !    do k=1,2
-    !      prod1=prod1+conma(idofn,jdofn,k)*derxy(k)
-    !    end do
-    !    prod2=0.0
-    !    do k=1,2
-    !      do l=1,2
-    !        !call param_stab(idofn,jdofn,k,l,cte2)
-    !        !prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
-    !        prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
-    !      end do
-    !    end do
-    !    prod3=reama(idofn,jdofn)*basis
-    !    pertu=prod2+prod1-prod3
-    !    
-    !    ! characteristic galerkin
-    !  else if(kstab.eq.4) then
-    !    prod1=0.0
-    !    if(idofn.eq.jdofn) then
-    !      do k=1,2
-    !        prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
-    !      end do
-    !    end if
-    !    pertu=prod1
-    !  end if
-    !  
-    !end subroutine pertur
+    subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
+      
+      !***************************************************************************
+      !
+      ! Perturbation of the test function according to the type of method:
+      !
+      !   SUPG    :                 A_i   V,i           (kstab=1)
+      !   GLS     : -(K_ij V,j),i + A_i   V,i + S   V   (kstab=2)
+      !   SGS, TG :  (K_ij V,j),i + A^t_i V,i - S^t V   (kstab=3,5)
+      !   CG      :            diag(A_i)  V,i           (kstab=4)
+      !***************************************************************************
+      
+      implicit none
+      
+      double precision, intent(in)     :: workm(2,2),derxy(2),basis
+      integer                          :: idofn, jdofn, k, l
+      double precision                 :: prod1, prod2, prod3
+      double precision, intent(in out) :: pertu
+      
+      
+      ! SUPG
+      if(kstab.eq.1) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+        end do
+        pertu=prod1
+        
+        ! galerkin least squares
+      else if(kstab.eq.2)then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+        end do
+        prod2=0.0
+        do k=1,2
+          do l=1,2
+            !call param_stab(jdofn,idofn,k,l,cte1)
+            !prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
+            prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
+          end do
+        end do
+        prod3=reama(jdofn,idofn)*basis
+        pertu=-prod2+prod1+prod3
+        
+        ! subgrid scale & taylor galerkin
+      else if((kstab.eq.3).or.(kstab.eq.5)) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(idofn,jdofn,k)*derxy(k)
+        end do
+        prod2=0.0
+        do k=1,2
+          do l=1,2
+            !call param_stab(idofn,jdofn,k,l,cte2)
+            !prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
+            prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
+          end do
+        end do
+        prod3=reama(idofn,jdofn)*basis
+        pertu=prod2+prod1-prod3
+        
+        ! characteristic galerkin
+      else if(kstab.eq.4) then
+        prod1=0.0
+        if(idofn.eq.jdofn) then
+          do k=1,2
+            prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+          end do
+        end if
+        pertu=prod1
+      end if
+      
+    end subroutine pertur
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    !subroutine TauMat(hmaxi,tauma)
-    !  
-    !  !Matrix of intrinsic time scales, computed as
-    !  ! TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
-    ! 
-    !  implicit none
-    !  
-    !  double precision, intent(in) :: hmaxi
-    !  integer :: i, j, k
-    !  double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-    !  double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
-    !  double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
-    !  
-    !  tauma = 0.0
-    !  if(kstab.eq.0) return
-    !  tauin = 0.0
-    !  chaco = 0.0
-    !  chadi = 0.0
-    !  
-    !  !  Characteristic convection matrix: A = sqrt | A_i A_i |
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      chaco(i,j)=0.0
-    !      do k=1,ndofn
-    !        chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
-    !      end do
-    !    end do
-    !  end do
-    !  call sqrtma(chaco,chaco)
-    !  !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      chadi(i,j)=0.0
-    !      do k=1,ndofn
-    !        chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
-    !          &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,1)*difma(k,j,2,1)*2.0 + &
-    !          &difma(i,k,2,2)*difma(k,j,2,2)
-    !      end do
-    !    end do
-    !  end do
-    !  
-    !  call sqrtma(chadi,chadi)
-    !  
-    !  !  Characteristic reaction matrix: S = | S |
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      chare(i,j)=0.0
-    !      do k=1,ndofn
-    !        chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
-    !      end do
-    !    end do
-    !  end do
-    !  call sqrtma(chare,chare)
-    !  
-    !  ! Invers of the matrix of characteristic times
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
-    !    end do
-    !  end do
-    !  
-    !  ! Matrix tau, corresponding to:
-    !  ! KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-    !  !       = 1: T = diag(t1,t2,t3), ti is the minimum of the admissible tau's for the i-th row (equation)
-    !  !       = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
-    !  
-    !  if(ktaum.eq.0) then
-    !    tau = 0.0
-    !    do i=1,ndofn
-    !      do j=1,ndofn
-    !        tau = max(tau,abs(tauin(i,j)))
-    !      end do
-    !    end do
-    !    tau = patau/tau
-    !    do i=1,ndofn
-    !      tauma(i,i) = tau
-    !    end do
-    !  
-    !  else if(ktaum.eq.1) then
-    !    a = 0.0
-    !    b = 0.0
-    !    c = 0.0
-    !    do j=1,ndofn
-    !      a = max(a,abs(tauin(    1,j)))
-    !      b = max(b,abs(tauin(    2,j)))
-    !      c = max(c,abs(tauin(ndofn,j)))
-    !    end do
-    !    a = patau/a
-    !    b = patau/b
-    !    c = patau/c
-    !    tauma(    1,    1) = a
-    !    tauma(    2,    2) = b
-    !    tauma(ndofn,ndofn) = c
-    !    
-    !  else if(ktaum.eq.2) then
-    !    call invmtx(tauin,det,tauma)
-    !    do i = 1,ndofn
-    !      do j = 1,ndofn
-    !        tauma(i,j) = tauma(i,j)*patau
-    !      end do
-    !    end do
-    !    tauma(ndofn,ndofn) = 0.0
-    !   
-    !  else if(ktaum.eq.3) then
-    !    !call param_stab(1,1,1,1,cte)
-    !    !a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-    !    a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-    !    tauma(1,1) = a
-    !    tauma(2,2) = a
-    !    a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
-    !    a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
-    !    tauma(3,3) = a
-    !  end if
-    !  
-    !end subroutine TauMat
+    subroutine TauMat(hmaxi,tauma)
+      
+      !Matrix of intrinsic time scales, computed as
+      ! TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
+     
+      implicit none
+      
+      double precision, intent(in) :: hmaxi
+      integer :: i, j, k
+      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
+      double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
+      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
+      
+      tauma = 0.0
+      if(kstab.eq.0) return
+      tauin = 0.0
+      chaco = 0.0
+      chadi = 0.0
+      
+      !  Characteristic convection matrix: A = sqrt | A_i A_i |
+      do i=1,ndofn
+        do j=1,ndofn
+          chaco(i,j)=0.0
+          do k=1,ndofn
+            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
+          end do
+        end do
+      end do
+      call sqrtma(chaco,chaco)
+      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
+      do i=1,ndofn
+        do j=1,ndofn
+          chadi(i,j)=0.0
+          do k=1,ndofn
+            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
+              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,1)*difma(k,j,2,1)*2.0 + &
+              &difma(i,k,2,2)*difma(k,j,2,2)
+          end do
+        end do
+      end do
+      
+      call sqrtma(chadi,chadi)
+      
+      !  Characteristic reaction matrix: S = | S |
+      do i=1,ndofn
+        do j=1,ndofn
+          chare(i,j)=0.0
+          do k=1,ndofn
+            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
+          end do
+        end do
+      end do
+      call sqrtma(chare,chare)
+      
+      ! Invers of the matrix of characteristic times
+      do i=1,ndofn
+        do j=1,ndofn
+          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
+        end do
+      end do
+      
+      ! Matrix tau, corresponding to:
+      ! KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !       = 1: T = diag(t1,t2,t3), ti is the minimum of the admissible tau's for the i-th row (equation)
+      !       = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
+      
+      if(ktaum.eq.0) then
+        tau = 0.0
+        do i=1,ndofn
+          do j=1,ndofn
+            tau = max(tau,abs(tauin(i,j)))
+          end do
+        end do
+        tau = patau/tau
+        do i=1,ndofn
+          tauma(i,i) = tau
+        end do
+      
+      else if(ktaum.eq.1) then
+        a = 0.0
+        b = 0.0
+        c = 0.0
+        do j=1,ndofn
+          a = max(a,abs(tauin(    1,j)))
+          b = max(b,abs(tauin(    2,j)))
+          c = max(c,abs(tauin(ndofn,j)))
+        end do
+        a = patau/a
+        b = patau/b
+        c = patau/c
+        tauma(    1,    1) = a
+        tauma(    2,    2) = b
+        tauma(ndofn,ndofn) = c
+        
+      else if(ktaum.eq.2) then
+        call invmtx(tauin,det,tauma)
+        do i = 1,ndofn
+          do j = 1,ndofn
+            tauma(i,j) = tauma(i,j)*patau
+          end do
+        end do
+        tauma(ndofn,ndofn) = 0.0
+       
+      else if(ktaum.eq.3) then
+        !call param_stab(1,1,1,1,cte)
+        !a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        tauma(1,1) = a
+        tauma(2,2) = a
+        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
+        tauma(3,3) = a
+      end if
+      
+    end subroutine TauMat
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     !
-    !subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
-    !  !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
-    !  
-    !  ! Contribution to the system matrix and RHS from the stabilization term
-    !  
-    !  implicit none
-    !  
-    !  double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
-    !  double precision, intent(in)  :: dvolu, source(ndofn)
-    !  double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
-    !  double precision              :: prod1, prod2, prod3
-    !  integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
-    !  double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
-    !  
-    !  ! integer :: nnode,ndofn,nevab,kstab,n_ini
-    !  !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
-    !  !common/proper/difma,conma,reama,force
-    !  
-    !  ievab = 0
-    !  !print*, 'in'
-    !  pertu =  0.0
-    !  
-    !  do inode=1,nne
-    !    workm(1,1)=HesXY(1,inode)
-    !    workm(2,2)=HesXY(3,inode)
-    !    workm(1,2)=HesXY(2,inode)
-    !    workm(2,1)=workm(1,2)
-    !    do idofn=1,ndofn
-    !      
-    !      ievab=ievab+1
-    !      do jdofn=1,ndofn
-    !        prod1 = reama(jdofn,idofn)*basis(inode)
-    !        prod2=0.0
-    !        do k=1,2
-    !          prod2 = prod2 + conma(jdofn,idofn,k)*derxy(k,inode)
-    !        end do
-    !        prod3=0.0
-    !        do k=1,2
-    !          do l=1,2
-    !            !call param_stab(jdofn,idofn,k,l,cte)
-    !            !prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
-    !            prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
-    !          end do
-    !        end do
-    !        
-    !        resid(jdofn,ievab) = prod1 + prod2 - prod3
-    !        call pertur( idofn, jdofn, workm, derxy(1,inode), basis(inode), pertu(ievab,jdofn) )
-    !      end do
-    !    end do
-    !  end do
-    !  
-    !  ievab=0
-    !  do inode=1,nne
-    !    do idofn=1,ndofn
-    !      ievab=ievab+1
-    !      jevab=0
-    !      do jnode=1,nne
-    !        do jdofn=1,ndofn
-    !          jevab=jevab+1
-    !          prod1=0.0
-    !          do k=1,ndofn
-    !            do l=1,ndofn
-    !              prod1 = prod1 + pertu(ievab,k)*tauma(k,l)*resid(l,jevab)
-    !            end do
-    !          end do
-    !          Ke(ievab,jevab) = Ke(ievab,jevab) + prod1 * dvolu
-    !        end do
-    !      end do
-    !      
-    !      prod1=0.0
-    !      do k=1,ndofn
-    !        do l=1,ndofn
-    !          prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l) * source(l)
-    !        end do
-    !      end do
-    !      Fe(ievab) = Fe(ievab) + prod1 * dvolu
-    !    end do
-    !  end do
-    !  
-    !end subroutine Stabilization
+    subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
+      !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
+      
+      ! Contribution to the system matrix and RHS from the stabilization term
+      
+      implicit none
+      
+      double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
+      double precision, intent(in)  :: dvolu, source(ndofn)
+      double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
+      double precision              :: prod1, prod2, prod3
+      integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
+      double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
+      
+      ! integer :: nnode,ndofn,nevab,kstab,n_ini
+      !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
+      !common/proper/difma,conma,reama,force
+      
+      ievab = 0
+      !print*, 'in'
+      pertu =  0.0
+      
+      do inode=1,nne
+        workm(1,1)=HesXY(1,inode)
+        workm(2,2)=HesXY(3,inode)
+        workm(1,2)=HesXY(2,inode)
+        workm(2,1)=workm(1,2)
+        do idofn=1,ndofn
+          
+          ievab=ievab+1
+          do jdofn=1,ndofn
+            prod1 = reama(jdofn,idofn)*basis(inode)
+            prod2=0.0
+            do k=1,2
+              prod2 = prod2 + conma(jdofn,idofn,k)*derxy(k,inode)
+            end do
+            prod3=0.0
+            do k=1,2
+              do l=1,2
+                !call param_stab(jdofn,idofn,k,l,cte)
+                !prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
+                prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
+              end do
+            end do
+            
+            resid(jdofn,ievab) = prod1 + prod2 - prod3
+            call pertur( idofn, jdofn, workm, derxy(1,inode), basis(inode), pertu(ievab,jdofn) )
+          end do
+        end do
+      end do
+      
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              prod1=0.0
+              do k=1,ndofn
+                do l=1,ndofn
+                  prod1 = prod1 + pertu(ievab,k)*tauma(k,l)*resid(l,jevab)
+                end do
+              end do
+              Ke(ievab,jevab) = Ke(ievab,jevab) + prod1 * dvolu
+            end do
+          end do
+          
+          prod1=0.0
+          do k=1,ndofn
+            do l=1,ndofn
+              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l) * source(l)
+            end do
+          end do
+          Fe(ievab) = Fe(ievab) + prod1 * dvolu
+        end do
+      end do
+      
+    end subroutine Stabilization
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
@@ -1026,7 +1026,7 @@ module library
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce
       double precision, dimension(nevab)        :: Fe
-      !double precision, dimension(3,3)          :: tauma
+      double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ!, aaa
@@ -1041,7 +1041,6 @@ module library
       
       A_K = 0.0
       A_F = 0.0
-      !hmaxi = 0.0
       
       do ielem = 1, nelem 
         !gather
@@ -1051,24 +1050,23 @@ module library
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
-        !print*, 'gauss point:', igaus
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = djacb(Jaco)
-          !Jinv = xjaci(detJ,Jaco)
           dvol = detJ *  weigp(igaus,1)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          !call TauMat(hmaxi,tauma)
+          call TauMat(hmaxi,tauma)
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          if(kstab.ne.6.or.kstab.ne.0)then
+            call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          endif
+          
         end do
         !stop
         
@@ -2327,7 +2325,7 @@ module library
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
       double precision, dimension(nevab)        :: Fe, Mu_time, ue_pre, time_cont
-      !double precision, dimension(3,3)          :: tauma
+      double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ!, delta_t
@@ -2335,7 +2333,6 @@ module library
       double precision, allocatable, dimension(:,:), intent(out)  :: A_M
       
       allocate( A_M(ntotv, 1) )
-      !allocate(ugl_pre(S_ldSol,1) )
       
       A_M = 0.0
       do ielem = 1, nelem 
@@ -2349,9 +2346,6 @@ module library
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          !Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = m22det(Jaco)
-          !Jinv = inv2x2(Jaco)
           dvol = detJ *  weigp(igaus,1)
           !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
           call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
@@ -2360,13 +2354,14 @@ module library
             basis(ibase) = N(ibase,igaus)
           end do
           
-          !call TauMat(hmaxi,tauma)
+          call TauMat(hmaxi,tauma)
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
-          
+          if(kstab.ne.6.or.kstab.ne.0)then
+            call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          endif
           !estas multiplicaciones deberias ser globales pero por la matriz en banda se deben 
           !hacer locales, es lo mismo.
           select case(theta)
