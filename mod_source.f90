@@ -33,10 +33,17 @@ module sourceTerm
         !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
       end do
       
-      select case(exacSol)
+      select case(srcRHS)
        
         case(0)
-          EMsource(1) = force(1)
+          if(ndofn.eq.1)then
+            EMsource(1) = force(1)
+          else
+            EMsource(1) = force(1)
+            EMsource(2) = force(2)
+            EMsource(3) = force(3)
+          endif
+          
         case(1)
           
           !***********************************************************!
@@ -51,7 +58,7 @@ module sourceTerm
           !                                                           !
           !***********************************************************!
           
-          beta  = Cu*lambda*(helem**2/ell**2)
+          !beta  = Cu*lambda*(helem**2/ell**2)
           alpha = ell**2/lambda
           n = n_val
           
@@ -89,17 +96,6 @@ module sourceTerm
           EMsource(3) = force(3)
           
         case(2)
-          !The transient source in a full-space geophysicall modelling is a Dirac Delta
-          !EMsource(1) = force(1)*A_F((srcLoc-1)*ndofn,1)*u(t)
-          !EMsource(2) = force(2)*A_F((srcLoc-1)*ndofn,1)*u(t)
-          !EMsource(3) = force(3)*A_F((srcLoc-1)*ndofn,1)*u(t)
-          
-          !print*, 'The static case'
-          EMsource(1) = force(1)
-          EMsource(2) = force(2)
-          EMsource(3) = force(3)
-         
-        case(3)
           !Source with NO DivDiv term
           
           !Derivatives in x-direction
@@ -120,29 +116,19 @@ module sourceTerm
           EMsource(2) = force(2)*lambda*(-dey_dx2 + dex_dxdy)! - beta*(dex_dydx - beta*dey_dy2  )  
           EMsource(3) = force(3)
           
-        case(4) !stokes
-          
+        case(3) !stokes
           
           !Derivatives in x-direction
           dex_dx2  = 2.0*(6.0*x**2 - 6.0*x +1.0)*y*(2.0*y**2 - 3.0*y + 1.0)
           dex_dy2  = 6*(x**2 - 2.0*x + 1.0)*(2.0*y-1.0)*x**2
           
-          
           !Derivatives in y-direction
           dey_dx2  =-6.0*(2.0*x - 1.0)*(y**2 -2.0*y + 1.0)*y**2
           dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
           
-          
           EMsource(1) = -lambda * ( dex_dx2 + dex_dy2 )
           EMsource(2) = -lambda * ( dey_dx2 + dey_dy2 )
           EMsource(3) = force(3)
-          
-        case(5)
-          
-          
-          EMsource(1) = -lambda * force(1)
-          EMsource(2) = -lambda * force(2)
-          EMsource(3) =  force(3)
           
         case default
         
@@ -193,19 +179,33 @@ module sourceTerm
       Curr_x= Mx/S
       Curr_y= My/S
       
-      do inode=1,nodalSrc 
-        !! # # # # # # source: Time derivative of Density Current
-        !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-        !Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
-        !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-        !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-        
-        ! # # # # # # source: Magnetic Moment
-        Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-        Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
-        if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
-        !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-      end do
+      if(ndofn.eq.1)then
+        do inode=1,nodalSrc 
+          ! # # # # # # source: Time derivative of Density Current
+          Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+          
+          !! # # # # # # source: Magnetic Moment
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+        end do
+      else
+        do inode=1,nodalSrc 
+          ! # # # # # # source: Time derivative of Density Current
+          Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+          Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
+          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+          
+          !! # # # # # # source: Magnetic Moment
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+          !Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+          !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+        end do
+      endif
+
       
     end subroutine   
     !          
