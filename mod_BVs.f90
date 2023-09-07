@@ -40,8 +40,8 @@ module BoundVal
       xmax = maxval(coord(1,:)) !the greatest number in x column
       ymin = minval(coord(2,:)) !the smallest number in y column
       ymax = maxval(coord(2,:)) !the greatest number in y column
-      xmiddle =  xmax/2.0
-      ymiddle =  ymax/2.0
+      xmiddle =  (abs(xmax)-abs(xmin))/2.0
+      ymiddle =  (abs(ymax)-abs(ymin))/2.0
       print*, ' '
       print*, '!================ Domain Dimensions ===========!'
       write(*,'(A)') '- xmin , xmax '
@@ -146,7 +146,7 @@ module BoundVal
         
       elseif(ndofn .eq. 3)then
         select case(BCsProb)
-          case(1)
+          case(1)       !Singular Solution
             aa = (2.0/3.0)*n_val
             cc = (n_val/3.0) - (1.0/2.0)
             do i = 1, nnodes
@@ -249,7 +249,7 @@ module BoundVal
             nBVs = nBVs/3
             nBVscol = 7 
             
-          case(2)               !Cuadratic function now is the test for comparison Michael results
+          case(2)               !Maxwell Problem nxE = 0 
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -299,7 +299,7 @@ module BoundVal
             end do
             nBVscol = 7 
             
-          case(3)
+          case(3)              !Maxwelll manufacture solution
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -365,7 +365,7 @@ module BoundVal
             end do
             nBVscol = 7 
             
-          case(4)
+          case(4)       !Stokes manufacture solution
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -431,7 +431,8 @@ module BoundVal
             end do
             nBVscol = 7 
             
-          case(5)                  !Cavitty Driven Flow
+          case(5)       !Cavitty Driven Flow/Stokes
+            !print*,'Cavitty Driven Flow Boundary Conditions'
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -440,25 +441,22 @@ module BoundVal
               if(y.eq.ymax) then
                 if(x.eq.xmax)then                          !Upper Right Corner
                   ux = 1.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 0
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 elseif(x.eq.xmin)then                      !Upper Left Corner
                   ux = 1.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 0
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 elseif(x.eq.xmiddle)then                   !Upper middle top preasure condition
+                  !print*,'centro', xmiddle
                   ux = 1.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 else
                   ux = 1.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 0                 !Upper Boundary 
                   write(300,20)   ux, uy, 0.0
                   a = a+1
@@ -467,19 +465,16 @@ module BoundVal
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then
                   ux = 0.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 0                 !Down Left Corner
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 elseif(x.eq.xmax)then
                   ux = 0.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 0                 !Down Right Corner
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 else
                   ux = 0.0
-                  uy = 0.0
                   write(200,10) i, 1, 1, 0                !Down Boundary
                   write(300,20)   ux, uy, 0.0
                   b = b+1
@@ -487,13 +482,11 @@ module BoundVal
                 
               else if(x.eq.xmax)then
                 ux = 0.0  
-                uy = 0.0 
                 write(200,10) i, 1, 1,  0                 !Right Boundary
                 write(300,20)   ux, uy, 0.0
                 c = c+1
               else if (x.eq.xmin)then
                 ux = 0.0
-                uy = 0.0                                
                 write(200,10) i, 1,  1, 0                  !Left Boundary
                 write(300,20)   ux, uy, 0.0
                 d = d+1
