@@ -102,15 +102,27 @@ implicit none
     call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
     
     !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)
-    if(((ndofn.eq.1).or.(ndofn.eq.3)).and.(exacSol.eq.2))then
-      print*,'delta source'
-      do ii=1,nodalSrc
-        if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
-        !print*,Icurr
-        A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
-        A_F((srcLoc(ii)-1)*ndofn+2,1) = -Icurr(2)
-      end do
-    end if
+    if(BCsProb.eq.5)then
+      continue
+    else
+      if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
+        print*,'delta source'
+        if(ndofn.eq.1)then
+          do ii=1,nodalSrc
+            if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
+            !print*,Icurr
+            A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
+          end do
+        else
+          do ii=1,nodalSrc
+            if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
+            !print*,Icurr
+            A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
+            A_F((srcLoc(ii)-1)*ndofn+2,1) = -Icurr(2)
+          end do
+        endif
+      end if
+    endif
       !A_F = 0.0
     !---------- Memory Relase -----------!
     allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1)) 
