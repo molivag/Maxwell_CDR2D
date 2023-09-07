@@ -482,12 +482,17 @@ module library
               diff=0.0
               do i=1,2
                 do j=1,2   
-                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-                  if(kstab.eq.6)call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
-                  !print"(A8, e12.5)",'Product ', cte * difma(idofn,jdofn,i,j)
-                  if(kstab.eq.6)diff = diff+ dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+                  !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+                  if(kstab.eq.6)then
+                    call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
+                    !print"(A8, e12.5)",'Product ', cte * difma(idofn,jdofn,i,j)
+                  else
+                    !diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode) 
+                    coef = 1.0
+                  endif
+                  diff = diff+ dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, e12.5)",'diff ', diff
-                  !!diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print*, '- - - - - - - - - - - - - - - - - - -'
                   !print*, ' '
                 end do
@@ -512,7 +517,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine param_stab(idofn, jdofn, i, j, helem, coeff)       
+    subroutine param_stab(idofn, jdofn, i, j, elem_size_h, coeff)       
       !***********************************************************!
       !                                                           !
       ! Subroutine which check the dofn, x and y position in the  !
@@ -524,28 +529,28 @@ module library
       !                                                           !
       !  λ = 1/µ  = reluctivity of the medium                     !
       !                                                           !
-      !  h = helem 
+      !  h = elem_size_h 
       !                                                           !
       !***********************************************************!
       
       implicit none
       
       integer, intent(in) :: idofn, jdofn, i, j
-      double precision, intent(in) :: helem
+      double precision, intent(in) :: elem_size_h
       double precision, intent(out) :: coeff
       
       
       !print*, 'getting into param_stab'
       
       coeff = 0.0 
-      !print'(A9,F10.5)', 'helem  : ', helem
-      !print'(A9,F10.5)', 'helem^2: ', helem**2
+      !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+      !print'(A9,F10.5)', 'elem_size_h^2: ', elem_size_h**2
       
       if(idofn.eq.1)then
         if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
           if(i==1 .and. j==1)then                      !difma(1,1,1,1)
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
+            coeff = Cu*lambda*(elem_size_h**2/ell**2)
+            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
             !print'(A2,e12.5)','Su', coeff
           end if
          
@@ -556,8 +561,8 @@ module library
           
         elseif(jdofn==2)then                           !difma(1,2,1,2)
           if(i==1 .and. j==2)then
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
+            coeff = Cu*lambda*(elem_size_h**2/ell**2)
+            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
             !print'(A2,e12.5)','Su', coeff
           end if
           
@@ -575,8 +580,8 @@ module library
           end if
           
           if(i==2 .and. j==1)then                      !difma(2,1,2,1)
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
+            coeff = Cu*lambda*(elem_size_h**2/ell**2)
+            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
             !print'(A2,e12.5)','Su', coeff
           endif
          
@@ -587,8 +592,8 @@ module library
           end if
           
           if(i==2.and.j==2)then                        !difma(2,2,2,2)
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
+            coeff = Cu*lambda*(elem_size_h**2/ell**2)
+            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
             !print'(A2,e12.5)','Su', coeff
           end if
         end if
@@ -607,7 +612,7 @@ module library
       15 continue 
       !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
       !Next lines are to taste the 
-      !print*, 'helem,', h
+      !print*, 'elem_size_h,', h
       !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
       !print*, 'ell^2/µ', ell**2/lambda
       
@@ -648,7 +653,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
+    subroutine pertur(hmaxi, idofn, jdofn, workm, derxy, basis, pertu )
       
       !***************************************************************************
       !
@@ -662,9 +667,9 @@ module library
       
       implicit none
       
-      double precision, intent(in)     :: workm(2,2),derxy(2),basis
+      double precision, intent(in)     :: workm(2,2),derxy(2),basis, hmaxi
       integer                          :: idofn, jdofn, k, l
-      double precision                 :: prod1, prod2, prod3
+      double precision                 :: prod1, prod2, prod3, cte1, cte2
       double precision, intent(in out) :: pertu
       
       
@@ -685,9 +690,9 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            !call param_stab(jdofn,idofn,k,l,cte1)
-            !prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
-            prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
+            call param_stab(jdofn, idofn, k, l, hmaxi, cte1) 
+            prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
+            !prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
           end do
         end do
         prod3=reama(jdofn,idofn)*basis
@@ -702,9 +707,9 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            !call param_stab(idofn,jdofn,k,l,cte2)
-            !prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
-            prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
+            call param_stab(idofn, jdofn, k, l, hmaxi, cte2) 
+            prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
+            !prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
           end do
         end do
         prod3=reama(idofn,jdofn)*basis
@@ -735,8 +740,9 @@ module library
       double precision, intent(in) :: hmaxi
       integer :: i, j, k
       double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-      double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
-      double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
+      double precision :: a, b, c, tau, det             !hnatu -> declarado en parameters
+      double precision, intent(out) :: tauma(3,3)       !ndofn -> en parameters
+      double precision :: cte, cte1, cte2, cte3, cte4, cte5, cte6, cte7, cte8
       
       tauma = 0.0
       if(kstab.eq.0) return
@@ -759,9 +765,20 @@ module library
         do j=1,ndofn
           chadi(i,j)=0.0
           do k=1,ndofn
-            chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
-              &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,1)*difma(k,j,2,1)*2.0 + &
-              &difma(i,k,2,2)*difma(k,j,2,2)
+            call param_stab(i, k, 1, 1, hmaxi, cte1)
+            call param_stab(k, j, 1, 1, hmaxi, cte2)
+            call param_stab(i, k, 1, 2, hmaxi, cte3)
+            call param_stab(k, j, 1, 2, hmaxi, cte4)
+            call param_stab(i, k, 2, 1, hmaxi, cte5)
+            call param_stab(k, j, 2, 1, hmaxi, cte6)
+            
+            call param_stab(i, k, 2, 2, hmaxi, cte7)
+            call param_stab(k, j, 2, 2, hmaxi, cte8)
+            
+            chadi(i,j) = chadi(i,j) + cte1*difma(i,k,1,1) * cte2*difma(k,j,1,1) + &
+              &cte3*difma(i,k,1,2)*cte4*difma(k,j,1,2)*2.0 + &
+              &cte5*difma(i,k,2,1)*cte5*difma(k,j,2,1)*2.0 + &
+              &cte7*difma(i,k,2,2)*cte8*difma(k,j,2,2)
           end do
         end do
       end do
@@ -829,13 +846,14 @@ module library
         tauma(ndofn,ndofn) = 0.0
        
       else if(ktaum.eq.3) then
-        !call param_stab(1,1,1,1,cte)
-        !a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-        a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        call param_stab(1,1,1,1, hmaxi, cte)
+        a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        !a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         tauma(1,1) = a
         tauma(2,2) = a
         a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
-        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
+        !a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/cte*(difma(1,1,1,1)))
         tauma(3,3) = a
       end if
       
@@ -843,7 +861,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     !
-    subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
+    subroutine Stabilization(hmaxi, dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
       !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
       
       ! Contribution to the system matrix and RHS from the stabilization term
@@ -851,9 +869,9 @@ module library
       implicit none
       
       double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
-      double precision, intent(in)  :: dvolu, source(ndofn)
+      double precision, intent(in)  :: dvolu, source(ndofn), hmaxi
       double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
-      double precision              :: prod1, prod2, prod3
+      double precision              :: prod1, prod2, prod3, cte
       integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
       double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
       
@@ -882,14 +900,14 @@ module library
             prod3=0.0
             do k=1,2
               do l=1,2
-                !call param_stab(jdofn,idofn,k,l,cte)
-                !prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
-                prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
+                call param_stab(jdofn, idofn, k, l, hmaxi, cte) 
+                prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
+                !prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
               end do
             end do
             
             resid(jdofn,ievab) = prod1 + prod2 - prod3
-            call pertur( idofn, jdofn, workm, derxy(1,inode), basis(inode), pertu(ievab,jdofn) )
+            call pertur(hmaxi,idofn,jdofn,workm,derxy(1,inode),basis(inode),pertu(ievab,jdofn) )
           end do
         end do
       end do
@@ -1057,14 +1075,18 @@ module library
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          call TauMat(hmaxi,tauma)
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          if(kstab.ne.6.or.kstab.ne.0)then
-            call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          if(kstab.eq.6.or.kstab.eq.0)then
+            !print*, kstab, ' sin estabi'
+            continue
+          else
+            !print*, 'entra en stabi GlobalSystem'
+            call TauMat(hmaxi,tauma)
+            call Stabilization(hmaxi, dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           endif
           
         end do
@@ -1503,7 +1525,7 @@ module library
            
           !call GID_PostProcess(2,E_field_exac, 'msh', 0, t(1), time_fin, Ex_field) 
           
-        case(3) !new test of polynomial solution
+        case(3) !polynomial solution fo Maxwell (MVAF) and Stokes problem
           
           do inode = 1, nnodes  !simple Function
             x = coord(1,inode)
@@ -1531,8 +1553,6 @@ module library
           end do
           
         case(4)
-          goto 115 
-        case(5)
           print*,'Double Line Source exact solution'
           E_field_exac  = 0.0 
           SrcCurr = Icurr(1)
@@ -1568,8 +1588,8 @@ module library
               ii = ii+1.0
           end do
          
-        case(6)
-          print*,'DC simulation No analytic solution'
+        case(5)
+          print*,'No analytic solution'
       end select
      
       error_EM = sqrt(error_EM/nnodes)
@@ -1590,7 +1610,7 @@ module library
       close(777)
       print*, ' '
       print*, '!============== Error Estimation ==============!'
-      write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', helem, 'the error estimation is '
+      !write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', helem, 'the error estimation is '
       write(*,"(A14,E13.5)")' -For u     : ', error_EM
       write(*,"(A14,E13.5)")' -For p     : ', error_p
       write(*,"(A14,E13.5)")' -Norm L2 ux: ', errL2_x
@@ -1606,17 +1626,19 @@ module library
      
       if(ProbType.eq.'TIME')then
         print*, 'xxxxxxxxxxxxxxx'
+        if(ndofn.eq.1)goto 10
         write(111,'(A)')'%  Time         step         ex             ey             ez'
         do itime = 1, t_steps
           write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
         end do
       else
+        !ESTO ESTA MAL Y HAY QUE ARREGLARLO
         if(exacSol.eq.2)goto 10 
         if(ndofn.eq.3)then
           do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
             write(111,'(A)') '%      FEM_x             FEM_y             Exact_x           Exact_y'
             write(111,906)&
-            &   solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1), exact_x(ipoin), exact_y(ipoin)
+            &solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1), exact_x(ipoin), exact_y(ipoin)
           end do
           
         elseif(ndofn.eq.1)then 
@@ -2354,13 +2376,17 @@ module library
             basis(ibase) = N(ibase,igaus)
           end do
           
-          call TauMat(hmaxi,tauma)
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          if(kstab.ne.6.or.kstab.ne.0)then
-            call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          if(kstab.eq.6.or.kstab.eq.0)then
+            !print*, kstab, ' sin estabi'
+            continue
+          else
+            !print*, 'entra en stabi Prev Time'
+            call TauMat(hmaxi,tauma)
+            call Stabilization(hmaxi, dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           endif
           !estas multiplicaciones deberias ser globales pero por la matriz en banda se deben 
           !hacer locales, es lo mismo.
