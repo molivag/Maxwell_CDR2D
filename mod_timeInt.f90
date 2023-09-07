@@ -179,7 +179,7 @@ module timeInt
             call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
             call currDensity(time,shapeTime(time),Jsource) 
-            RHS = (A_F + Mu_pre - delta_t*Jsource)
+            RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
             !print'(f15.5)',RHS
             
