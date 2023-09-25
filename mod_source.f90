@@ -162,17 +162,18 @@ module sourceTerm
       
       implicit none
       
-      double precision, parameter :: pi = 4*atan(1.d0)
-      double precision, intent(in)                        :: eTime
-      integer :: tw, inode, time
-      double precision :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S
+      double precision, parameter   :: pi = 4*atan(1.d0)
+      double precision, intent(in)  :: eTime
+      integer         , intent(in)  :: time
+      integer                       :: tw, inode!,time
+      double precision              :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S
       double precision, intent(out) :: Jsource(ntotv,1)
       
       Jsource = 0.0
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
       theta_loop=90.
       theta_loop=theta_loop*pi/180. ! theta=-30 deg
-      S =20*20 ! not needed, cancels out
+      S = abs(coord(1,Srcloc(1))*coord(2,Srcloc(1)))! 10.0*10.0 ! not needed, cancels out
       Mr=Icurr(1)*S 
       Mx=Mr*sin(theta_loop)
       My=Mr*cos(theta_loop)
@@ -181,12 +182,20 @@ module sourceTerm
       
       if(ndofn.eq.1)then
         do inode=1,nodalSrc 
-          ! # # # # # # source: Time derivative of Density Current
+          !# # # # # # source: Time derivative of Density Current
+          if(time.eq.1.and.inode.eq.1)then
+            print*,time
+            print*,'J type source'
+          endif
           Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
           if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
           !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
           
           !! # # # # # # source: Magnetic Moment
+          !if(time.eq.1.and.inode.eq.1)then
+          !  print*,time
+          !  print*,'M type source'
+          !endif
           !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
           !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
         end do
@@ -205,7 +214,7 @@ module sourceTerm
           !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
         end do
       endif
-
+      
       
     end subroutine   
     !          
