@@ -1,6 +1,7 @@
 module timeInt
   use param
   use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
+  use E0field
   use sourceTerm
 
   contains
@@ -31,7 +32,8 @@ module timeInt
       integer, dimension(nBVs)                      ,intent(in) :: nofix
       double precision, allocatable, dimension(:,:)             :: dummy
       double precision, dimension(t_steps)                      :: u
-      integer                                                   :: tw, t
+      integer                                                   :: tw, t, itotv
+      double precision, dimension(ntotv)                        :: E0
       double precision, dimension(ntotv,1)         ,intent(out) :: Uinit
       double precision, dimension(t_steps)         ,intent(out) :: shapeTime
       !double precision                             ,intent(out):: delta_t
@@ -41,9 +43,13 @@ module timeInt
       u  = 1.0
       tw = 1 !time*width how strong the impulse is
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
+      Uinit = 0
       
+      call Efield_WholeSpace(E0)
+      do itotv=1,ntotv
+        Uinit(itotv,1) = E0(itotv)
+      enddo
       call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
-      
       
       !--Select a signal shape function in time
       select case(signal)
@@ -83,6 +89,7 @@ module timeInt
       end select
       
       shapeTime = u 
+      
       
       !do t =1,t_steps
       !  print"(I0, 1x, f5.3)", t, shapeTime(t)
@@ -152,18 +159,18 @@ module timeInt
       nt     = time_ini
       ttt    = 0.0
       
-      call initialCondition(presc,ifpre, nofix, shapeTime, u_init)
       call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
-      u_pre  = u_init                                   !u in present time 
+      call initialCondition(presc,ifpre, nofix, shapeTime, u_init)
       
+      u_pre  = u_init                                   !u in present time 
       !write(*,*) ' '
       call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
       write(*,*) ' '
       print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
-      call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
-      print*, 'Starting time integration. . . . .'
+      !call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
       write(*,*) ' '
+      print*, 'Starting time integration. . . . .'
      
       select case(theta)
         !-------- 1st-order Backward Difference 
@@ -196,9 +203,7 @@ module timeInt
             print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
             call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
             call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
-            if(time.eq.t_steps)then
-              call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
-            endif
+            call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
             
             !---------- Updating Variables ---------------------! 
             !Jsource_pre = Jsource
