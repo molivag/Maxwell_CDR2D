@@ -498,7 +498,7 @@ module library
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              cpcty = (basis(inode) * basis(jnode) )
+              cpcty = 0.01 * (basis(inode) * basis(jnode) )
               
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
@@ -637,7 +637,7 @@ module library
           end if
           
         end if
-      
+       
       15 continue 
       !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
       !Next lines are to taste the 
@@ -2131,6 +2131,7 @@ module library
     
     subroutine GID_PostProcess(id,solution, activity, time, timeStep, time_final, Ex_field)
       
+      use E0field
       
       implicit none
       external                                             :: fdate 
@@ -2288,6 +2289,43 @@ module library
         !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
         !  end do
         !endif
+        
+      elseif(activity == "spatial")then
+        id_poin= n_spatialProfile
+        !open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
+        !do ipoin =1,nnodes
+        !  if(ycor(1,ipoin).eq.0.0)then
+        !    id_poin = id_poin+1
+        !    write(10,906) ipoin, xcor(1,ipoin)
+        !  else
+        !    continue
+        !  endif
+        !end do
+        !close(10)
+        if(time == 1)then
+          open(unit=6, file=fileplace3//"MScalar_FEM_Ex.dat", STATUS="replace", ACTION="write")
+        else
+          open(unit=6, file=fileplace3//"MScalar_FEM_Ex.dat", ACTION="write", STATUS="old", position="append")
+        endif
+        
+        open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
+        !allocate(efile_profile(id))
+        write(6,'(A7,I0,A,e10.3,A)') ' "FEM t',time,'=',timeStep,'"'
+        if(ndofn.eq.1)then
+          do ii = 1,id_poin
+            read(5,*) ipoin, x_profile
+            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin)
+          end do
+        else
+          do ii = 1,id_poin
+            read(5,*) ipoin, x_profile
+            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2)
+          end do
+        endif
+        write(6,*)' '
+        write(6,*)' '
+        close(5)
+        close(6)
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
