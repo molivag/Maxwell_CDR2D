@@ -484,13 +484,8 @@ module library
                 do j=1,2   
                   !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
                   !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-                  if(kstab.eq.6)then
-                    call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
-                    !print"(A8, e12.5)",'Product ', cte * difma(idofn,jdofn,i,j)
-                  else
-                    !diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode) 
-                    coef = 1.0
-                  endif
+                  call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
+                  !print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
                   diff = diff+ dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, e12.5)",'diff ', diff
                   !print*, '- - - - - - - - - - - - - - - - - - -'
@@ -503,7 +498,8 @@ module library
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do
               reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              cpcty = basis(inode) * basis(jnode)
+              cpcty = (basis(inode) * basis(jnode) )
+              
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
@@ -545,69 +541,102 @@ module library
       coeff = 0.0 
       !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
       !print'(A9,F10.5)', 'elem_size_h^2: ', elem_size_h**2
-      
-      if(idofn.eq.1)then
-        if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
-          if(i==1 .and. j==1)then                      !difma(1,1,1,1)
-            coeff = Cu*lambda*(elem_size_h**2/ell**2)
-            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-            !print'(A2,e12.5)','Su', coeff
+      if(kstab.eq.6)then 
+        print*,'stabi',kstab
+        if(idofn.eq.1)then
+          if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
+            if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+           
+            if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+              coeff = lambda
+              !print'(A2,e12.5)','λ ', coeff
+            endif
+            
+          elseif(jdofn==2)then                           !difma(1,2,1,2)
+            if(i==1 .and. j==2)then
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+            
+            if(i==2.and.j==1)then                        !difma(1,2,2,1)
+              coeff = lambda
+              !print'(A3,e12.5)','λ ', coeff
+            end if
           end if
-         
-          if(i==2 .and. j==2)then                      !difma(1,1,2,2)
-            coeff = lambda
-            !print'(A2,e12.5)','λ ', coeff
+          
+        elseif(idofn==2)then
+          if(jdofn.eq.1)then
+            if(i==1 .and. j==2)then                      !difma(2,1,1,2)
+              coeff = lambda
+              !print'(A3,e12.5)', 'λ ', coeff
+            end if
+            
+            if(i==2 .and. j==1)then                      !difma(2,1,2,1)
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            endif
+           
+          elseif(jdofn==2)then
+            if(i==1 .and. j==1)then
+              coeff = lambda
+              !print'(A3,e12.5)','λ ', coeff
+            end if
+            
+            if(i==2.and.j==2)then                        !difma(2,2,2,2)
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+          end if
+          
+        elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
+          if( i==j )then
+            coeff = ell**2/lambda
+              !print'(A2,e12.5)','Sp', coeff
           endif
           
-        elseif(jdofn==2)then                           !difma(1,2,1,2)
-          if(i==1 .and. j==2)then
-            coeff = Cu*lambda*(elem_size_h**2/ell**2)
-            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-            !print'(A2,e12.5)','Su', coeff
-          end if
-          
-          if(i==2.and.j==1)then                        !difma(1,2,2,1)
-            coeff = lambda
-            !print'(A3,e12.5)','λ ', coeff
-          end if
+        else
+          continue
         end if
-        
-      elseif(idofn==2)then
-        if(jdofn.eq.1)then
-          if(i==1 .and. j==2)then                      !difma(2,1,1,2)
-            coeff = lambda
-            !print'(A3,e12.5)', 'λ ', coeff
-          end if
-          
-          if(i==2 .and. j==1)then                      !difma(2,1,2,1)
-            coeff = Cu*lambda*(elem_size_h**2/ell**2)
-            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-            !print'(A2,e12.5)','Su', coeff
-          endif
-         
-        elseif(jdofn==2)then
-          if(i==1 .and. j==1)then
-            coeff = lambda
-            !print'(A3,e12.5)','λ ', coeff
-          end if
-          
-          if(i==2.and.j==2)then                        !difma(2,2,2,2)
-            coeff = Cu*lambda*(elem_size_h**2/ell**2)
-            !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-            !print'(A2,e12.5)','Su', coeff
-          end if
-        end if
-        
-      elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
-        if( i==j )then
-          coeff = ell**2/lambda
-            !print'(A2,e12.5)','Sp', coeff
-        endif
-        
+        !close(10)
       else
-        continue
-      end if
-      !close(10)
+        !print*,'stabi',kstab
+        if(idofn.eq.1)then                   !difma(idofn,jdofn,i,j)
+          if(jdofn.eq.1)then                      
+            if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+              coeff = lambda
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+           
+            if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+              coeff = lambda
+              !print'(A2,e12.5)','λ ', coeff
+            endif
+            
+          end if
+          
+        elseif(idofn==2)then
+          elseif(jdofn==2)then
+            if(i==1 .and. j==1)then                      !difma(2,2,1,1)
+              coeff = lambda
+              !print'(A3,e12.5)','λ ', coeff
+            end if
+            
+            if(i==2.and.j==2)then                        !difma(2,2,2,2)
+              coeff = lambda
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+          end if
+          
+        end if
       
       15 continue 
       !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
@@ -2102,6 +2131,7 @@ module library
     
     subroutine GID_PostProcess(id,solution, activity, time, timeStep, time_final, Ex_field)
       
+      
       implicit none
       external                                             :: fdate 
       
@@ -2258,28 +2288,6 @@ module library
         !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
         !  end do
         !endif
-        
-      elseif(activity == "spatial")then
-        id_poin=0
-        open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
-        do ipoin =1,nnodes
-          if(ycor(1,ipoin).eq.0.0)then
-            id_poin = id_poin+1
-            write(10,906) ipoin, xcor(1,ipoin)
-          else
-            continue
-          endif
-        end do
-        close(10)
-        
-        open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
-        open(unit=6, file=fileplace3//"6M_FEM_Ex.dat", ACTION="write", STATUS="replace")
-        !allocate(efile_profile(id))
-        do ii = 1,id_poin
-          read(5,*) ipoin, x_profile
-          write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2)
-        end do
-        close(5)
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
