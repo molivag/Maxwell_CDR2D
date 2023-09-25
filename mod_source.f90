@@ -173,7 +173,7 @@ module sourceTerm
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
       theta_loop=90.
       theta_loop=theta_loop*pi/180. ! theta=-30 deg
-      S = abs(coord(1,Srcloc(1))*coord(2,Srcloc(1)))! 10.0*10.0 ! not needed, cancels out
+      S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
       Mr=Icurr(1)*S 
       Mx=Mr*sin(theta_loop)
       My=Mr*cos(theta_loop)
@@ -182,22 +182,22 @@ module sourceTerm
       
       if(ndofn.eq.1)then
         do inode=1,nodalSrc 
-          !# # # # # # source: Time derivative of Density Current
-          if(time.eq.1.and.inode.eq.1)then
-            print*,time
-            print*,'J type source'
-          endif
-          Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-          
-          !! # # # # # # source: Magnetic Moment
+          !!# # # # # # source: Time derivative of Density Current
           !if(time.eq.1.and.inode.eq.1)then
           !  print*,time
-          !  print*,'M type source'
+          !  print*,'J type source'
           !endif
-          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+          !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+          
+          ! # # # # # # source: Magnetic Moment
+          if(time.eq.1.and.inode.eq.1)then
+            print*,time
+            print*,'M type source'
+          endif
+          Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
         end do
       else
         do inode=1,nodalSrc 
