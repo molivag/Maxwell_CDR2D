@@ -28,7 +28,7 @@ CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
 CFLAGS += -mkl
 	
 #	source files
-SRCS = mod_param mod_geometry mod_inputInfo mod_biunit mod_BVs mod_source mod_library mod_exacSol mod_timeInt main_CDR
+SRCS = mod_param mod_geometry mod_inputInfo mod_biunit mod_BVs mod_exacSol mod_source mod_library mod_timeInt main_CDR
 
 #	object files
 OBJS = $(SRCS:=.o)
