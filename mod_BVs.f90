@@ -250,6 +250,7 @@ module BoundVal
             nBVscol = 7 
             
           case(2)               !Maxwell Problem nxE = 0 
+            print*,'Maxwel BVs'
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
@@ -285,11 +286,11 @@ module BoundVal
                   b = b+1
                 end if
                 
-              else if(x.eq.xmax)then                  !Right Boundary Corner
+              else if(x.eq.xmax)then                  !Right Boundary
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
-              else if (x.eq.xmin)then                 !Left Boundary Corner
+              else if (x.eq.xmin)then                 !Left Boundary
                 write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 d = d+1
