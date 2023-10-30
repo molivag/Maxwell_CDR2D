@@ -542,7 +542,7 @@ module library
       !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
       !print'(A9,F10.5)', 'elem_size_h^2: ', elem_size_h**2
       if(kstab.eq.6)then 
-        print*,'stabi',kstab
+        !print*,'stabi',kstab
         if(idofn.eq.1)then
           if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
             if(i==1 .and. j==1)then                      !difma(1,1,1,1)
@@ -2139,19 +2139,19 @@ module library
       character(len=*), parameter  :: fileplace = "Pos/"
       character(len=*), parameter  :: fileplace2 = "Res/FEM_TEM/"
       character(len=*), parameter  :: fileplace3 = "Exact_Sol_TEM/2D_DoubleLine_WholeSpace/"
-      character(len=24)                                    :: date
-      double precision, dimension(ntotv, 1),intent(in)     :: solution
-      character(*)                         ,intent(in)     :: activity
-      integer                              ,intent(in)     :: time
-      double precision                     ,intent(in)     :: timeStep, time_final
-      character(len=10)                                    :: ext1, ext2
-      character(len=4)                                     :: ext3
-      character(len=15)                                    :: Elem_Type
-      double precision, dimension(1, ntotv)                :: Sol_T
-      double precision, dimension(1,nnodes)                :: xcor, ycor
+      character(len=24)                                   :: date
+      double precision, dimension(ntotv, 1),intent(in)    :: solution
+      character(*)                         ,intent(in)    :: activity
+      integer                              ,intent(in)    :: time
+      double precision                     ,intent(in)    :: timeStep, time_final
+      character(len=10)                                   :: ext1, ext2
+      character(len=4)                                    :: ext3
+      character(len=15)                                   :: Elem_Type
+      double precision, dimension(1, ntotv)               :: Sol_T
+      double precision                                    :: Ez_r(ntotv), tEz
+      double precision, dimension(1,nnodes)               :: xcor, ycor
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
-      integer                                              :: ipoin, ii, ielem, inode, time2,id 
-      integer          :: id_poin
+      integer                                             :: ipoin, ii, ielem, inode, time2,id 
       double precision :: x_profile
       
       !double precision :: delta_t, timeStep2
@@ -2291,7 +2291,7 @@ module library
         !endif
         
       elseif(activity == "spatial")then
-        id_poin= n_spatialProfile
+        !id_poin = 113
         !open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
         !do ipoin =1,nnodes
         !  if(ycor(1,ipoin).eq.0.0)then
@@ -2303,29 +2303,34 @@ module library
         !end do
         !close(10)
         if(time == 1)then
-          open(unit=6, file=fileplace3//"MScalar_FEM_Ex.dat", STATUS="replace", ACTION="write")
+          open(unit=6, file=fileplace3//"test_for_commit.dat", STATUS="replace", ACTION="write")
         else
-          open(unit=6, file=fileplace3//"MScalar_FEM_Ex.dat", ACTION="write", STATUS="old", position="append")
+          open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
         endif
         
-        open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
+        open(unit=5, file= fileplace3//"Id_spatial_test.dat", status='old', action='read')
         !allocate(efile_profile(id))
-        write(6,'(A7,I0,A,e10.3,A)') ' "FEM t',time,'=',timeStep,'"'
+        
+        tEz = timeStep 
+        call Efield_WholeSpace(time, tEz, Ez_r)
+        
+        write(6,'(A7,I0,A,e10.3,A)') ' #t',time,'=',timeStep
+        write(6,'(A)') "index xcor FEM Exact"
         if(ndofn.eq.1)then
-          do ii = 1,id_poin
+          do ii = 1,id_poin                !id_poin viene del modulo E0field como variable global 
             read(5,*) ipoin, x_profile
-            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin)
+            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin), Ez_r(ndofn*ipoin)
           end do
         else
           do ii = 1,id_poin
             read(5,*) ipoin, x_profile
-            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2)
+            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2), Ez_r(ndofn*ipoin)
           end do
         endif
         write(6,*)' '
         write(6,*)' '
         close(5)
-        close(6)
+       close(6)
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
@@ -2360,7 +2365,7 @@ module library
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
-      918 format(I7,3x,E14.6,3x,E14.6) !format for res velocity
+      918 format(I7,3x,5(E14.6,3x)) !format for res velocity
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
