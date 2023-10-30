@@ -171,9 +171,10 @@ module sourceTerm
       
       Jsource = 0.0
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
-      theta_loop=90.
-      theta_loop=theta_loop*pi/180. ! theta=-30 deg
+      theta_loop= 90.0
       S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
+      
+      theta_loop=theta_loop*pi/180. ! theta=-30 deg
       Mr=Icurr(1)*S 
       Mx=Mr*sin(theta_loop)
       My=Mr*cos(theta_loop)
@@ -196,22 +197,23 @@ module sourceTerm
             print*,time
             print*,'M type source'
           endif
-          Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+          Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
+          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
         end do
       else
         do inode=1,nodalSrc 
           ! # # # # # # source: Time derivative of Density Current
-          Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-          Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
-          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+          !Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
           !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
           
           !! # # # # # # source: Magnetic Moment
-          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-          !Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
-          !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+          print*,'M type source'
+          Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+          Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
+          if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
         end do
       endif
       
