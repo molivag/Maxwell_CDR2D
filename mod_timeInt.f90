@@ -33,6 +33,7 @@ module timeInt
       double precision, allocatable, dimension(:,:)             :: dummy
       double precision, dimension(t_steps)                      :: u
       integer                                                   :: tw, t, itotv
+      double precision                                          :: tEz
       double precision, dimension(ntotv)                        :: E0
       double precision, dimension(ntotv,1)         ,intent(out) :: Uinit
       double precision, dimension(t_steps)         ,intent(out) :: shapeTime
@@ -44,8 +45,10 @@ module timeInt
       tw = 1 !time*width how strong the impulse is
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       Uinit = 0
+      tEz = time_ini
+      t = 0
       
-      call Efield_WholeSpace(E0)
+      call Efield_WholeSpace(t,tEz, E0)
       do itotv=1,ntotv
         Uinit(itotv,1) = E0(itotv)
       enddo
