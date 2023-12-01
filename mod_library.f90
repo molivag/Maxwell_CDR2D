@@ -1046,6 +1046,12 @@ module library
       lowban = nband
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1   
+
+
+      ! ldAKban represents the leading dimension of the Banded Global Stiffnes matrix AK_band . 
+      ! This variable specifies how the AK_band matrix is stored in memory and is used to correctly 
+      ! access and manipulate the AK_band matrix during the Solver process. 
+      ! In Fortran, the leading dimension specifies the number of rows used for storage. 
       
       print*, ' '
       print*,'!================ Bandwidth Info ==============!'
@@ -2308,7 +2314,7 @@ module library
           open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
         endif
         
-        open(unit=5, file= fileplace3//"Id_spatial_test.dat", status='old', action='read')
+        open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
         !allocate(efile_profile(id))
         
         tEz = timeStep 

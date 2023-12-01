@@ -6,10 +6,11 @@ use param
   !double precision, allocatable, dimension(:,:)     :: coord !, coordRef
   !integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
   !character(len=4)  :: ElemType, initElemType
-
   !common/contr/nin,nou,DimPr,nelem,nne,nnodes
-  integer, parameter :: mxnod=20, mxelm=40000, mxpoi=30000 
-  integer, parameter :: mxnow=20, mxelw=50000, mxpow=50000
+  !                                     40000        30000
+  integer, parameter :: mxnod=20, mxelm=20000, mxpoi=10000 
+  integer, parameter :: mxnow=20, mxelw=30000, mxpow=30000
+  !                                     50000        50000 
   
   contains
     
