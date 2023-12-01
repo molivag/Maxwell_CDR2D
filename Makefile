@@ -21,11 +21,11 @@ CFLAGS += -warn all
 #	optimization flags
 CFLAGS += -O0 -heap-arrays
 #	error finding options
-#CFLAGS +=  -check all -traceback -mcmodel large -fp-stack-check -check noarg_temp_created
-CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
-# at the end of the tests return to -check all option
+CFLAGS +=  -check all -traceback -mcmodel large -fp-stack-check -check noarg_temp_created
+#CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
+
 #	mkl library
-CFLAGS += -mkl
+CFLAGS += -qmkl
 	
 #	source files
 SRCS = mod_param mod_geometry mod_inputInfo mod_biunit mod_BVs mod_exacSol mod_source mod_library mod_timeInt main_CDR
