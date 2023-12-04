@@ -107,62 +107,56 @@ module timeInt
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine Timeintegration(basfun,dN_dxi,dN_deta, hes_xixi,hes_xieta,hes_etaeta, &
-      &                        time_ini,time_fin,t_steps, nofix, ifpre, presc,&
-      &                        S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol, workdim, Ex_field)
+    subroutine Timeintegration(basfun,dN_dxi,dN_deta, hes_xixi, hes_xieta, hes_etaeta, &
+      &                        nofix, ifpre, presc, Ex_field)
       
       implicit none
       
       external :: dgbtrf, dgbtrs, dgbrfs
       
-      double precision, dimension(nne,TotGp) ,intent(in)     :: basfun, dN_dxi, dN_deta
-      double precision, dimension(nne,TotGp) ,intent(in)     :: hes_xixi, hes_xieta, hes_etaeta
-      double precision, dimension(ndofn,nBVs),intent(in)     :: presc
-      integer, dimension(ndofn,nBVs)         ,intent(in)     :: ifpre
-      integer, dimension(nBVs)               ,intent(in)     :: nofix
-      character(len=1)                       ,intent(in)     :: S_trans
-      integer                                ,intent(in)     :: S_m, S_n, S_nrhs, S_ldSol, t_steps
-      double precision                       ,intent(in)     :: time_ini, time_fin
+      double precision, dimension(nne,TotGp) ,intent(in)  :: basfun, dN_dxi, dN_deta
+      double precision, dimension(nne,TotGp) ,intent(in)  :: hes_xixi, hes_xieta, hes_etaeta
+      double precision, dimension(ndofn,nBVs),intent(in)  :: presc
+      integer, dimension(ndofn,nBVs)         ,intent(in)  :: ifpre
+      integer, dimension(nBVs)               ,intent(in)  :: nofix
+
       ! - - Local Variables - -!
-      double precision, allocatable, dimension(:,:)          :: A_K, A_C, A_F
-      double precision, allocatable, dimension(:,:)          :: LHS, lhs_BDF2
-
-
-      double precision, dimension(ntotv,1)                   :: Jsource, Jsource_pre
-      double precision, dimension(ntotv,1)                   :: RHS, F_plus_MU, rhs_BDF2, u_init
-      double precision, dimension(t_steps+1)                 :: shapeTime
-      
-      double precision, allocatable, dimension(:,:)          :: u_pre, u_curr, u_fut, Mu_pre
-      double precision, allocatable, dimension(:)            :: S_ferr, S_berr, S_work
-      integer         , allocatable, dimension(:)            :: S_ipiv, S_iwork
-      double precision                                       :: nt, ttt
-      integer                                                :: time, info, workdim
-      integer :: ii
+      character(len=1)                                    :: S_trans
+      double precision, allocatable, dimension(:,:)       :: A_K, A_C, A_F
+      double precision, allocatable, dimension(:,:)       :: LHS, lhs_BDF2
+      double precision, dimension(ntotv,1)                :: Jsource, Jsource_pre
+      double precision, dimension(ntotv,1)                :: RHS, F_plus_MU, rhs_BDF2, u_init
+      double precision, dimension(t_steps+1)              :: shapeTime
+      double precision, allocatable, dimension(:,:)       :: u_pre, u_curr, u_fut, Mu_pre
+      double precision, allocatable, dimension(:)         :: S_ferr, S_berr, S_work
+      integer         , allocatable, dimension(:)         :: S_ipiv, S_iwork
+      double precision                                    :: nt, ttt
+      integer                                             :: time, info, workdim
+      integer                                             :: ii, S_m, S_n, S_nrhs, S_ldSol!, t_steps
       double precision, allocatable,dimension(:),intent(out) :: Ex_field
       
       
       allocate( LHS(ldAKban,ntotv), lhs_BDF2(ldAKban,ntotv))
       
+      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !allocate( RHS(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
+      !----- Setting MKL-Solver Parammeters -----!
+      S_m     = size(A_K,2)  !antes ntotv
+      S_n     = size(A_K,2)  !antes ntotv
+      S_ldSol = max(1,S_n)
+      S_trans = 'N'
+      S_nrhs  = 1
       
-      allocate( u_pre(S_ldSol, 1))
-      allocate( u_fut(S_ldSol, 1))
+      allocate( u_pre(S_ldSol, 1), u_fut(S_ldSol, 1) )
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
-      allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
+      ! allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
       allocate( Ex_field(t_steps+1))
       
-      u_curr = 0.0
-      u_pre  = 0.0
-      u_fut  = 0.0
-      Mu_pre = 0.0
-      RHS    = 0.0
-      LHS    = 0.0
-      time   = 0                                            !initializing the time
+      u_curr = 0.0; u_pre  = 0.0; u_fut  = 0.0
+      Mu_pre = 0.0; RHS    = 0.0; LHS    = 0.0
+      time   = 0  ; nt = time_ini;  ttt    = 0.0
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
-      nt     = time_ini
-      ttt    = 0.0
       
-      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       call initialCondition(presc,ifpre, nofix, shapeTime, u_init)
       
       u_pre  = u_init                                   !u in present time 
