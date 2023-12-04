@@ -46,19 +46,6 @@ implicit none
   !------- Computing half bandwidth  --------!
   call BandWidth
 
-
-  !print*,' '  
-  !print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
-  !print*,'Cu    : ', Cu
-  !print*,'lambda: ', lambda
-  !print*,'helem : ', helem
-  !print*,'ℓ     : ', ell
-  !print'(A9,e12.5)','Su     = ',Cu*lambda*(helem**2/ell**2)
-  !print'(A9,e12.5)','Sp     = ',ell**2 / lambda
-  !print*,'=  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  =  ='    
-  print*,' '  
-  
-  
   !---------- Global Matrix and Vector ------!
   print*,'  •BUILDING GLOBAL MATRIX (K) AND VECTOR (F).....'
   call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
@@ -78,7 +65,6 @@ implicit none
   S_ldSol = max(1,S_n)
   S_trans = 'N'
   S_nrhs  = 1
-  !workdim = max(1,3*S_n)
 
   !-------- Problem Type Definition --------!
   if(ProbType .eq. 'TIME')then !transient case
@@ -88,10 +74,9 @@ implicit none
      !call TimeIntegration(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta,&
     !&                    nofix, ifpre, presc,S_m, S_n, S_trans, S_nrhs, S_ipiv, S_ldSol)
     call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,&
-      & time_ini, time_fin, t_steps, nofix, ifpre, presc, S_m, S_n, S_trans, S_nrhs,&
-      & S_ipiv, S_ldSol, workdim, Ex_field)
+      & nofix, ifpre, prescl, Ex_field)
    
-    call Res_Matlab(Ex_field)
+    ! call Res_Matlab(Ex_field)
    
     !---------- Memory Relase -----------!
     deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
