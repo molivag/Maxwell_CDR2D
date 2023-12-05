@@ -606,44 +606,14 @@ module library
         end if
         !close(10)
       else
-        !print*,'stabi',kstab
-        if(idofn.eq.1)then                   !difma(idofn,jdofn,i,j)
-          if(jdofn.eq.1)then                      
-            if(i==1 .and. j==1)then                      !difma(1,1,1,1)
-              coeff = lambda
-              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-              !print'(A2,e12.5)','Su', coeff
-            end if
-           
-            if(i==2 .and. j==2)then                      !difma(1,1,2,2)
-              coeff = lambda
-              !print'(A2,e12.5)','λ ', coeff
-            endif
+        ! The coeficients for Laplacian operator 
+        if((idofn == jdofn).and.(i == j))then
+            ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+            ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
             
-          end if
-          
-        elseif(idofn==2)then
-          elseif(jdofn==2)then
-            if(i==1 .and. j==1)then                      !difma(2,2,1,1)
-              coeff = lambda
-              !print'(A3,e12.5)','λ ', coeff
-            end if
-            
-            if(i==2.and.j==2)then                        !difma(2,2,2,2)
-              coeff = lambda
-              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-              !print'(A2,e12.5)','Su', coeff
-            end if
-          end if
-          
+            coeff = lambda
         end if
-       
-      15 continue 
-      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-      !Next lines are to taste the 
-      !print*, 'elem_size_h,', h
-      !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
-      !print*, 'ell^2/µ', ell**2/lambda
+      end if
       
     end subroutine param_stab
     !
