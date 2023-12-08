@@ -137,41 +137,46 @@ module inputInfo
       endif
       print*, ' '
       print*,'!============ Source Parameters =============!'
-      write(*,'(A)') ' -Location'
-      if(nodalSrc.eq.1)then
-        write(*,'(A)')' -Source point' 
-        write(*,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) '
+      if(srcRHS == 0) then 
+        write(*,'(A)') ' -Location'
+        if(nodalSrc.eq.1)then
+          write(*,'(A)')' -Source point' 
+          write(*,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) '
+          print*, ' '
+          write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          print*, ' '
+          write(*,'(A)') ' -Dipole lenght: Single source point'
+        elseif(nodalSrc.eq.2)then
+          write(*,*)'              Begining                End' 
+          write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
+            &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
+            &       ' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
+          print*, ' '
+          write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          print*, ' '
+          write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+        else
+          write(*,*)'              Begining                End' 
+          write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
+            &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
+            &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),' )'
+          print*, ' '
+          write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          !write(*,'(I6)') nodalSrc 
+          print*, ' '
+          write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+          !write(*,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+        end if
         print*, ' '
-        write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
-        print*, ' '
-        write(*,'(A)') ' -Dipole lenght: Single source point'
-      elseif(nodalSrc.eq.2)then
-        write(*,*)'              Begining                End' 
-        write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
-          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
-        print*, ' '
-        write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
-        print*, ' '
-        write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+        write(*,'(A)') ' -Intensity current'
+        if(ndofn.eq.1)then
+          write(*,"(1(f10.3,1x))") Icurr(1)
+        elseif(ndofn.eq.3)then
+          write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
+        endif
       else
-        write(*,*)'              Begining                End' 
-        write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
-          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
-          &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),' )'
-        print*, ' '
-        write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
-        !write(*,'(I6)') nodalSrc 
-        print*, ' '
-        write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
-        !write(*,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+        write(*,'(A)') 'Not geophysical source'
       end if
-      print*, ' '
-      write(*,'(A)') ' -Intensity current'
-      if(ndofn.eq.1)then
-        write(*,"(1(f10.3,1x))") Icurr(1)
-      elseif(ndofn.eq.3)then
-        write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
-      endif
       
       !write(*,'(A)') 
       !print*,'!============ TENSOR COEFFICIENTS  ============!'
@@ -297,34 +302,38 @@ module inputInfo
       endif
       write(100,'(A)') 
       write(100,'(A)')'!============ Source Parameters =============!'
-      write(100,'(A)') ' -Location'
-      if(nodalSrc.eq.1)then
-        write(100,'(A)')' -Source point' 
-        write(100,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') '
-        write(100,'(A)') 
-        write(100,'(A25,2(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
-        write(100,'(A)') 
-        write(100,'(A)') ' -Dipole lenght: Single source point'
-      elseif(nodalSrc.eq.2)then
-        write(100,'(A)')'              Begining                End' 
-        write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
-          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
-        write(100,'(A)') 
-        write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
-        write(100,'(A)') 
-        write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+      if(srcRHS ==0)then
+        write(100,'(A)') ' -Location'
+        if(nodalSrc.eq.1)then
+          write(100,'(A)')' -Source point' 
+          write(100,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),') '
+          write(100,'(A)') 
+          write(100,'(A25,2(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          write(100,'(A)') 
+          write(100,'(A)') ' -Dipole lenght: Single source point'
+        elseif(nodalSrc.eq.2)then
+          write(100,'(A)')'              Begining                End' 
+          write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
+            &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',' (',coord(1,Srcloc(2)),',',coord(2,Srcloc(2)),' )'
+          write(100,'(A)') 
+          write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          write(100,'(A)') 
+          write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+        else
+          write(100,'(A)')'              Begining                End' 
+          write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
+            &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
+            &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),' )'
+          write(100,'(A)') 
+          write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          !write(100,'(I6)') nodalSrc 
+          write(100,'(A)') 
+          write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+          !write(100,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+        end if
       else
-        write(100,'(A)')'              Begining                End' 
-        write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
-          &'        (',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) ',&
-          &       ' (',coord(1,Srcloc(nodalSrc)),',',coord(2,Srcloc(nodalSrc)),' )'
-        write(100,'(A)') 
-        write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
-        !write(100,'(I6)') nodalSrc 
-        write(100,'(A)') 
-        write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
-        !write(100,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
-      end if
+        write(*,'(A)') 'Not geophysical source'
+      endif
       
       
       
