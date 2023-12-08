@@ -1001,7 +1001,8 @@ module library
       iband=0
       do ielem =1, nelem
         do inode = 1, nne
-          ipoin = lnods(ielem,inode) !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
+          !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
+          ipoin = lnods(ielem,inode) 
           do jnode = 1, nne
             jpoin = lnods(ielem,jnode)
             iband = max(iband,abs(jpoin-ipoin))
@@ -1016,8 +1017,7 @@ module library
       lowban = nband
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1   
-
-
+      
       ! ldAKban represents the leading dimension of the Banded Global Stiffnes matrix AK_band . 
       ! This variable specifies how the AK_band matrix is stored in memory and is used to correctly 
       ! access and manipulate the AK_band matrix during the Solver process. 
@@ -1082,6 +1082,7 @@ module library
           end do
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          ! print"(A12,I3,A26,3f15.5)",'for element',ielem,' the RHS contribution is: ', EMsource
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
@@ -1423,6 +1424,8 @@ module library
       multi = 1E-10
       
       select case(exacSol)
+        case(0)
+          print*,'No analytic solution'
         case(1)
           aa = (2.0/3.0)*n_val
           bb = 0.0
@@ -1593,8 +1596,6 @@ module library
               ii = ii+1.0
           end do
          
-        case(5)
-          print*,'No analytic solution'
       end select
      
       error_EM = sqrt(error_EM/nnodes)
@@ -1958,7 +1959,7 @@ module library
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin, ii, ielem, inode, jj, igaus, icomp
+      integer                                 :: ipoin, ii, ielem, inode, jj, igaus, icomp, RESconma
       
       solution_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
@@ -2026,32 +2027,46 @@ module library
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ex ','               ey '
           do ipoin = 1, nnodes
-            write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            write(555,919) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
           end do
           write(555,"(A)") 'End Values'
           
         case(3)
-          write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
-          write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
-          write(555,"(A)") 'Values'
-          write(555,*) '#',   'No    ','             ex ','               ey'
-          do ipoin = 1, nnodes
-            write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
-          end do
-          write(555,"(A)") 'End Values'
-          write(555,"(A)") 'Result "Multiplier" "Multiplier" 0 Scalar OnNodes'
-          write(555,"(A)") 'ComponentNames "" '
-          write(555,"(A)") 'Values'
-          write(555,*) '#',   'No    ','             p '
-          !  se escribe el res para el caso escalar de un grado de libertad
-          write(555,914)
-          ii=1
-          do ipoin = 3, nnodes*3,3
-            write(555,916) ii, solution_T(1,ipoin)
-            ii=ii+1
-          end do
-          write(555,"(A)") 'End Values'
-          write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
+          RESconma = sum(sum(conma, DIM=1))
+          if(RESconma == 0)then
+            write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
+            write(555,"(A)") 'Values'
+            write(555,"(A)") '#No                 ex                ey                 ez'
+            do ipoin = 1, nnodes
+              write(555,918) ipoin,&
+              &       solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(555,"(A)") 'End Values'
+            
+          else
+            write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             ex ','               ey'
+            do ipoin = 1, nnodes
+              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+            end do
+            write(555,"(A)") 'End Values'
+            write(555,"(A)") 'Result "Multiplier" "Multiplier" 0 Scalar OnNodes'
+            write(555,"(A)") 'ComponentNames "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             p '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(555,914)
+            ii=1
+            do ipoin = 3, nnodes*3,3
+              write(555,916) ii, solution_T(1,ipoin)
+              ii=ii+1
+            end do
+            write(555,"(A)") 'End Values'
+            write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
+          endif
       end select
       
       if(postpro.eq.1)then
@@ -2093,7 +2108,7 @@ module library
       908 format(10(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E15.5)  !format for scalar case
-      918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
+      918 format(I7,3(4x,E15.5)) !format for res velocity
       919 format(I7,2(4x,E15.5)) !format for res velocity
       
     end subroutine GID_results 
@@ -2115,19 +2130,19 @@ module library
       character(len=*), parameter  :: fileplace = "Pos/"
       character(len=*), parameter  :: fileplace2 = "Res/FEM_TEM/"
       character(len=*), parameter  :: fileplace3 = "Exact_Sol_TEM/2D_DoubleLine_WholeSpace/"
-      character(len=24)                                   :: date
-      double precision, dimension(ntotv, 1),intent(in)    :: solution
-      character(*)                         ,intent(in)    :: activity
-      integer                              ,intent(in)    :: time
-      double precision                     ,intent(in)    :: timeStep, time_final
-      character(len=10)                                   :: ext1, ext2
-      character(len=4)                                    :: ext3
-      character(len=15)                                   :: Elem_Type
-      double precision, dimension(1, ntotv)               :: Sol_T
-      double precision                                    :: Ez_r(ntotv), tEz
-      double precision, dimension(1,nnodes)               :: xcor, ycor
+      character(len=24)                                :: date
+      double precision, dimension(ntotv, 1),intent(in) :: solution
+      character(*)                         ,intent(in) :: activity
+      integer                              ,intent(in) :: time
+      double precision                     ,intent(in) :: timeStep, time_final
+      character(len=10)                                :: ext1, ext2
+      character(len=4)                                 :: ext3
+      character(len=15)                                :: Elem_Type
+      double precision, dimension(1, ntotv)            :: Sol_T
+      double precision                                 :: Ez_r(ntotv), tEz
+      double precision, dimension(1,nnodes)            :: xcor, ycor
+      integer                                          :: ipoin, ii, ielem, inode, time2,id, RESconma
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
-      integer                                             :: ipoin, ii, ielem, inode, time2,id 
       double precision :: x_profile
       
       !double precision :: delta_t, timeStep2
@@ -2214,30 +2229,47 @@ module library
             end do
             write(200,"(A)") 'End Values'
           case(3)
-            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
-            write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
-            write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ex ','               ey'
-           ! do ipoin = 1, nnodes
-           !   write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
-           ! end do
-            do ipoin = 1, nnodes
-              write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
-            end do
-            write(200,"(A)") 'End Values'
-            write(200,"(A24, I0, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
-            write(200,"(A)") 'ComponentNames "" '
-            write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','     P '
-            !  se escribe el res para el caso escalar de un grado de libertad
-            write(200,914)
-            ii=1
-            do ipoin = 3, nnodes*3,3
-              write(200,916) ii, Sol_T(1,ipoin)
-              ii=ii+1
-            end do
-            write(200,"(A)") 'End Values'
+            RESconma = sum(sum(conma, DIM=1))
+            if(RESconma == 0)then
+              write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+              write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
+              write(200,"(A)") 'Values'
+              write(200,*) '#No      ','             ex ','               ey','               ez'
+              do ipoin = 1, nnodes
+                write(200,919) ipoin,&
+                &       Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
+              end do
+              write(200,"(A)") 'End Values'
+              
+            else
+              write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+              write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
+              write(200,"(A)") 'Values'
+              write(200,*) '#',   'No    ','             ex ','               ey'
+           !   do ipoin = 1, nnodes
+           !     write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
+           !   end do
+              do ipoin = 1, nnodes
+                write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
+              end do
+              write(200,"(A)") 'End Values'
+              write(200,"(A24, I0, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
+              write(200,"(A)") 'ComponentNames "" '
+              write(200,"(A)") 'Values'
+              write(200,*) '#',   'No    ','     P '
+              !  se escribe el res para el caso escalar de un grado de libertad
+              write(200,914)
+              ii=1
+              do ipoin = 3, nnodes*3,3
+                write(200,916) ii, Sol_T(1,ipoin)
+                ii=ii+1
+              end do
+              write(200,"(A)") 'End Values'
+            end if
         end select
+        
+        
+        
       elseif(activity == "profile")then
         Ex_field = 0.0 
         if(time == 0)then
