@@ -51,7 +51,7 @@ module sourceTerm
           !                                                           !
           !              u = grad(r^{2n/3}*sin((2n/3)*theta))         !
           ! where:                                                    !
-          ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)    
+          ! r = sqrt(x^2 + y^2)   ;   theta = atan(y/x)               ! 
           !                                                           !
           ! and                                                       !
           !         f = Lu  ;   where L is the diferential operator   !
@@ -95,7 +95,7 @@ module sourceTerm
           EMsource(2) = lambda*(-dey_dx2 + dex_dxdy + beta*( dex_dydx+ dey_dy2 ) )
           EMsource(3) = force(3)
           
-        case(2)
+        case(2) !Maxwell algebraic solution
           !Source with NO DivDiv term
           
           !Derivatives in x-direction
@@ -116,7 +116,7 @@ module sourceTerm
           EMsource(2) = force(2)*lambda*(-dey_dx2 + dex_dxdy)! - beta*(dex_dydx - beta*dey_dy2  )  
           EMsource(3) = force(3)
           
-        case(3) !stokes
+        case(3) !stokes algebraic solution
           
           !Derivatives in x-direction
           dex_dx2  = 2.0*(6.0*x**2 - 6.0*x +1.0)*y*(2.0*y**2 - 3.0*y + 1.0)
@@ -126,8 +126,8 @@ module sourceTerm
           dey_dx2  =-6.0*(2.0*x - 1.0)*(y**2 -2.0*y + 1.0)*y**2
           dey_dy2  =-2.0*x*(2*x**2 - 3.0*x +1.0)*(6.0*y**2 -6.0*y + 1.0)
           
-          EMsource(1) = -lambda * ( dex_dx2 + dex_dy2 )
-          EMsource(2) = -lambda * ( dey_dx2 + dey_dy2 )
+          EMsource(1) = -force(1)*lambda * ( dex_dx2 + dex_dy2 )
+          EMsource(2) = -force(2)*lambda * ( dey_dx2 + dey_dy2 )
           EMsource(3) = force(3)
           
         case default

@@ -1,6 +1,6 @@
 module timeInt
   use param
-  use library!, only: ApplyBVs, GlobalSystem_Time, file_name_inc, GID_PostProcess, MKLsolverResult, MKLfactoResult
+  use library
   use E0field
   use sourceTerm
 
@@ -43,7 +43,6 @@ module timeInt
       
       u  = 1.0
       tw = 1 !time*width how strong the impulse is
-      !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       Uinit = 0
       tEz = time_ini
       t = 0
@@ -183,9 +182,9 @@ module timeInt
             call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
             call currDensity(time,shapeTime(time),Jsource) 
-            RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
+            ! RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
+            RHS = ( Mu_pre - delta_t*Jsource )
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
-            !print'(f15.5)',RHS
             
             !------------- Solver -------------!
             u_fut = RHS   !here mkl will rewrite u_fut by the solution vector

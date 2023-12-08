@@ -58,7 +58,8 @@ module param
         print*, ' '
         print*, ' '
         print'(A8,1x,A180)','iomsg = ',msg
-        print*, ' '
+        print*, 'if status = 64 = Preconnected file comprises unformatted records'
+        print*, 'mean there is a <tab> instead of <BS> in input file'
         print*, ' '
       else
         continue
