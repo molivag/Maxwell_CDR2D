@@ -20,21 +20,17 @@ module BoundVal
       double precision, parameter :: pi = 4*atan(1.d0)
       character(len=*), parameter :: fileplace ="./"
       
-      integer :: ierror, a ,b, c, d, e, f,i 
-      double precision :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
-      double precision :: aa, cc
+      integer              :: ierror, a ,b, c, d, e, f,i 
+      double precision     :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
+      double precision     :: aa, cc
       integer, intent(out) :: nBVs, nBVscol
       
       
       open(unit=200, file=fileplace//'ifpre.dat',Status= 'replace', action= 'write',iostat=ierror)
       open(unit=300, file=fileplace//'BoVal.dat',Status= 'replace', action= 'write',iostat=ierror)
       
-      a = 0
-      b = 0
-      c = 0
-      d = 0
-      e = 0
-      f = 0
+      a = 0; b = 0; c = 0;
+      d = 0; e = 0; f = 0
       
       xmin = minval(coord(1,:)) !the smallest number in x column
       xmax = maxval(coord(1,:)) !the greatest number in x column
@@ -44,12 +40,12 @@ module BoundVal
       ymiddle =  (abs(ymax)-abs(ymin))/2.0
       print*, ' '
       print*, '!================ Domain Dimensions ===========!'
-      write(*,'(A)') '- xmin , xmax '
+      write(*,'(A)') ' - xmin , xmax '
       write(*,'(A3,1x,I0,A,2x,I0)')' ', int(xmin),'  ,', int(xmax) 
-      write(*,'(A9,I0)') '- ymax = ', int(ymax)
-      write(*,'(A9,I0)') '- ymin = ', int(ymin)
-      write(*,'(A9,f5.2)') '- xhlf = ', real(xmiddle)
-      write(*,'(A9,f5.2)') '- yhlf = ', real(ymiddle)
+      write(*,'(A9,I0)') ' - ymax = ', int(ymax)
+      write(*,'(A9,I0)') ' - ymin = ', int(ymin)
+      write(*,'(A9,f5.2)') ' - xhlf = ', real(xmiddle)
+      write(*,'(A9,f5.2)') ' - yhlf = ', real(ymiddle)
       
       
       
@@ -266,7 +262,7 @@ module BoundVal
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                else                                    !Upper Border
-                  write(200,10) i, 1, 0, 1
+                  write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 end if
@@ -281,17 +277,17 @@ module BoundVal
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 else                                  !Down Border
-                  write(200,10) i, 1,  0, 1
+                  write(200,10) i, 1,  1, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 end if
                 
               else if(x.eq.xmax)then                  !Right Boundary
-                write(200,10) i, 0,  1, 1
+                write(200,10) i, 1,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
               else if (x.eq.xmin)then                 !Left Boundary
-                write(200,10) i, 0,  1, 1
+                write(200,10) i, 1,  1, 1
                 write(300,20)   ux, uy, 0.0
                 d = d+1
               end if
