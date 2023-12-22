@@ -461,12 +461,12 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine Galerkin(hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
+    subroutine Galerkin(k_y, hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
       
       implicit none
       
       double precision, intent(in) :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
-      double precision, intent(in) :: dvol, hmaxi
+      double precision, intent(in) :: dvol, hmaxi, k_y
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty, coef
       double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
@@ -480,25 +480,30 @@ module library
             do jdofn=1,ndofn
               jevab=jevab+1
               diff=0.0
-              do i=1,2
-                do j=1,2   
+              x_difma_loop: do i=1,2
+                z_difma_loop: do j=1,2   
                   !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
                   !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
                   call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
                   !print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
-                  diff = diff+ dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+                  diff = diff + dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, e12.5)",'diff ', diff
                   !print*, '- - - - - - - - - - - - - - - - - - -'
                   !print*, ' '
-                end do
-              end do
+                end do z_difma_loop
+              end do x_difma_loop
               convec=0.0
-              do i=1,2
+              conma_loop: do i=1,2
                 !print*,conma(idofn,jdofn,i)
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
-              end do
-              reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
+              end do conma_loop
+              
+              reac = basis(inode) * k_y**2 * reama(idofn,jdofn) * basis(jnode)
+              ! write(*,"(A6,I2,A,I2,A4,e12.5)")'reama(',idofn,',',jdofn,') = ',k_y**2 * reama(idofn,jdofn)
+
+              ! reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               cpcty = 0.01 * (basis(inode) * basis(jnode) )
+              !este valor 0.01 es la conductividad que multiplica a la derivada de timepo
               
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
@@ -1034,7 +1039,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+    subroutine GlobalSystem(k_y, N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
       use sourceTerm
       
@@ -1042,6 +1047,7 @@ module library
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+      double precision,                       intent(in) :: k_y
       double precision, dimension(ndofn)        :: EMsource
       double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
@@ -1052,8 +1058,7 @@ module library
       double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ!, aaa
-      
+      double precision                          :: dvol, hmaxi, detJ
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
@@ -1074,8 +1079,8 @@ module library
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          dvol = detJ *  weigp(igaus,1)
           call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
+          dvol  = detJ *  weigp(igaus,1)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
@@ -1083,7 +1088,7 @@ module library
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           ! print"(A12,I3,A26,3f15.5)",'for element',ielem,' the RHS contribution is: ', EMsource
-          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(k_y, hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           if(kstab.eq.6.or.kstab.eq.0)then
@@ -1543,7 +1548,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine PostPro_EMfield(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, glob_potential, grad_sol)
+    subroutine PostPro_EMfield(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,glob_potential,grad_sol)
       
       implicit none
       
@@ -1564,21 +1569,21 @@ module library
       double precision, allocatable, dimension(:,:,:), intent(out) :: grad_sol
       
       allocate(grad_sol(nelem,totGp,DimPr))
-
+      
       if(postpro.eq.1)then
         write(*,'(A)') 'Running Post Process'
-        goto 115 
       elseif(postpro.eq.2)then
         write(*,'(A)') ' '
         write(*,'(A)') ' -No Post Process'
         goto 110
       else
         write(*,'(A)') 'No postrocess option defined'
+        goto 110
       end if
      
-      115 open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
+      open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
       
-      write(100,'(2x,A5,8x,A5,10x,A2,15x,A2,16x,A,15x,A)') 'ielem','igaus','ex','ey','x', 'y'
+      write(100,50) 'ielem','igaus','ex','ey','x', 'y'
       
       do ielem = 1,nelem
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
@@ -1592,8 +1597,7 @@ module library
           y = 0.0
           
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
-          
+          call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
           do inode = 1, nne
             basis(inode) = N(inode,igaus)
           end do
@@ -1607,14 +1611,13 @@ module library
           grad_sol(ielem,igaus,1) = -du_dx(ielem)
           grad_sol(ielem,igaus,2) = -du_dy(ielem) 
           
-          
           do inode = 1, nne 
             x = x + basis(inode)*xi_cor(inode)
             y = y + basis(inode)*yi_cor(inode)
             !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
           end do
           
-          write(100,'(2(I5,1x),1x,2(1x,F15.5),3x,2(E15.5))') ielem, igaus, x, y, grad_sol(ielem,igaus,1), grad_sol(ielem,igaus,2)
+          write(100,60) ielem, igaus, x, y, grad_sol(ielem,igaus,1), grad_sol(ielem,igaus,2)
         end do
         !print*,' '
       end do
@@ -1626,6 +1629,8 @@ module library
       !    write(*,'(2(1x,e15.5))') ( grad_sol(ielem, igaus, jj), jj=1,2 )
       !  end do
       !end do
+      50 format(2x,A5,8x,A5,10x,A2,15x,A2,16x,A,15x,A)
+      60 format(2(I5,1x),1x,2(1x,F15.5),3x,2(E15.5))
       
     end subroutine PostPro_EMfield
     !
@@ -1805,7 +1810,7 @@ module library
     
     subroutine GID_PostProcess(id,solution, activity, time, timeStep, time_final, Ex_field)
       
-      use E0field
+      ! use E0field
       
       implicit none
       external                                             :: fdate 
@@ -1993,35 +1998,38 @@ module library
         !  endif
         !end do
         !close(10)
-        if(time == 1)then
-          open(unit=6, file=fileplace3//"test_for_commit.dat", STATUS="replace", ACTION="write")
-        else
-          open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
-        endif
+
+
+
+        !if(time == 1)then
+        !  open(unit=6, file=fileplace3//"test_for_commit.dat", STATUS="replace", ACTION="write")
+        !else
+        !  open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
+        !endif
         
-        open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
-        !allocate(efile_profile(id))
+        !open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
+        !!allocate(efile_profile(id))
         
-        tEz = timeStep 
-        call Efield_WholeSpace(time, tEz, Ez_r)
+        !tEz = timeStep 
+        !call Efield_WholeSpace(time, tEz, Ez_r)
         
-        write(6,'(A7,I0,A,e10.3,A)') ' #t',time,'=',timeStep
-        write(6,'(A)') "index xcor FEM Exact"
-        if(ndofn.eq.1)then
-          do ii = 1,id_poin                !id_poin viene del modulo E0field como variable global 
-            read(5,*) ipoin, x_profile
-            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin), Ez_r(ndofn*ipoin)
-          end do
-        else
-          do ii = 1,id_poin
-            read(5,*) ipoin, x_profile
-            write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2), Ez_r(ndofn*ipoin)
-          end do
-        endif
-        write(6,*)' '
-        write(6,*)' '
-        close(5)
-       close(6)
+        !write(6,'(A7,I0,A,e10.3,A)') ' #t',time,'=',timeStep
+        !write(6,'(A)') "index xcor FEM Exact"
+        !if(ndofn.eq.1)then
+        !  do ii = 1,id_poin                !id_poin viene del modulo E0field como variable global 
+        !    read(5,*) ipoin, x_profile
+        !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin), Ez_r(ndofn*ipoin)
+        !  end do
+        !else
+        !  do ii = 1,id_poin
+        !    read(5,*) ipoin, x_profile
+        !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2), Ez_r(ndofn*ipoin)
+        !  end do
+        !endif
+        !write(6,*)' '
+        !write(6,*)' '
+        !close(5)
+       !close(6)
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
@@ -2060,18 +2068,14 @@ module library
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
-   
-
-
-
-    
-    
-    
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     
     
     !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
-    subroutine prevTime(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
+    subroutine prevTime(k_y, N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
+      !        BDF1_u_prev
       
       use sourceTerm
       
@@ -2080,6 +2084,7 @@ module library
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+      double precision,                       intent(in) :: k_y
       !double precision, dimension(3,nne), intent(in)     :: Hesxieta
       integer                               , intent(in) :: S_ldSol
       double precision, dimension(ndofn)        :: EMsource
@@ -2119,9 +2124,13 @@ module library
           end do
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
-          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          !En este Galerkin deberia quitar la construccion de la matriz Ke para evitar Calculamos
+          !inecesarios pues solo se calcula Ce y Fe y Ke ya no, REVISA RUTINA Galerkin_prevTime 
+          !y ver si esa se puede implementar tal cual aqui en lugar de Galerkin completo
+          call Galerkin(k_y, hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
+          
           if(kstab.eq.6.or.kstab.eq.0)then
             !print*, kstab, ' sin estabi'
             continue
@@ -2133,16 +2142,15 @@ module library
           !estas multiplicaciones deberias ser globales pero por la matriz en banda se deben 
           !hacer locales, es lo mismo.
           select case(theta)
-          case(2)
-          Mu_time = matmul(Ce,time_cont) 
-          case(3)
-          rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
-          Mu_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+            case(2)
+              Mu_time = matmul(Ce,time_cont) 
+            case(3) !Este caso se debe quitar de aqi. Esta rutina no se llama en Crank-Nicholson
+              rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
+              Mu_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
           endselect
           
         end do
         
-        !call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
         !call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
         call Assemb_Glob_Vec(nodeIDmap, Mu_time, A_M) !Assemble Global Source vector F
         
