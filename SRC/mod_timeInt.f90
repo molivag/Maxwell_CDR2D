@@ -47,11 +47,11 @@ module timeInt
       tEz = time_ini
       t = 0
       
-      call Efield_WholeSpace(t,tEz, E0)
-      do itotv=1,ntotv
-        Uinit(itotv,1) = E0(itotv)
-      enddo
-      call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
+      ! call Efield_WholeSpace(t,tEz, E0)
+      ! do itotv=1,ntotv
+      !   Uinit(itotv,1) = E0(itotv)
+      ! enddo
+      ! ! call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
       
       !--Select a signal shape function in time
       select case(signal)
@@ -106,38 +106,39 @@ module timeInt
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine Timeintegration(basfun,dN_dxi,dN_deta, hes_xixi, hes_xieta, hes_etaeta, &
+    subroutine Timeintegration(k_y, basfun,dN_dxi,dN_deta, hes_xixi, hes_xieta, hes_etaeta, &
       &                        nofix, ifpre, presc, Ex_field)
       
       implicit none
       
-      external :: dgbtrf, dgbtrs, dgbrfs
+      external                                            :: dgbtrf, dgbtrs, dgbrfs
       
       double precision, dimension(nne,TotGp) ,intent(in)  :: basfun, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp) ,intent(in)  :: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn,nBVs),intent(in)  :: presc
-      integer, dimension(ndofn,nBVs)         ,intent(in)  :: ifpre
-      integer, dimension(nBVs)               ,intent(in)  :: nofix
+      integer         , dimension(ndofn,nBVs),intent(in)  :: ifpre
+      integer         , dimension(nBVs)      ,intent(in)  :: nofix
 
       ! - - Local Variables - -!
       character(len=1)                                    :: S_trans
       double precision, allocatable, dimension(:,:)       :: A_K, A_C, A_F
       double precision, allocatable, dimension(:,:)       :: LHS, lhs_BDF2
-      double precision, dimension(ntotv,1)                :: Jsource, Jsource_pre
-      double precision, dimension(ntotv,1)                :: RHS, F_plus_MU, rhs_BDF2, u_init
-      double precision, dimension(t_steps+1)              :: shapeTime
       double precision, allocatable, dimension(:,:)       :: u_pre, u_curr, u_fut, Mu_pre
       double precision, allocatable, dimension(:)         :: S_ferr, S_berr, S_work
+      double precision             , dimension(ntotv,1)   :: Jsource, Jsource_pre
+      double precision             , dimension(ntotv,1)   :: RHS, F_plus_MU, rhs_BDF2, u_init
+      double precision             , dimension(t_steps+1) :: shapeTime
       integer         , allocatable, dimension(:)         :: S_ipiv, S_iwork
-      double precision                                    :: nt, ttt
+      double precision                                    :: nt, ttt, k_y
       integer                                             :: time, info, workdim
       integer                                             :: ii, S_m, S_n, S_nrhs, S_ldSol!, t_steps
       double precision, allocatable,dimension(:),intent(out) :: Ex_field
       
       
       allocate( LHS(ldAKban,ntotv), lhs_BDF2(ldAKban,ntotv))
+      print'(A28,E11.5)', ' -The current wave number is: ', k_y
       
-      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+      call GlobalSystem(k_y, basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !allocate( RHS(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
       !----- Setting MKL-Solver Parammeters -----!
       S_m     = size(A_K,2)  !antes ntotv
@@ -148,7 +149,6 @@ module timeInt
       
       allocate( u_pre(S_ldSol, 1), u_fut(S_ldSol, 1) )
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
-      ! allocate( S_work(workdim), S_iwork(S_ldSol), S_ferr(S_nrhs), S_berr(S_nrhs) )
       allocate( Ex_field(t_steps+1))
       
       u_curr = 0.0; u_pre  = 0.0; u_fut  = 0.0
@@ -161,29 +161,28 @@ module timeInt
       u_pre  = u_init                                   !u in present time 
       !write(*,*) ' '
       call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
-      write(*,*) ' '
-      print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
       call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
       !call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
       write(*,*) ' '
       print*, 'Starting time integration. . . . .'
+      write(*,*) ' '
+      ! print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
      
       select case(theta)
         !-------- 1st-order Backward Difference 
         case(2) 
           !Time-stepping
-          write(*,*)'              BDF1 Selected'
+          write(*,*)'        < < < BDF1 Selected > > >'
           !do while(ttt < time_fin)
-           
           do time = 1, t_steps
             nt = nt + delta_t!,time_fin,delta_t
             !time = time+1
             
-            call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
+            call prevTime(k_y,basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
-            call currDensity(time,shapeTime(time),Jsource) 
-            ! RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
-            RHS = ( Mu_pre - delta_t*Jsource )
+            call currDensity(2,time,shapeTime(time),Jsource) 
+            RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
+            ! RHS = ( Mu_pre - delta_t*Jsource )
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
             
             !------------- Solver -------------!
@@ -196,10 +195,10 @@ module timeInt
             call checkMKL('s',time,info)
            
             !---------- Printing and writing results -----------!
-            print 101,' time step:',time,' =',nt,'   of',time_fin,' seg'
+            call infoTime(time)
             call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
-            call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
-            call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
+            ! call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
+            ! call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
             
             !---------- Updating Variables ---------------------! 
             !Jsource_pre = Jsource
