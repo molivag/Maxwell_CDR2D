@@ -1636,6 +1636,34 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
+    subroutine WaveNumbers(k_y_min,k_y_max,num_divisiones, vector_k_y)
+      implicit none
+      
+      ! Declarar variables
+      double precision, intent(in) :: k_y_min, k_y_max
+      integer         , intent(in) :: num_divisiones
+      integer i
+      double precision, allocatable, intent(out) :: vector_k_y(:)
+      
+      ! Asignar memoria para el vector
+      allocate(vector_k_y(num_divisiones))
+      
+      ! Generar el vector logarítmico
+      do i = 1, num_divisiones
+        vector_k_y(i) = 10.0**(log10(k_y_min) + &
+        & (log10(k_y_max / k_y_min) / real(num_divisiones - 1)) * real(i - 1))
+      end do
+     
+      ! ! Imprimir el resultado
+      ! print*, "Vector de k_y:"
+      ! do i = 1, num_divisiones
+      !   print*, vector_k_y(i)
+      ! end do
+      
+    end subroutine WaveNumbers
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine GID_results(solution, grad_sol)
       
       implicit none
@@ -2071,6 +2099,68 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
+    subroutine infoTime(time)
+      
+      implicit none 
+      integer, intent(in) :: time
+      double precision    :: check1, check2, check3, check4, check5
+      double precision    :: check6, check7, check8, check9, check10
+      
+      check1=((t_steps/20)*100)/t_steps
+      check2=((t_steps/8)*100)/t_steps
+      check3=((t_steps/3)*100)/t_steps
+      check4=((t_steps/2.2)*100)/t_steps
+      check5=((t_steps/1.9)*100)/t_steps
+      check6=((t_steps/1.6)*100)/t_steps
+      check7=((t_steps/1.4)*100)/t_steps
+      check8=((t_steps/1.2)*100)/t_steps
+      check9=((t_steps/1.05)*100)/t_steps
+      check10=((t_steps/1)*100)/t_steps
+      check1= ceiling(check1)
+      check2= ceiling(check2)
+      check3= ceiling(check3)
+      check4= ceiling(check4)
+      check5= ceiling(check5)
+      check6= ceiling(check6)
+      check7= ceiling(check7)
+      check8= ceiling(check8)
+      check9= ceiling(check9)
+      check10= ceiling(check10)
+
+      ! print*,'1',check1
+      ! print*,'2',check2
+      ! print*,'3',check3
+      ! print*,'4',check4
+      ! print*,'5',check5
+      ! print*,'6',check6
+      ! print*,'7',check7
+      ! print*,'8',check8
+      ! print*,'9',check9
+      ! print*,'10',check10
+      
+      
+      if((time==floor(t_steps*check1*0.01)))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check1), '%'
+      elseif(time==floor(t_steps*check2*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check2), '%'
+      elseif(time==floor(t_steps*check3*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check3), '%'
+      elseif(time==floor(t_steps*check4*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check4), '%'
+      ! elseif(time==floor(t_steps*check5))then
+        ! print*, ' -Completed5',check5, '%'
+      elseif(time==floor(t_steps*check6*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check6), '%'
+      ! elseif(time==floor(t_steps*check7))then
+        ! print*, ' -Completed',check7, '%'
+      elseif(time==floor(t_steps*check8*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check8), '%'
+      elseif(time==floor(t_steps*check9*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check9), '%'
+      elseif((time==floor(t_steps*check10*0.01)))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check10), '%'
+      endif
+    end subroutine infoTime
     
     
     !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
