@@ -7,7 +7,7 @@ module param
   character(len=4)  :: ProbType, ElemType, initElemType
   character(len=2)  :: refiType
   integer           :: nBVs, nBVscol, nband, t_steps, exacSol, BCsProb
-  integer           :: upban, lowban, totban, ldAKban !variables defined in GlobalSystem
+  integer           :: upban, lowban, totban, ldAKban, idk_y !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
   integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
   integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem
@@ -46,7 +46,7 @@ module param
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100,iostat=stat,iomsg=msg) &
-      ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro,&
+      ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro, idk_y,&
       mesh_file, initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
       theta, time_ini, time_fin, t_steps, Src_ON,&
@@ -236,7 +236,7 @@ module param
       
       !Initial elemental and global variables, it will changes if refination is selected.
       
-      100 format(7/ ,11x, A4,/, 7(11x,I5,/),                    2/,&  !model parameters
+      100 format(7/ ,11x, A4,/, 8(11x,I5,/),                    2/,&  !model parameters
       &          11x,A13,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),   2/,&  !stabi
       &          11x,I1,/, 2(11x,e15.7,/),2(11x,I5,/),          2/,&  !time
