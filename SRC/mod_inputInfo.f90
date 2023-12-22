@@ -175,7 +175,7 @@ module inputInfo
           write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
         endif
       else
-        write(*,'(A)') 'Not geophysical source'
+        write(*,'(A)') ' - Not geophysical source'
       end if
       
       !write(*,'(A)') 
@@ -302,7 +302,7 @@ module inputInfo
       endif
       write(100,'(A)') 
       write(100,'(A)')'!============ Source Parameters =============!'
-      if(srcRHS ==0)then
+      if(srcRHS == 0)then
         write(100,'(A)') ' -Location'
         if(nodalSrc.eq.1)then
           write(100,'(A)')' -Source point' 
@@ -332,7 +332,7 @@ module inputInfo
           !write(100,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         end if
       else
-        write(*,'(A)') 'Not geophysical source'
+        write(100,'(A)') ' - Not geophysical source'
       endif
       
       
