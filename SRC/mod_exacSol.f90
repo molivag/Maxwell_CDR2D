@@ -1,19 +1,19 @@
 module E0field
   use param
   use geometry
+  use library
   
   integer                      :: id_poin
 
   contains
-
     subroutine Efield_WholeSpace(time, tEz, Ez_r)
      
       ! Implements eq. (17) of paper by Zhang & Liu (2021)
       
       character(len=*), parameter  :: fileplace3 = "Exact_Sol_TEM/2D_DoubleLine_WholeSpace/"
       double precision, parameter  :: pi = 4*atan(1.d0)
-      double precision, intent(in) :: tEz                       !correspond to nt 
-      integer         , intent(in) :: time                      !correspond to time 
+      double precision, intent(in) :: tEz             !correspond to nt 
+      integer         , intent(in) :: time            !correspond to time 
       double precision             :: sigma, S, x1,y1,x2,y2,x,y
       double precision             :: Curr_x,Curr_y, angle_loop
       double precision             :: facto, theta2, rho1, rho2, exp1, exp2
