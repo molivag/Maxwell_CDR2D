@@ -79,28 +79,8 @@ implicit none
       call GlobalSystem(k_y,basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
       
-      !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
-      if(BCsProb.eq.5)then
-        continue
-      else
-        if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
-          print*,'delta source'
-          if(ndofn.eq.1)then
-            do ii=1,nodalSrc
-              if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
-              !print*,Icurr
-              A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
-            end do
-          else
-            do ii=1,nodalSrc
-              if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
-              !print*,Icurr
-              A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
-              A_F((srcLoc(ii)-1)*ndofn+2,1) = -Icurr(2)
-            end do
-          endif
-        end if
-      endif
+      !call currDensity(SrcType,time,eTime,Jsource) !Este call debe modificarse para que incluya el 
+      !caso de corriente directa
       
       !----- Setting MKL-Solver Parammeters -----!
       S_m     = size(A_K,2)  !antes ntotv
