@@ -15,21 +15,20 @@ implicit none
   double precision, allocatable, dimension(:,:)     :: Bvs
   integer,          allocatable, dimension(:,:)     :: condition, ifpre
   integer,          allocatable, dimension(:)       :: nofix
-  double precision                                              :: start, finish
+  double precision                                              :: start, finish, k_y
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   double precision, allocatable, dimension(:,:,:)   :: grad_u_sol
   double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol
-  double precision, allocatable, dimension(:)       :: Ex_field
+  double precision, allocatable, dimension(:)       :: Ex_field, ky
   external                                          :: dgbtrf, dgbtrs, dgbrfs
-  !double precision, allocatable, dimension(:)      :: S_ferr, S_berr, S_work
   integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
   character(len=1)                                  :: S_trans
-      character(len=24)           :: date
+  character(len=24)           :: date
   integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol, ii
   
   !-----Input File
   call cpu_time(start)
-  name_inputFile = 'tMaxwelinputCDR.dsc' 
+  name_inputFile = 'tMaxwelinputCDR.c' 
   
   !--------------- Input Data ---------------!
   call inputData(name_inputFile, geometry_file)
@@ -55,13 +54,17 @@ implicit none
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
   call VinculBVs( condition,  BVs, nofix, ifpre, presc )
 
-  !-------- Problem Type Definition --------!
+  !----- Setting the wave numbers range ------!
+  call WaveNumbers(1.0d-7,4.0d-2,10,ky) !k**2 = i*mu*sigma*2pi*f
+  k_y = ky(idk_y)
+
+  !-------- Problem Type Definition ----------!
   select case(ProbType)
     case('TIME')
       
       print*, ' '
       print*, "!=============== Time Integration =============! "
-      call Timeintegration(basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,&
+      call Timeintegration(k_y, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,&
       &                    nofix, ifpre, presc, Ex_field)
      
       ! call Res_Matlab(Ex_field)
@@ -73,10 +76,10 @@ implicit none
       !---------- Global Matrix and Vector ------!
       print*,'  •BUILDING GLOBAL MATRIX (K) AND VECTOR (F).....'
       !the allocate of A_K and A_F are inside of GlobalSystem
-      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+      call GlobalSystem(k_y,basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
       
-      !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)
+      !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
       if(BCsProb.eq.5)then
         continue
       else
@@ -125,6 +128,9 @@ implicit none
       call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
       call MKLsolverResult('dgbtrs',info)
    
+      !---------- Computing Inverse Fourier Transform------------------------!
+      ! call iFT(ky, u_sol, 3D_sol)
+
       !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
       call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,u_sol,grad_u_sol)
       
