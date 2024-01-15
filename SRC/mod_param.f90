@@ -10,7 +10,7 @@ module param
   integer           :: upban, lowban, totban, ldAKban, idk_y !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
   integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
-  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem
+  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem, number_of_wavenumber
   real              :: hnatu, patau
   double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
@@ -70,13 +70,12 @@ module param
       allocate( reama(ndofn,ndofn) )
       allocate( force(ndofn) )
       allocate( Icurr(ndofn) )
-      allocate( srcLoc(nodalSrc) )
-      allocate( recLoc(nodalRec) )
       
       difma = 0.0
       conma = 0.0
       reama = 0.0
       force = 0.0
+      Icurr = 0.0 
       
       if(ndofn.eq.1)then
         read(5,101) difma(1,1,1,1), difma(1,1,1,2)
@@ -186,12 +185,14 @@ module param
       endif
       
       read(5,104,iostat=stat,iomsg=msg) nodalSrc
+      allocate( srcLoc(nodalSrc) )
       do ii =1, nodalSrc
         read(5,*,iostat=stat,iomsg=msg) srcLoc(ii)
       end do
       
       read(5,109,iostat=stat,iomsg=msg) signal
       read(5,109,iostat=stat,iomsg=msg) nodalRec
+      allocate( recLoc(nodalRec) )
       do ii =1, nodalRec
         read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
       end do
@@ -202,6 +203,7 @@ module param
       !time_fin = 20*delta_t
       
       delta_t = (time_fin/ t_steps)
+      number_of_wavenumber = idk_y
       !print*, 'delta_t', delta_t
       !t_steps = floor(tsteps) !redondeo al numero inmediato superior 
       !print*, 'time stpes ', t_steps
@@ -245,10 +247,10 @@ module param
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
       103 format(1/,3(e15.5))
-      104 format(1(11x,I2))
+      104 format(1(11x,I4))
       105 format(1/,F12.5,2/)
       106 format(1/,e15.5,e15.5,2/) 
-      107 format(1/,e15.5,e15.5,e15.5,2/) 
+      107 format(1/,3(f15.5),2/) 
       108 format(1/,F10.5,F10.5,F10.5,2/) 
      
       109 format(2/,11x,I2)
