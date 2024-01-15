@@ -24,7 +24,7 @@ implicit none
   integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
   character(len=1)                                  :: S_trans
   character(len=24)           :: date
-  integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol, ii
+  integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol
   
   !-----Input File
   call cpu_time(start)
@@ -32,7 +32,7 @@ implicit none
   
   !--------------- Input Data ---------------!
   call inputData(name_inputFile, geometry_file)
-  
+
   !--------------- Geometry -----------------!
   call readMesh(geometry_File)
   call GeneralInfo(name_inputFile, geometry_File)
@@ -57,6 +57,10 @@ implicit none
   !----- Setting the wave numbers range ------!
   call WaveNumbers(1.0d-7,4.0d-2,10,ky) !k**2 = i*mu*sigma*2pi*f
   k_y = ky(idk_y)
+  print'(A13,I0,A3,E11.4)', ' -Wave number ',idk_y,'= ', k_y
+  ! do S_m=1,10
+  !   print'(e11.5)',ky(S_m)
+  ! enddo
 
   !-------- Problem Type Definition ----------!
   select case(ProbType)
