@@ -498,7 +498,7 @@ module library
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do conma_loop
               
-              reac = basis(inode) * k_y**2 * reama(idofn,jdofn) * basis(jnode)
+              reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
               ! write(*,"(A6,I2,A,I2,A4,e12.5)")'reama(',idofn,',',jdofn,') = ',k_y**2 * reama(idofn,jdofn)
 
               ! reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
@@ -1510,7 +1510,7 @@ module library
       !print*,' '
     end subroutine MKLsolverResult
     !
-    !--------------------------------------------------------------------------------  
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine writeMatrix(Matrix, name1, Vector, name2)
       implicit none
@@ -1661,6 +1661,133 @@ module library
       ! end do
       
     end subroutine WaveNumbers
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine invDFT(wave_number)
+    ! subroutine invDFT(ky,E_solution,E_in_Space)
+      
+      implicit none
+      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
+      integer                                    , intent(in) :: wave_number
+      character(len=8), dimension(10) :: id_ky
+      double precision, allocatable, dimension(:)     :: ky
+
+      character(len=8)                :: idFile
+      double precision, parameter     :: pi = 4*atan(1.d0)
+      double precision, dimension(20) :: t, f_t
+      double precision, dimension(15) :: reall, imagi
+      double precision, allocatable, dimension(:,:) :: E_xyzt
+      double precision, allocatable, dimension(:,:,:) :: E_hat_ky
+      character(len=180)              :: msg
+
+      double precision               :: w0, arg, acumulador
+      integer                        :: nt, ii, jj, kk, ll, stat, iwn, totv
+      
+      if(wave_number == 10 )then
+        print*, 'Entra en la transformada'
+        !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
+        !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
+        !en los siguiente pasos:
+        !       1) Leer los resultados 2D para cada numero de onda y guardarlos en una matriz de matrices Ê(ky,
+        !       2) 
+        !       3)
+        !       4)
+        
+        ! Se guardan las componentes del campo transformado para cada tiempo:
+        !   t1  t2  t3
+        !----- ----  --- 
+        !  Êx1  Êx1  Êx1
+        !  Êy1  Êy1  Êy1
+        !  Êz1  Êz1  Êz1
+        !  Êx2  Êx2  Êx2
+        !  Êy2  Êy2  Êy2
+        !  Êz2  Êz2  Êz2
+        !  Êx3  Êx3  Êx3
+        !  Êy3  Êy3  Êy3
+        !  Êz3  Êz3  Êz3
+        id_ky = (/'ky01.dat','ky02.dat','ky03.dat','ky04.dat','ky05.dat',&
+        &         'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat'/)
+      
+        allocate( E_hat_ky(10,t_steps+1,ntotv)); allocate( E_xyzt(ntotv,t_steps+1))
+        loop_for_read_each_waveNumber_result: do iwn = 1,10     !Este 10 debe ser una variable global que sale de el numero de numeros de onda a usar
+          idFile = id_ky(iwn)
+          open(5, file=path1//'spectrumE_field_'//idFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
+          IF ( stat /= 0 )then
+            print'(53A,I0)', 'ioStat for OPPENING 2D electric field spectrum files ', stat
+            print*, msg
+          end if
+          read(5,*,iostat=stat,iomsg=msg) !se salta los encabezados 
+          do jj = 1,ntotv
+            read(5,*,iostat=stat,iomsg=msg) (E_hat_ky(iwn,nt,jj), nt =1,t_steps+1 )
+            IF ( stat /= 0 )then
+              print'(53A,I0)', 'ioStat for READING 2D electric field spectrum files ', stat
+              print*, msg
+            end if
+          end do
+          close(5) 
+        end do loop_for_read_each_waveNumber_result
+        
+        !Este print es para imprimir en pantalla las matrices que conforman la matriz de resultados 2D
+        do iwn = 1,10     !Este 10 debe ser una variable global que sale de el numero de numeros de onda a usar
+          print'(A3,I0)','Ky',iwn
+          do ii = 1,t_steps+1
+            print'(99(E11.3))', (E_hat_ky(iwn,ii,jj), jj=1,ntotv)
+          end do
+        end do
+        
+        ! = = = = = = = = = = = = = = = PERFORMING INVERSE FOURIER TRANSFORM = = = = = = = = = = = = = = =  
+        !                            1  __∞_
+        !             Ê(x,y,z,t) = ___  \     E(x,ky,z,t) * exp(-i*ky*y) dky    !How to choose dky ???????
+        !                           2π  /___
+        !                               ky=0
+        !
+        call WaveNumbers(1.0d-7,4.0d-2,10,ky) !k**2 = i*mu*sigma*2pi*f
+        ! delta_y = 1.0 ???
+        E_xyzt = 0.0
+        time_loop: do ii =1,t_steps+1  
+          nodes_loop: do jj =1,nnodes
+            totv = jj*ndofn
+            DoF_loop: do kk = 2,0,-1
+              ! acumulador = 0.0
+              ky_loop: do ll =1, 10
+                E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) +  E_hat_ky(ll,ii,totv-kk)!*exp(-cmplx(0,1)*4.0*ky(ll))! * delta_ky
+                ! print*, exp(-cmplx(0,1)*0.0*ky(ll))! * delta_ky
+              end do ky_loop
+            end do DoF_loop
+          end do nodes_loop
+        end do time_loop
+        E_xyzt = (1./2.*pi) * E_xyzt 
+        
+        !Este print es para imprimir en pantalla las matrices que conforman la matriz de resultados 2D
+        print*,' '
+        print*,' '
+        print'(A)','E_xyzt'
+        do ii = 1,t_steps+1
+          print'(99(E11.3))', (E_xyzt(jj,ii), jj=1,ntotv)
+        end do
+      !  NN = 19
+      !  w0 = 2.0*pi/NN
+      !  reAll = 0.0
+      !  imagi = 0.
+      !  ! Esto deberia ser el campo electrico transformado que debo leer desde un inputfile
+      !  do i = 1, size(t)
+      !    arg = 2*pi*12.5*t(i)
+      !    f_t(i)= cos(arg)
+      !  end do
+      !  do k =0, NN-1
+      !    do n = 0, NN-1
+      !      angle = k*w0*n
+      !      reall(k) = reall(k) + f_t(n)*cos(angle) / NN
+      !      imagi(k) = imagi(k) - f_t(n)*sin(angle) / NN
+      !      fhat(k) = fhat(k) + f_t(n)*exp(-cmplx(0,1)*angle)
+      !    end do
+      !    write(*,'(I5,2x,5(F7.3,1x))') k, f_t(k), reall(k), imagi(k), fhat(k)
+      !  end do
+      else
+        continue
+      endif
+    end subroutine invDFT
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -2096,6 +2223,67 @@ module library
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine storeSpectrum(spectrum)
+      
+      implicit none
+      
+      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
+      double precision, dimension(ntotv, 1),intent(in) :: spectrum
+      character(len=8)                                 :: id_ky
+      ! double precision, allocatable, dimension(:,:), intent(out), optional :: time
+      integer                                          :: ipoin, ii, jj
+      
+      select case(idk_y) !This variable comes from input file
+        case(1)
+          id_ky = 'ky01.dat'
+        case(2)
+          id_ky = 'ky02.dat'
+        case(3)
+          id_ky = 'ky03.dat'
+        case(4)
+          id_ky = 'ky04.dat'
+        case(5)
+          id_ky = 'ky05.dat'
+        case(6)
+          id_ky = 'ky06.dat'
+        case(7)
+          id_ky = 'ky07.dat'
+        case(8)
+          id_ky = 'ky08.dat'
+        case(9)
+          id_ky = 'ky09.dat'
+        case(10)
+          id_ky = 'ky10.dat'
+      endselect
+      
+      ! Se guardan las componentes del campo transformado para cada tiempo:
+      !   t1  t2  t3
+      !----- ----  --- 
+      !  Êx1  Êx1  Êx1
+      !  Êy1  Êy1  Êy1
+      !  Êz1  Êz1  Êz1
+      !  Êx2  Êx2  Êx2
+      !  Êy2  Êy2  Êy2
+      !  Êz2  Êz2  Êz2
+      !  Êx3  Êx3  Êx3
+      !  Êy3  Êy3  Êy3
+      !  Êz3  Êz3  Êz3
+       
+      open(unit=200, file=path1//'spectrumE_field_'//id_ky, ACTION="write", STATUS="replace")
+      write(200,"(A)") '#Transformed Voltage (total variables, time steps)'
+
+      open(unit=200, file=path1//'spectrumE_field_'//id_ky, ACTION="write", STATUS="old", position="append")
+      do ii = 1, ntotv
+        write(200,917) (spectrum(ii,jj), jj = 1, t_steps+1)
+      end do
+      close(200)
+      
+      917 format(999(3x,E15.5)) !format for store transformed E-field
+      
+    end subroutine storeSpectrum
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
