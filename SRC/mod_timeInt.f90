@@ -128,6 +128,7 @@ module timeInt
       double precision             , dimension(ntotv,1)   :: Jsource, Jsource_pre
       double precision             , dimension(ntotv,1)   :: RHS, F_plus_MU, rhs_BDF2, u_init
       double precision             , dimension(t_steps+1) :: shapeTime
+      double precision, allocatable, dimension(:,:)       :: store_Spec
       integer         , allocatable, dimension(:)         :: S_ipiv, S_iwork
       double precision                                    :: nt, ttt, k_y
       integer                                             :: time, info, workdim
@@ -136,20 +137,20 @@ module timeInt
       
       
       allocate( LHS(ldAKban,ntotv), lhs_BDF2(ldAKban,ntotv))
-      print'(A28,E11.5)', ' -The current wave number is: ', k_y
       
       call GlobalSystem(k_y, basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !allocate( RHS(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
       !----- Setting MKL-Solver Parammeters -----!
       S_m     = size(A_K,2)  !antes ntotv
       S_n     = size(A_K,2)  !antes ntotv
-      S_ldSol = max(1,S_n)
+      S_ldSol = max(1,S_n); print*, 'S_ldSol:', S_ldSol
       S_trans = 'N'
       S_nrhs  = 1
       
       allocate( u_pre(S_ldSol, 1), u_fut(S_ldSol, 1) )
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
       allocate( Ex_field(t_steps+1))
+      allocate( store_Spec(S_ldSol,t_steps+1) )
       
       u_curr = 0.0; u_pre  = 0.0; u_fut  = 0.0
       Mu_pre = 0.0; RHS    = 0.0; LHS    = 0.0
@@ -157,12 +158,16 @@ module timeInt
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       
       call initialCondition(presc,ifpre, nofix, shapeTime, u_init)
-      
       u_pre  = u_init                                   !u in present time 
+      do ii = 1, S_ldSol
+        store_Spec(ii,time+1) = u_pre(ii,1) 
+      end do
       !write(*,*) ' '
-      call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
-      call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
+      ! call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
+      ! call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
       !call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
+      ! call storeSpectrum('TIME',u_fut, time)
+      
       write(*,*) ' '
       print*, 'Starting time integration. . . . .'
       write(*,*) ' '
@@ -180,7 +185,7 @@ module timeInt
             
             call prevTime(k_y,basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
-            call currDensity(2,time,shapeTime(time),Jsource) 
+            call currDensity(1,time,shapeTime(time),Jsource) 
             RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
             ! RHS = ( Mu_pre - delta_t*Jsource )
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
@@ -196,7 +201,8 @@ module timeInt
            
             !---------- Printing and writing results -----------!
             call infoTime(time)
-            call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
+            ! print'(I0, 1x, e15.5)',time, nt
+            ! call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
             ! call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
             ! call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
             
@@ -204,8 +210,12 @@ module timeInt
             !Jsource_pre = Jsource
             !ttt = ttt+delta_t
             u_pre = u_fut
-            
+            do ii = 1, S_ldSol
+              store_Spec(ii,time+1) = u_pre(ii,1) 
+            end do
           end do
+          call storeSpectrum(store_Spec)
+          
         !-------- Crank- Nicholson Scheme 
         case(3)
           write(*,*)'    Crank-Nicholson method Selected'  
@@ -321,6 +331,8 @@ module timeInt
            write(*,*) 'Not time integration method definded'
            stop
       end select
+
+      print*,'termina un loop de time integration'
       
       
       !print*, 'Shape of Global K: ',shape(LHS)
@@ -328,6 +340,8 @@ module timeInt
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
       DEALLOCATE( LHS, u_pre, u_fut)
+      
+      call invDFT(number_of_wavenumber)
       
       
       100 format(A11,I4,1x,A3,e12.5,A) 
