@@ -106,7 +106,7 @@ module timeInt
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine Timeintegration(k_y, basfun,dN_dxi,dN_deta, hes_xixi, hes_xieta, hes_etaeta, &
+    subroutine TimeIntegration(i_WaveNum, basfun,dN_dxi,dN_deta, hes_xixi, hes_xieta, hes_etaeta, &
       &                        nofix, ifpre, presc, Ex_field)
       
       implicit none
@@ -116,34 +116,43 @@ module timeInt
       double precision, dimension(nne,TotGp) ,intent(in)  :: basfun, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp) ,intent(in)  :: hes_xixi, hes_xieta, hes_etaeta
       double precision, dimension(ndofn,nBVs),intent(in)  :: presc
+      integer                                ,intent(in)  :: i_WaveNum
       integer         , dimension(ndofn,nBVs),intent(in)  :: ifpre
       integer         , dimension(nBVs)      ,intent(in)  :: nofix
 
       ! - - Local Variables - -!
       character(len=1)                                    :: S_trans
       double precision, allocatable, dimension(:,:)       :: A_K, A_C, A_F
-      double precision, allocatable, dimension(:,:)       :: LHS, lhs_BDF2
+      double precision, allocatable, dimension(:,:)       :: LHS!, lhs_BDF2
       double precision, allocatable, dimension(:,:)       :: u_pre, u_curr, u_fut, Mu_pre
-      double precision, allocatable, dimension(:)         :: S_ferr, S_berr, S_work
+      ! double precision, allocatable, dimension(:)         :: S_ferr, S_berr, S_work
       double precision             , dimension(ntotv,1)   :: Jsource, Jsource_pre
-      double precision             , dimension(ntotv,1)   :: RHS, F_plus_MU, rhs_BDF2, u_init
+      double precision             , dimension(ntotv,1)   :: RHS, u_init!, F_plus_MU, rhs_BDF2
       double precision             , dimension(t_steps+1) :: shapeTime
       double precision, allocatable, dimension(:,:)       :: store_Spec
-      integer         , allocatable, dimension(:)         :: S_ipiv, S_iwork
-      double precision                                    :: nt, ttt, k_y
+      integer         , allocatable, dimension(:)         :: S_ipiv!, S_iwork
+      double precision                                    :: nt, ttt
       integer                                             :: time, info, workdim
       integer                                             :: ii, S_m, S_n, S_nrhs, S_ldSol!, t_steps
       double precision, allocatable,dimension(:),intent(out) :: Ex_field
       
       
-      allocate( LHS(ldAKban,ntotv), lhs_BDF2(ldAKban,ntotv))
+      if(TwoHalf == 'Y')then !Just if it is dealing with a 2.5D problem, these variable gonna be updating 
+        File_Nodal_Vals = files_ky(i_WaveNum)
+        k_y = WaveNumbers(i_WaveNum) !Value of wave number for current problem (used in reama)
+      else
+        continue
+      endif
       
-      call GlobalSystem(k_y, basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+      allocate( LHS(ldAKban,ntotv))
+      ! allocate(lhs_BDF2(ldAKban,ntotv))
+      
+      call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !allocate( RHS(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
       !----- Setting MKL-Solver Parammeters -----!
       S_m     = size(A_K,2)  !antes ntotv
       S_n     = size(A_K,2)  !antes ntotv
-      S_ldSol = max(1,S_n); print*, 'S_ldSol:', S_ldSol
+      S_ldSol = max(1,S_n)
       S_trans = 'N'
       S_nrhs  = 1
       
@@ -163,27 +172,29 @@ module timeInt
         store_Spec(ii,time+1) = u_pre(ii,1) 
       end do
       !write(*,*) ' '
-      ! call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
-      ! call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
-      !call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
+      call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
+      call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
+      ! call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
       ! call storeSpectrum('TIME',u_fut, time)
-      
       write(*,*) ' '
-      print*, 'Starting time integration. . . . .'
-      write(*,*) ' '
+      if(i_WaveNum ==1)print*, 'Starting time integration. . . . .'
       ! print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
      
       select case(theta)
         !-------- 1st-order Backward Difference 
         case(2) 
           !Time-stepping
-          write(*,*)'        < < < BDF1 Selected > > >'
+          if(i_WaveNum ==1) then
+            write(*,*)'        < < < BDF1 Selected > > >'
+            write(*,*) ' - '
+          endif
+          print'(A34,I0,A3,E11.4)', " !-------> Time Integration for ky",i_WaveNum,"=",k_y
           !do while(ttt < time_fin)
           do time = 1, t_steps
             nt = nt + delta_t!,time_fin,delta_t
             !time = time+1
             
-            call prevTime(k_y,basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
+            call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
             call currDensity(1,time,shapeTime(time),Jsource) 
             RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
@@ -202,8 +213,8 @@ module timeInt
             !---------- Printing and writing results -----------!
             call infoTime(time)
             ! print'(I0, 1x, e15.5)',time, nt
-            ! call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
-            ! call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
+            call GID_PostProcess(1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
+            call GID_PostProcess(1, u_fut, 'profile', time, nt, time_fin, Ex_field)
             ! call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
             
             !---------- Updating Variables ---------------------! 
@@ -214,7 +225,9 @@ module timeInt
               store_Spec(ii,time+1) = u_pre(ii,1) 
             end do
           end do
-          call storeSpectrum(store_Spec)
+          call storeSpectrum(i_WaveNum, store_Spec)
+          DEALLOCATE( A_F, A_K, A_C)
+          DEALLOCATE( LHS, u_pre, u_fut)
           
         !-------- Crank- Nicholson Scheme 
         case(3)
@@ -331,17 +344,15 @@ module timeInt
            write(*,*) 'Not time integration method definded'
            stop
       end select
-
-      print*,'termina un loop de time integration'
+      print'(A11,I0)',' !--> End ky',i_WaveNum
+      ! print*,' '
       
       
       !print*, 'Shape of Global K: ',shape(LHS)
       !print*, 'Shape of Global F: ',shape(RHS)
       !print*, 'Shape of Solution: ',shape(u_pre)
       !write(*,*)
-      DEALLOCATE( LHS, u_pre, u_fut)
       
-      call invDFT(number_of_wavenumber)
       
       
       100 format(A11,I4,1x,A3,e12.5,A) 
