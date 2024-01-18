@@ -3,16 +3,19 @@ module param
   implicit none
 
   character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
+  character(len=12) :: files_ky(10), File_3DNodal_Vals
   character(len=14) :: testID
+  character(len=20) :: shape_spec_file
   character(len=4)  :: ProbType, ElemType, initElemType
   character(len=2)  :: refiType
+  character(len=2)  :: splits, TwoHalf
   integer           :: nBVs, nBVscol, nband, t_steps, exacSol, BCsProb
-  integer           :: upban, lowban, totban, ldAKban, idk_y !variables defined in GlobalSystem
+  integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
   integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
-  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem, number_of_wavenumber
+  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem, tot_ky, idk_y
   real              :: hnatu, patau
-  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
+  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t, ky_min, ky_max, y_iFT,  k_y
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
   double precision, allocatable, dimension(:,:)     :: coord !, coordRef
@@ -20,7 +23,7 @@ module param
   double precision, allocatable, dimension(:,:,:,:) :: difma
   double precision, allocatable, dimension(:,:,:)   :: conma
   double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
-  double precision, allocatable, dimension(:)       :: force, Icurr !Force and Current vector (respectively)
+  double precision, allocatable, dimension(:)       :: force, Icurr, WaveNumbers !Force and Current vector (respectively)
   integer         , allocatable, dimension(:)       :: srcLoc, recLoc
 
   contains
@@ -43,12 +46,12 @@ module param
       
       
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
-      !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       read(5, 100,iostat=stat,iomsg=msg) &
-      ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro, idk_y,&
+      ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro,&
       mesh_file, initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
+      TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, &
       theta, time_ini, time_fin, t_steps, Src_ON,&
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       if (stat.ne.0)then
@@ -71,11 +74,8 @@ module param
       allocate( force(ndofn) )
       allocate( Icurr(ndofn) )
       
-      difma = 0.0
-      conma = 0.0
-      reama = 0.0
-      force = 0.0
-      Icurr = 0.0 
+      difma = 0.0;  conma = 0.0; reama = 0.0
+      force = 0.0;  Icurr = 0.0; WaveNumbers = 0.0
       
       if(ndofn.eq.1)then
         read(5,101) difma(1,1,1,1), difma(1,1,1,2)
@@ -193,17 +193,37 @@ module param
       read(5,109,iostat=stat,iomsg=msg) signal
       read(5,109,iostat=stat,iomsg=msg) nodalRec
       allocate( recLoc(nodalRec) )
+      !Aqui deberia poner un if para verificar que los nodos tanto de la fuente como del receptor
+      !No sobrepasan los nodos maximos disponibles en la malla
       do ii =1, nodalRec
         read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
       end do
       
       close(5)
       
+      
+      if(TwoHalf == 'Y')then 
+        ! Asignar memoria para el vector
+        allocate(WaveNumbers(tot_ky))
+        ! Generar el vector logarítmico
+        do ii = 1, tot_ky !Esto lo tengo que arreglar para que no se modifique cuando divida el problema
+          WaveNumbers(ii) = 10.0**(log10(ky_min)+(log10(ky_max/ky_min)/real(tot_ky-1))*real(ii-1) )
+        end do
+        ! WaveNumbers = (/1.0D-6, 5.0D-6, 5.0D-5, 5.0D-4, 3.0D-3, 1.0D-2, 2.5D-2, 9.0D-2, 2.5D-1, 5.0D-1/)
+        files_ky = (/'500H2lf_ky01','500H2lf_ky02','500H2lf_ky03','500H2lf_ky04','500H2lf_ky05',&
+        &           '500H2lf_ky06','500H2lf_ky07','500H2lf_ky08','500H2lf_ky09','500H2lf_ky10'/)
+        File_3DNodal_Vals = "3D_E_field05"
+        shape_spec_file = "shape_spectrum05.dat"
+      else
+        tot_ky = 1
+        k_y    = 1.0
+      endif
+      != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+     
       !delta_t  = time_ini
       !time_fin = 20*delta_t
       
       delta_t = (time_fin/ t_steps)
-      number_of_wavenumber = idk_y
       !print*, 'delta_t', delta_t
       !t_steps = floor(tsteps) !redondeo al numero inmediato superior 
       !print*, 'time stpes ', t_steps
@@ -238,11 +258,12 @@ module param
       
       !Initial elemental and global variables, it will changes if refination is selected.
       
-      100 format(7/ ,11x, A4,/, 8(11x,I5,/),                    2/,&  !model parameters
-      &          11x,A13,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
-      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),   2/,&  !stabi
-      &          11x,I1,/, 2(11x,e15.7,/),2(11x,I5,/),          2/,&  !time
-      &          11x,A14,/, 5(11x,A12,/),1/ )              !output files
+      100 format(7/ ,11x, A4,/, 7(11x,I5,/),                              2/,&  !model parameters
+      &          11x,A13,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
+      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),             2/,&  !stabi
+      &          11x,A,/, 2(11x,e15.5,/), 11x,I3,/,11x,A,/, 11x,F15.5,/,  2/,&  !Fourier Transform
+      &          11x,I1,/, 2(11x,e15.7,/), 2(11x,I5,/),                   2/,&  !time
+      &          11x,A14,/, 5(11x,A12,/),1/ )                                   !output files
      
       101 format(1/,F12.5,2/)
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
