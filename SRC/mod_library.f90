@@ -461,12 +461,12 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine Galerkin(k_y, hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
+    subroutine Galerkin(hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
       
       implicit none
       
       double precision, intent(in) :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
-      double precision, intent(in) :: dvol, hmaxi, k_y
+      double precision, intent(in) :: dvol, hmaxi
       integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision ::  diff, convec, reac, cpcty, coef
       double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
@@ -500,7 +500,6 @@ module library
               
               reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
               ! write(*,"(A6,I2,A,I2,A4,e12.5)")'reama(',idofn,',',jdofn,') = ',k_y**2 * reama(idofn,jdofn)
-
               ! reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               cpcty = 0.01 * (basis(inode) * basis(jnode) )
               !este valor 0.01 es la conductividad que multiplica a la derivada de timepo
@@ -1039,7 +1038,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine GlobalSystem(k_y, N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+    subroutine GlobalSystem(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       
       use sourceTerm
       
@@ -1047,7 +1046,7 @@ module library
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
-      double precision,                       intent(in) :: k_y
+      ! double precision,                       intent(in) :: k_y
       double precision, dimension(ndofn)        :: EMsource
       double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
@@ -1088,7 +1087,7 @@ module library
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           ! print"(A12,I3,A26,3f15.5)",'for element',ielem,' the RHS contribution is: ', EMsource
-          call Galerkin(k_y, hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           if(kstab.eq.6.or.kstab.eq.0)then
@@ -1636,136 +1635,198 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine WaveNumbers(k_y_min,k_y_max,num_divisiones, vector_k_y)
+    ! subroutine storeSpectrum(time, indexx, spectrum)
+    subroutine storeSpectrum( indexx, spectrum)
+      
       implicit none
       
-      ! Declarar variables
-      double precision, intent(in) :: k_y_min, k_y_max
-      integer         , intent(in) :: num_divisiones
-      integer i
-      double precision, allocatable, intent(out) :: vector_k_y(:)
+      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
+      character(len=8), dimension(10)                 :: files_ky
+      character(len=8)                                :: id_file
+      ! double precision, dimension(ntotv, 1),intent(in) :: u_pre
+      double precision, dimension(ntotv, 1),intent(in) :: spectrum
+      !double precision, dimension(ntotv, t_steps+1)            :: spectrum
+      integer                              ,intent(in) :: indexx
+      integer                                          :: ipoin, ii, jj
       
-      ! Asignar memoria para el vector
-      allocate(vector_k_y(num_divisiones))
+      files_ky = (/'ky01.dat','ky02.dat','ky03.dat','ky04.dat','ky05.dat',&
+      &           'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat'/)
+      id_file = files_ky(indexx)
       
-      ! Generar el vector logarítmico
-      do i = 1, num_divisiones
-        vector_k_y(i) = 10.0**(log10(k_y_min) + &
-        & (log10(k_y_max / k_y_min) / real(num_divisiones - 1)) * real(i - 1))
-      end do
-     
-      ! ! Imprimir el resultado
-      ! print*, "Vector de k_y:"
-      ! do i = 1, num_divisiones
-      !   print*, vector_k_y(i)
+      ! do ii = 1, S_ldSol
+      !   store_Spec(ii,time+1) = u_pre(ii,1) 
       ! end do
       
-    end subroutine WaveNumbers
+      ! Se guardan las componentes del campo transformado para cada tiempo:
+      !   t1  t2  t3
+      !----- ----  --- 
+      !  Êx1  Êx1  Êx1
+      !  Êy1  Êy1  Êy1
+      !  Êz1  Êz1  Êz1
+      !  Êx2  Êx2  Êx2
+      !  Êy2  Êy2  Êy2
+      !  Êz2  Êz2  Êz2
+      !  Êx3  Êx3  Êx3
+      !  Êy3  Êy3  Êy3
+      !  Êz3  Êz3  Êz3
+     
+      open(unit=200, file=path1//'spectrumE_field_'//id_file, ACTION="write", STATUS="replace")
+      write(200,"(A)") '#Transformed Voltage (total variables, time steps)'
+      do ii = 1, ntotv
+        write(200,917) (spectrum(ii,jj), jj = 1, t_steps+1)
+      end do
+      close(200)
+      
+      
+      917 format(999(3x,E15.5)) !format for store transformed E-field
+      
+    end subroutine storeSpectrum
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine invDFT(wave_number)
+    subroutine invDFT
     ! subroutine invDFT(ky,E_solution,E_in_Space)
       
       implicit none
-      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
-      integer                                    , intent(in) :: wave_number
-      character(len=8), dimension(10) :: id_ky
-      double precision, allocatable, dimension(:)     :: ky
-
-      character(len=8)                :: idFile
-      double precision, parameter     :: pi = 4*atan(1.d0)
-      double precision, dimension(20) :: t, f_t
-      double precision, dimension(15) :: reall, imagi
-      double precision, allocatable, dimension(:,:) :: E_xyzt
+      
+      external                                        :: fdate 
+      character(len=*), parameter                     :: path1 = "Pos/Plots/Spectrums/"
+      character(len=*), parameter                     :: path2 = "Pos/Plots/"
+      double precision, parameter                     :: pi = 4*atan(1.d0)
+      character(len=8), dimension(10)                 :: files_ky
+      !Hacer una rutina que contenga los casos posibles de cantidad de numeros de onda a emplear
+      !Que sean 10, 15, 20 
+      character(len=8)                                :: id_file
+      character(len=24)                               :: date
+      character(len=180)                              :: msg
+      double precision                                :: ky, delta_ky, dt
+      double precision, allocatable, dimension(:,:)   :: E_xyzt, E_3D
+      double precision, dimension(t_steps+1)          :: dummy
       double precision, allocatable, dimension(:,:,:) :: E_hat_ky
-      character(len=180)              :: msg
-
-      double precision               :: w0, arg, acumulador
-      integer                        :: nt, ii, jj, kk, ll, stat, iwn, totv
+      integer                                         :: nt, ii, jj, kk, ll, stat, iwn, totv
       
-      if(wave_number == 10 )then
-        print*, 'Entra en la transformada'
-        !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
-        !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
-        !en los siguiente pasos:
-        !       1) Leer los resultados 2D para cada numero de onda y guardarlos en una matriz de matrices Ê(ky,
-        !       2) 
-        !       3)
-        !       4)
-        
-        ! Se guardan las componentes del campo transformado para cada tiempo:
-        !   t1  t2  t3
-        !----- ----  --- 
-        !  Êx1  Êx1  Êx1
-        !  Êy1  Êy1  Êy1
-        !  Êz1  Êz1  Êz1
-        !  Êx2  Êx2  Êx2
-        !  Êy2  Êy2  Êy2
-        !  Êz2  Êz2  Êz2
-        !  Êx3  Êx3  Êx3
-        !  Êy3  Êy3  Êy3
-        !  Êz3  Êz3  Êz3
-        id_ky = (/'ky01.dat','ky02.dat','ky03.dat','ky04.dat','ky05.dat',&
-        &         'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat'/)
+      print*, ' ' 
+      print'(A)', " !=============== Performing the Inverse Fourier Transform =============! "
+      !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
+      !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
+      !en los siguiente pasos:
+      !       1) Leer los resultados 2D para cada numero de onda y guardarlos en una matriz de matrices Ê(ky,
+      !       2) 
+      !       3)
+      !       4)
       
-        allocate( E_hat_ky(10,t_steps+1,ntotv)); allocate( E_xyzt(ntotv,t_steps+1))
-        loop_for_read_each_waveNumber_result: do iwn = 1,10     !Este 10 debe ser una variable global que sale de el numero de numeros de onda a usar
-          idFile = id_ky(iwn)
-          open(5, file=path1//'spectrumE_field_'//idFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      ! Se guardan las componentes del campo transformado para cada tiempo:
+      !   t1  t2  t3
+      !----- ----  --- 
+      !  Êx1  Êx1  Êx1
+      !  Êy1  Êy1  Êy1
+      !  Êz1  Êz1  Êz1
+      !  Êx2  Êx2  Êx2
+      !  Êy2  Êy2  Êy2
+      !  Êz2  Êz2  Êz2
+      !  Êx3  Êx3  Êx3
+      !  Êy3  Êy3  Êy3
+      !  Êz3  Êz3  Êz3
+      ! ky_min = Wavenumbers(1)
+      ! ky_max = Wavenumbers(10)
+      files_ky = (/'ky01.dat','ky02.dat','ky03.dat','ky04.dat','ky05.dat',&
+      &           'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat'/)
+     !Como estoy dividiendo los problemas, deberia  agregar un check para ver que todos los archivos .dat existen,
+     !y si no existen, esperar unn tiempo y volver a revisar, y si existen, ejecutar la transformada
+      allocate( E_hat_ky(tot_ky,t_steps+1,ntotv))
+      allocate( E_xyzt(ntotv,t_steps+1))
+      allocate( E_3D(ntotv,1))
+      
+      reading_2D_results: do iwn = 1,tot_ky
+        id_file = files_ky(iwn)
+        open(5,file=path1//'spectrumE_field_'//id_file, status='old',action='read',IOSTAT=stat, IOMSG=msg)
+        IF ( stat /= 0 )then
+          print'(53A,I0)', 'ioStat for OPPENING 2D electric field spectrum files ', stat
+          print*, msg
+        end if
+        read(5,*,iostat=stat,iomsg=msg) !se salta los encabezados 
+        do jj = 1,ntotv
+          read(5,*,iostat=stat,iomsg=msg) (E_hat_ky(iwn,nt,jj), nt =1,t_steps+1 )
           IF ( stat /= 0 )then
-            print'(53A,I0)', 'ioStat for OPPENING 2D electric field spectrum files ', stat
+            print'(53A,I0)', 'ioStat for READING 2D electric field spectrum files ', stat
             print*, msg
           end if
-          read(5,*,iostat=stat,iomsg=msg) !se salta los encabezados 
-          do jj = 1,ntotv
-            read(5,*,iostat=stat,iomsg=msg) (E_hat_ky(iwn,nt,jj), nt =1,t_steps+1 )
-            IF ( stat /= 0 )then
-              print'(53A,I0)', 'ioStat for READING 2D electric field spectrum files ', stat
-              print*, msg
-            end if
-          end do
-          close(5) 
-        end do loop_for_read_each_waveNumber_result
-        
-        !Este print es para imprimir en pantalla las matrices que conforman la matriz de resultados 2D
-        do iwn = 1,10     !Este 10 debe ser una variable global que sale de el numero de numeros de onda a usar
-          print'(A3,I0)','Ky',iwn
-          do ii = 1,t_steps+1
-            print'(99(E11.3))', (E_hat_ky(iwn,ii,jj), jj=1,ntotv)
-          end do
         end do
-        
-        ! = = = = = = = = = = = = = = = PERFORMING INVERSE FOURIER TRANSFORM = = = = = = = = = = = = = = =  
-        !                            1  __∞_
-        !             Ê(x,y,z,t) = ___  \     E(x,ky,z,t) * exp(-i*ky*y) dky    !How to choose dky ???????
-        !                           2π  /___
-        !                               ky=0
-        !
-        call WaveNumbers(1.0d-7,4.0d-2,10,ky) !k**2 = i*mu*sigma*2pi*f
-        ! delta_y = 1.0 ???
-        E_xyzt = 0.0
-        time_loop: do ii =1,t_steps+1  
-          nodes_loop: do jj =1,nnodes
-            totv = jj*ndofn
-            DoF_loop: do kk = 2,0,-1
-              ! acumulador = 0.0
-              ky_loop: do ll =1, 10
-                E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) +  E_hat_ky(ll,ii,totv-kk)!*exp(-cmplx(0,1)*4.0*ky(ll))! * delta_ky
-                ! print*, exp(-cmplx(0,1)*0.0*ky(ll))! * delta_ky
-              end do ky_loop
-            end do DoF_loop
-          end do nodes_loop
-        end do time_loop
-        E_xyzt = (1./2.*pi) * E_xyzt 
-        
-        !Este print es para imprimir en pantalla las matrices que conforman la matriz de resultados 2D
-        print*,' '
-        print*,' '
-        print'(A)','E_xyzt'
-        do ii = 1,t_steps+1
-          print'(99(E11.3))', (E_xyzt(jj,ii), jj=1,ntotv)
-        end do
+        close(5) 
+      end do reading_2D_results
+      
+      !!Este print es para imprimir en pantalla las matrices que conforman la matriz de resultados 2D
+      !do iwn = 1, tot_ky
+      !  print'(A3,I0)','Ky',iwn
+      !  do ii = 1,t_steps+1
+      !    print'(99(E11.3))', (E_hat_ky(iwn,ii,jj), jj=1,ntotv)
+      !  end do
+      !end do
+     
+      call fdate(date) 
+      open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
+      write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
+      write(300,"(A13, I0)") '%At the time ', t_steps-2
+      write(300,"(A)") '% No           ky                    Êx              Êy               Êz'
+      ky_loop1: do ll = 1,tot_ky
+        ky = WaveNumbers(ll)
+        ! Ex_hat = (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-2), jj=1,nodalRec)
+        ! Ey_hat = (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-1), jj=1,nodalRec)
+        ! Ez_hat = (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-0), jj=1,nodalRec)
+        ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
+        write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-2), jj=1,nodalRec),&
+          &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-1), jj=1,nodalRec),&
+          &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-0), jj=1,nodalRec)
+        !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+      end do ky_loop1
+      close(300)
+     
+     
+      
+      ! = = = = = = = = = = = = = PERFORMING INVERSE FOURIER TRANSFORM = = = = = = = = = = = = = = 
+      !                            1  __∞_
+      !             Ê(x,y,z,t) = ___  \     E(x,ky,z,t) * exp(-i*ky*y) dky   !How to choose dky?
+      !                           2π  /___
+      !                               ky=0
+      !
+      delta_ky = (ky_max-ky_min)/ tot_ky
+      E_xyzt = 0.0
+      time_loop: do ii =1,t_steps+1  
+        nodes_loop: do jj =1,nnodes
+          totv = jj*ndofn
+          DoF_loop: do kk = 2,0,-1
+            ky_loop2: do ll =1, tot_ky
+              ky=WaveNumbers(ll)
+              E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*exp(-cmplx(0,1)*y_iFT*ky) * delta_ky
+              ! print*, exp(-cmplx(0,1)*y_iFT*ky) * delta_ky
+            end do ky_loop2
+          end do DoF_loop
+        end do nodes_loop
+      end do time_loop
+      E_xyzt = (1./2.*pi) * E_xyzt 
+      
+      ! print*,' '
+      ! print*,' '
+      ! print'(A)','E_xyzt'
+      ! do jj=1,ntotv
+      !   print'(99(E11.3))', (E_xyzt(jj,ii), ii = 1,t_steps+1)
+      ! end do
+
+      File_Nodal_Vals = File_3DNodal_Vals
+      E_3D = 0.0
+      dt = time_ini
+      time_loop2: do ii =1,t_steps+1  
+        dt = dt + delta_t!,time_fin,delta_t
+        nodes_loop2: do jj =1,nnodes
+          totv = jj*ndofn
+          DoF_loop2: do kk = 2,0,-1
+            E_3D(totv-kk,1) = E_xyzt(totv-kk,ii)
+            end do DoF_loop2
+        end do nodes_loop2
+        call GID_PostProcess(1, E_3D, 'res', ii-1, dt, time_fin, dummy)
+      end do time_loop2
+      call GID_PostProcess(1, E_3D, 'msh', 0, dt, time_fin, dummy)
+
       !  NN = 19
       !  w0 = 2.0*pi/NN
       !  reAll = 0.0
@@ -1784,9 +1845,7 @@ module library
       !    end do
       !    write(*,'(I5,2x,5(F7.3,1x))') k, f_t(k), reall(k), imagi(k), fhat(k)
       !  end do
-      else
-        continue
-      endif
+      904 format(I5,2x,e15.6,5x,99(e17.6))    !format to print the profile file
     end subroutine invDFT
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -2012,8 +2071,6 @@ module library
       endif
       !open(unit=555, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
       
-      
-      
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
         open(unit=100, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
         
@@ -2121,14 +2178,16 @@ module library
           write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
           write(300,"(A)") ' '
           write(300,"(A)") '% - - - - - - - Component ex'
-          if(time == 0) write(300,"(A)") '% time       timeStep          receiver1'
+          if(time == 0) write(300,"(A)") '% time     timeStep        receiver1'
         else
           continue
         endif
         open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
         
-        write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin))), ipoin=1,nodalRec)
         !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        !Creo que aqui en lugar del +1 debio ser -2 para que el grado de libertad del receptor
+        !corresponda a la componente x
 
         !if( time == t_steps+1 ) then
         !  write(300,"(A)") ' '
@@ -2214,7 +2273,7 @@ module library
       
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-      904 format(2x,I5,1x,e15.6,2x,99(e15.6))    !format to print the profile file
+      904 format(I5,2x,e15.6,2x,99(e15.6))    !format to print the profile file
       906 format(I7,2(3x,f9.4)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
@@ -2223,67 +2282,6 @@ module library
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
-    !
-    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    !
-    subroutine storeSpectrum(spectrum)
-      
-      implicit none
-      
-      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
-      double precision, dimension(ntotv, 1),intent(in) :: spectrum
-      character(len=8)                                 :: id_ky
-      ! double precision, allocatable, dimension(:,:), intent(out), optional :: time
-      integer                                          :: ipoin, ii, jj
-      
-      select case(idk_y) !This variable comes from input file
-        case(1)
-          id_ky = 'ky01.dat'
-        case(2)
-          id_ky = 'ky02.dat'
-        case(3)
-          id_ky = 'ky03.dat'
-        case(4)
-          id_ky = 'ky04.dat'
-        case(5)
-          id_ky = 'ky05.dat'
-        case(6)
-          id_ky = 'ky06.dat'
-        case(7)
-          id_ky = 'ky07.dat'
-        case(8)
-          id_ky = 'ky08.dat'
-        case(9)
-          id_ky = 'ky09.dat'
-        case(10)
-          id_ky = 'ky10.dat'
-      endselect
-      
-      ! Se guardan las componentes del campo transformado para cada tiempo:
-      !   t1  t2  t3
-      !----- ----  --- 
-      !  Êx1  Êx1  Êx1
-      !  Êy1  Êy1  Êy1
-      !  Êz1  Êz1  Êz1
-      !  Êx2  Êx2  Êx2
-      !  Êy2  Êy2  Êy2
-      !  Êz2  Êz2  Êz2
-      !  Êx3  Êx3  Êx3
-      !  Êy3  Êy3  Êy3
-      !  Êz3  Êz3  Êz3
-       
-      open(unit=200, file=path1//'spectrumE_field_'//id_ky, ACTION="write", STATUS="replace")
-      write(200,"(A)") '#Transformed Voltage (total variables, time steps)'
-
-      open(unit=200, file=path1//'spectrumE_field_'//id_ky, ACTION="write", STATUS="old", position="append")
-      do ii = 1, ntotv
-        write(200,917) (spectrum(ii,jj), jj = 1, t_steps+1)
-      end do
-      close(200)
-      
-      917 format(999(3x,E15.5)) !format for store transformed E-field
-      
-    end subroutine storeSpectrum
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -2302,8 +2300,8 @@ module library
       check6=((t_steps/1.6)*100)/t_steps
       check7=((t_steps/1.4)*100)/t_steps
       check8=((t_steps/1.2)*100)/t_steps
-      check9=((t_steps/1.05)*100)/t_steps
-      check10=((t_steps/1)*100)/t_steps
+      check9=((t_steps/1.06)*100)/t_steps
+      check10=((t_steps/1.01)*100)/t_steps
       check1= ceiling(check1)
       check2= ceiling(check2)
       check3= ceiling(check3)
@@ -2352,7 +2350,7 @@ module library
     
     
     !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
-    subroutine prevTime(k_y, N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
+    subroutine prevTime(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
       !        BDF1_u_prev
       
       use sourceTerm
@@ -2362,7 +2360,7 @@ module library
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
-      double precision,                       intent(in) :: k_y
+      ! double precision,                       intent(in) :: k_y
       !double precision, dimension(3,nne), intent(in)     :: Hesxieta
       integer                               , intent(in) :: S_ldSol
       double precision, dimension(ndofn)        :: EMsource
@@ -2405,7 +2403,7 @@ module library
           !En este Galerkin deberia quitar la construccion de la matriz Ke para evitar Calculamos
           !inecesarios pues solo se calcula Ce y Fe y Ke ya no, REVISA RUTINA Galerkin_prevTime 
           !y ver si esa se puede implementar tal cual aqui en lugar de Galerkin completo
-          call Galerkin(k_y, hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           
