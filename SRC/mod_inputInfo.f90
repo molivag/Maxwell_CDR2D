@@ -74,9 +74,10 @@ module inputInfo
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
       write(*,"(A29,3X,f11.4,1X,A10)") ' - Characteristic mesh size : ', helem,' '
       write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Length reference element : ', hnatu        ,' '
+      write(*,"(A30,6X,f9.5 ,1X,A10)") ' - Model condutivity (σ)    : ', sigma        ,' ' 
       
       if(refiType.eq.'NO')then
-        write(*,"(A30,2x,a6,3X,A10)") ' - Refinement type          : ','  NONE',' '
+        write(*,"(A30,2x,A7,3X,A10)") ' - Refinement type          : ','  NONE',' '
       elseif(refiType.eq.'PS'.or.refitype.eq.'CC')then
         if(refitype.eq.'PS')then
           bbbb = 'Powell-Sabin'
@@ -93,11 +94,25 @@ module inputInfo
       else
         write(*,'(A)') '> > >Error in refinment type'
       endif
+       
+        
+      print*,' '
+      print*,'!============ FOURIER PARAMNETERS =============!'
+      if(TwoHalf == 'Y')then
+        write(*,"(A30,2X,A8   ,1X,A10)") ' - A 2.5D modeling?         : ', 'YES', '    '
+        write(*,"(A30,6X,e11.4 ,1X,A10)") ' - Min wavenumber           : ', ky_min,'   '
+        write(*,"(A30,6X,e11.4 ,1X,A10)") ' - Max wavenumber           : ', ky_max    ,'  '
+        write(*,"(A30,5X,I3   ,1X,A10)") ' - Total wavenumbers        : ', tot_ky   ,'  '
+        write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Location of receiver     : ', y_iFT        ,' '
+      else
+        write(*,"(A30,2X,A7   ,1X,A10)") ' - A 2.5D modeling?         : ', 'NONE', '    '
+      endif
+      
       
       print*, ' '
       if(kstab.eq.0)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
-        write(*,"(A26,3x,a4,3X,A1)") ' - Stabilization method:   ', aaaa,''
+        write(*,"(A26,5x,A8,3X,A1)") ' - Stabilization method:   ', aaaa,''
       elseif(kstab.eq.6)then
         print*,'!========== STABILIZATION PARAMETERS ==========!'
         write(*,"(A30,2x, A10 ,1X,A10)") ' - Stabilization method     : ', aaaa   ,' '
@@ -123,13 +138,13 @@ module inputInfo
           else
             cccc = 'BDF2'
           endif
-          write(*,"(A29,2X,A10,1X,A10)") ' - Method Selected          : ', cccc,' '
+          write(*,"(A29,2X,A8,1X,A10)") ' - Method Selected          : ', cccc,' '
         elseif(theta.eq.3)then
           dddd = 'Cranck-Nicholson'
           write(*,"(A29,3x,A16,1X,A10)") ' - Method Selected          : ', dddd,' '
         endif
-        write(*,"(A29,3X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
-        write(*,"(A29,6X,E13.5,1X,A11)") ' - Time simulated           : ', time_fin,' '
+        write(*,"(A29,6X,E13.5,1X,A11)") ' - Begining time            : ', time_ini,' '
+        write(*,"(A29,6X,E13.5,1X,A11)") ' - End time                 : ', time_fin,' '
         write(*,"(A29,2X,I7   ,1X,A11)") ' - Number of steps          : ', t_steps,' '
         write(*,"(A31,6X,E13.5,1X,A11)") ' - Step size (∆t)           : ', delta_t ,' '
       else
@@ -143,7 +158,7 @@ module inputInfo
           write(*,'(A)')' -Source point' 
           write(*,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) '
           print*, ' '
-          write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
+          write(*,'(A24,99(I0,4x))')' -Source point at node: ', (Srcloc(i), i=1,nodalSrc) 
           print*, ' '
           write(*,'(A)') ' -Dipole lenght: Single source point'
         elseif(nodalSrc.eq.2)then
@@ -178,41 +193,41 @@ module inputInfo
         write(*,'(A)') ' - Not geophysical source'
       end if
       
-      !write(*,'(A)') 
-      !print*,'!============ TENSOR COEFFICIENTS  ============!'
-      !print*, 'Diffusion'
-      !do i = 1,dimPr
-      !  do j = 1,DimPr
-      !    print"(A,2I1)", 'k_',i,j
-      !    do k = 1,ndofn
-      !      print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
-      !    end do
-      !    !print*,' '
-      !  end do
-      !end do
-      !print*, ' '  
-      !print*, 'Convection'
-      !do k = 1, DimPr
-      !  print"(A,2I1)",'A_',k
-      !  do i = 1, ndofn
-      !    write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
-      !  end do
-      !end do
-      !  print*,' '
-      !print*,'Reaction'
-      !do i=1,ndofn
-      !  write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
-      !end do
-      !print*, ' '
-      !print*, 'External Forces'
-      !if(ndofn.eq.1)then
-      !  write(*,"(3(f10.5,1x))") force(1)
-      !elseif(ndofn.eq.2)then
-      !  write(*,"(2(f10.5,1x))") force(1), force(2)
-      !else
-      !  write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
-      !endif
-      !write(*,'(A)') 
+      write(*,'(A)') 
+      print*,'!============ TENSOR COEFFICIENTS  ============!'
+      print*, 'Diffusion'
+      do i = 1,dimPr
+        do j = 1,DimPr
+          print"(A,2I1)", 'k_',i,j
+          do k = 1,ndofn
+            print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
+          end do
+          !print*,' '
+        end do
+      end do
+      print*, ' '  
+      print*, 'Convection'
+      do k = 1, DimPr
+        print"(A,2I1)",'A_',k
+        do i = 1, ndofn
+          write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
+        end do
+      end do
+        print*,' '
+      print*,'Reaction'
+      do i=1,ndofn
+        write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
+      end do
+      print*, ' '
+      print*, 'External Forces'
+      if(ndofn.eq.1)then
+        write(*,"(3(f10.5,1x))") force(1)
+      elseif(ndofn.eq.2)then
+        write(*,"(2(f10.5,1x))") force(1), force(2)
+      else
+        write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
+      endif
+      write(*,'(A)') 
       
       file_name ="test_"
       open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
@@ -244,6 +259,7 @@ module inputInfo
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
       write(100,"(A29,3X,f11.4,1X,A10)") ' - Element size             : ', helem,' '
+      write(100,"(A30,6X,f9.5 ,1X,A10)") ' - Model condutivity (σ)    : ', sigma        ,' ' 
       if(refiType.eq.'NO')then
         write(100,"(A30,2x,a7 ,3X,A10)") ' - Refinement type          : ', '  NONE',' '
         write(100,'(A)')
@@ -255,11 +271,22 @@ module inputInfo
         write(100,"(A30,2X,I6,1X,A10)") ' - Nodes after refinement    : ', nnodes, ' '
         write(100,"(A30,2X,I6,1X,A10)") ' - Elm unkns after refinement: ', nevab, ' '
         write(100,"(A30,2X,I6,1X,A10)") ' - Glb unkns after refinement: ', ntotv, ' '
+        write(100,'(A)')
       endif 
+      write(100,'(A)')'!============ FOURIER PARAMNETERS =============!'
+      if(TwoHalf == 'Y')then
+        write(100,"(A30,2X,A8   ,1X,A10)") ' - A 2.5D modeling?         : ', 'YES', '    '
+        write(100,"(A30,6X,e11.4 ,1X,A10)") ' - Min wavenumber           : ', ky_min,'   '
+        write(100,"(A30,6X,e11.4 ,1X,A10)") ' - Max wavenumber           : ', ky_max    ,'  '
+        write(100,"(A30,5X,I3   ,1X,A10)") ' - Total wavenumbers        : ', tot_ky   ,'  '
+        write(100,"(A30,2X,f9.2 ,1X,A10)") ' - Location of receiver     : ', y_iFT        ,' '
+      else
+        write(100,"(A30,2X,A7   ,1X,A10)") ' - A 2.5D modeling?         : ', 'NONE', '    '
+      endif
       if(kstab.eq.0)then
         write(100,'(A)') 
         write(100,'(A)')'!========== STABILIZATION PARAMETERS ==========!'
-        write(100,"(A26,3x,a4,3X,A1)") ' - Stabilization method:       ', aaaa,''  
+        write(100,"(A26,6x,a7,3X,A1)") ' - Stabilization method:       ', aaaa,''  
       !write(100,"(A26,3X,f3.1,1X,A10)") ' - Exponent of mesh size:    ', i_exp,'   '
       elseif(kstab.eq.6)then
         write(100,'(A)') 
@@ -288,7 +315,7 @@ module inputInfo
           else
             cccc = 'BDF2'
           endif
-          write(100,"(A29,2X,A  ,1X,A10)") ' - Method Selected          : ', cccc,' '
+          write(100,"(A29,6X,A8  ,1X,A10)") ' - Method Selected          : ', cccc,' '
         elseif(theta.eq.3)then
           dddd = 'Cranck-Nicholson'
           write(100,"(A29,3x,a16,3X,A11)") ' - Method Selected          : ', dddd,' '
