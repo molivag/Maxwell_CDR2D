@@ -126,7 +126,7 @@ module timeInt
       double precision, allocatable, dimension(:,:)       :: LHS!, lhs_BDF2
       double precision, allocatable, dimension(:,:)       :: u_pre, u_curr, u_fut, Mu_pre
       ! double precision, allocatable, dimension(:)         :: S_ferr, S_berr, S_work
-      double precision             , dimension(ntotv,1)   :: Jsource, Jsource_pre
+      double precision, allocatable, dimension(:,:)       :: Jsource, Jsource_pre
       double precision             , dimension(ntotv,1)   :: RHS, u_init!, F_plus_MU, rhs_BDF2
       double precision             , dimension(t_steps+1) :: shapeTime
       double precision, allocatable, dimension(:,:)       :: store_Spec
@@ -138,7 +138,7 @@ module timeInt
       
       
       if(TwoHalf == 'Y')then !Just if it is dealing with a 2.5D problem, these variable gonna be updating 
-        File_Nodal_Vals = files_ky(i_WaveNum)
+        ky_id = nodal_ky(i_WaveNum)
         k_y = WaveNumbers(i_WaveNum) !Value of wave number for current problem (used in reama)
       else
         continue
@@ -196,7 +196,7 @@ module timeInt
             
             call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
-            call currDensity(1,time,shapeTime(time),Jsource) 
+            call currDensity(Jsource,time,shapeTime(time)) 
             RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
             ! RHS = ( Mu_pre - delta_t*Jsource )
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
