@@ -498,13 +498,24 @@ module library
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do conma_loop
               
-              reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
-              ! write(*,"(A6,I2,A,I2,A4,e12.5)")'reama(',idofn,',',jdofn,') = ',k_y**2 * reama(idofn,jdofn)
-              ! reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              cpcty = 0.01 * (basis(inode) * basis(jnode) )
-              !este valor 0.01 es la conductividad que multiplica a la derivada de timepo
+              if(TwoHalf =='Y')then
+                !if it is dealing with a 2.5D Problem
+                if(oper == 'LAPL')then
+                  ! print*,'Entra a Laplacian'
+                  print*,k_y
+                  print*,sigma
+                  reac = basis(inode) * k_y**2 *sigma* reama(idofn,jdofn) * basis(jnode)
+                elseif(oper == 'MAXW')then
+                  reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
+                endif
+              else
+                ! print*,'!if it is NOT dealing with a 2.5D Problem'
+                reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
+              endif
               
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
+              
+              cpcty = sigma * (basis(inode) * basis(jnode) )
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
@@ -545,7 +556,8 @@ module library
       coeff = 0.0 
       !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
       !print'(A9,F10.5)', 'elem_size_h^2: ', elem_size_h**2
-      if(kstab.eq.6)then 
+      if(kstab.eq.6)then !coefficients for MVAF 
+        ! print*,'!coefficients for MVAF'
         !print*,'stabi',kstab
         if(idofn.eq.1)then
           if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
@@ -610,12 +622,17 @@ module library
         end if
         !close(10)
       else
-        ! The coeficients for Laplacian operator 
         if((idofn == jdofn).and.(i == j))then
             ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
             ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-            
-            coeff = lambda
+            if(kstab == 0)then
+              ! print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
+                  print*,'desde param_stab',sigma
+              coeff = sigma
+            else
+              coeff = lambda
+            endif
+           
         end if
       end if
       
@@ -1068,6 +1085,7 @@ module library
       
       A_K = 0.0
       A_F = 0.0
+      A_C = 0.0
       
       do ielem = 1, nelem 
         !gather
@@ -1635,13 +1653,11 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    ! subroutine storeSpectrum(time, indexx, spectrum)
     subroutine storeSpectrum( indexx, spectrum)
       
       implicit none
       
       character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
-      character(len=8), dimension(10)                 :: files_ky
       character(len=8)                                :: id_file
       ! double precision, dimension(ntotv, 1),intent(in) :: u_pre
       double precision, dimension(ntotv, 1),intent(in) :: spectrum
@@ -1649,8 +1665,6 @@ module library
       integer                              ,intent(in) :: indexx
       integer                                          :: ipoin, ii, jj
       
-      files_ky = (/'ky01.dat','ky02.dat','ky03.dat','ky04.dat','ky05.dat',&
-      &           'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat'/)
       id_file = files_ky(indexx)
       
       ! do ii = 1, S_ldSol
@@ -1685,15 +1699,14 @@ module library
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine invDFT
-    ! subroutine invDFT(ky,E_solution,E_in_Space)
       
+      use, intrinsic                                  :: iso_c_binding
       implicit none
       
       external                                        :: fdate 
       character(len=*), parameter                     :: path1 = "Pos/Plots/Spectrums/"
       character(len=*), parameter                     :: path2 = "Pos/Plots/"
       double precision, parameter                     :: pi = 4*atan(1.d0)
-      character(len=8), dimension(10)                 :: files_ky
       !Hacer una rutina que contenga los casos posibles de cantidad de numeros de onda a emplear
       !Que sean 10, 15, 20 
       character(len=8)                                :: id_file
@@ -1703,10 +1716,19 @@ module library
       double precision, allocatable, dimension(:,:)   :: E_xyzt, E_3D
       double precision, dimension(t_steps+1)          :: dummy
       double precision, allocatable, dimension(:,:,:) :: E_hat_ky
-      integer                                         :: nt, ii, jj, kk, ll, stat, iwn, totv
+      integer                                         :: nt,ii,jj,kk,ll,stat,iwn,totv,idDoF
       
+      ! Declara la función sleep de C
+      interface
+        subroutine usleep(useconds) bind(c, name="usleep")
+          import :: c_int
+          integer(c_int), value :: useconds
+        end subroutine usleep
+      end interface
       print*, ' ' 
       print'(A)', " !=============== Performing the Inverse Fourier Transform =============! "
+      ! Pausa durante 1 segundo (1,000,000 microsegundos)
+      call usleep(1000000)
       !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
       !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
       !en los siguiente pasos:
@@ -1727,16 +1749,11 @@ module library
       !  Êx3  Êx3  Êx3
       !  Êy3  Êy3  Êy3
       !  Êz3  Êz3  Êz3
-      ! ky_min = Wavenumbers(1)
-      ! ky_max = Wavenumbers(10)
-      files_ky = (/'ky01.dat','ky02.dat','ky03.dat','ky04.dat','ky05.dat',&
-      &           'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat'/)
-     !Como estoy dividiendo los problemas, deberia  agregar un check para ver que todos los archivos .dat existen,
-     !y si no existen, esperar unn tiempo y volver a revisar, y si existen, ejecutar la transformada
       allocate( E_hat_ky(tot_ky,t_steps+1,ntotv))
       allocate( E_xyzt(ntotv,t_steps+1))
       allocate( E_3D(ntotv,1))
       
+      idDoF = (ndofn-1) != 3-1=2 = vecor or 1-1 = 0 = scalar problem 
       reading_2D_results: do iwn = 1,tot_ky
         id_file = files_ky(iwn)
         open(5,file=path1//'spectrumE_field_'//id_file, status='old',action='read',IOSTAT=stat, IOMSG=msg)
@@ -1766,19 +1783,31 @@ module library
       call fdate(date) 
       open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
       write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
-      write(300,"(A13, I0)") '%At the time ', t_steps-2
-      write(300,"(A)") '% No           ky                    Êx              Êy               Êz'
-      ky_loop1: do ll = 1,tot_ky
-        ky = WaveNumbers(ll)
-        ! Ex_hat = (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-2), jj=1,nodalRec)
-        ! Ey_hat = (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-1), jj=1,nodalRec)
-        ! Ez_hat = (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-0), jj=1,nodalRec)
-        ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
-        write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-2), jj=1,nodalRec),&
-          &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-1), jj=1,nodalRec),&
-          &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-0), jj=1,nodalRec)
-        !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
-      end do ky_loop1
+      if(ProbType=='TIME')then
+        write(300,"(A13, I0)") '%At the time ', t_steps-2
+        ky_loop1: do ll = 1,tot_ky
+          ky = WaveNumbers(ll)
+          ! Ex_hat = (ndofn-1) = 3-1=2
+          ! Ey_hat = (ndofn-2) = 3-2=1
+          ! Ez_hat = (ndofn-3) = 3-3=0
+          ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
+          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-2), jj=1,nodalRec),&
+            &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-1), jj=1,nodalRec),&
+            &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-0), jj=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        end do ky_loop1
+      else
+        !This is for a static and scalar problem
+        if(ProbType=='STAT')t_steps=3 
+        write(300,"(A)") '% No           ky                    Êx'
+        write(300,"(A13, I0)") '%At the time ', t_steps
+        ky_loop2: do ll = 1,tot_ky
+          ky = WaveNumbers(ll)
+          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)), jj=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        end do ky_loop2
+        if(ProbType=='STAT')t_steps=0
+      endif
       close(300)
      
      
@@ -1789,17 +1818,17 @@ module library
       !                           2π  /___
       !                               ky=0
       !
+      print*,'Esto es t_steps antes de comenzar la TDF', t_steps
       delta_ky = (ky_max-ky_min)/ tot_ky
       E_xyzt = 0.0
       time_loop: do ii =1,t_steps+1  
         nodes_loop: do jj =1,nnodes
           totv = jj*ndofn
-          DoF_loop: do kk = 2,0,-1
-            ky_loop2: do ll =1, tot_ky
+          DoF_loop: do kk = idDoF,0,-1
+            ky_loop3: do ll =1, tot_ky
               ky=WaveNumbers(ll)
               E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*exp(-cmplx(0,1)*y_iFT*ky) * delta_ky
-              ! print*, exp(-cmplx(0,1)*y_iFT*ky) * delta_ky
-            end do ky_loop2
+            end do ky_loop3
           end do DoF_loop
         end do nodes_loop
       end do time_loop
@@ -1812,21 +1841,33 @@ module library
       !   print'(99(E11.3))', (E_xyzt(jj,ii), ii = 1,t_steps+1)
       ! end do
 
+      TwoHalf = 'N'
       File_Nodal_Vals = File_3DNodal_Vals
       E_3D = 0.0
-      dt = time_ini
-      time_loop2: do ii =1,t_steps+1  
-        dt = dt + delta_t!,time_fin,delta_t
-        nodes_loop2: do jj =1,nnodes
-          totv = jj*ndofn
-          DoF_loop2: do kk = 2,0,-1
-            E_3D(totv-kk,1) = E_xyzt(totv-kk,ii)
-            end do DoF_loop2
-        end do nodes_loop2
-        call GID_PostProcess(1, E_3D, 'res', ii-1, dt, time_fin, dummy)
-      end do time_loop2
-      call GID_PostProcess(1, E_3D, 'msh', 0, dt, time_fin, dummy)
-
+      if(ProbType == 'TIME')then
+        dt = time_ini
+        time_loop2: do ii =1,t_steps+1  
+          dt = dt + delta_t!,time_fin,delta_t
+          nodes_loop2: do jj =1,nnodes
+            totv = jj*ndofn
+            DoF_loop2: do kk = idDoF,0,-1
+              E_3D(totv-kk,1) = E_xyzt(totv-kk,ii)
+              end do DoF_loop2
+          end do nodes_loop2
+          call GID_PostProcess(1, E_3D, 'res', ii-1, dt, time_fin, dummy)
+        end do time_loop2
+        call GID_PostProcess(1, E_3D, 'msh', 0, dt, time_fin, dummy)
+      else
+        nodes_loop3: do jj =1,nnodes
+        totv = jj*ndofn
+          DoF_loop3: do kk = idDoF,0,-1
+            E_3D(totv-kk,1) = E_xyzt(totv-kk,1)
+          end do DoF_loop3
+        end do nodes_loop3
+        call GID_results(E_3D) 
+      endif
+        
+        
       !  NN = 19
       !  w0 = 2.0*pi/NN
       !  reAll = 0.0
@@ -1856,7 +1897,7 @@ module library
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      double precision, dimension(nelem,totGp,DimPr), intent(in) :: grad_sol
+      double precision, dimension(nelem,totGp,DimPr), intent(in), optional :: grad_sol
       character(len=10)                       :: ext1, ext2
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
@@ -1866,7 +1907,7 @@ module library
       solution_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
-      
+      if(TwoHalf=='Y')File_Nodal_Vals=File_Nodal_Vals_ky//ky_id
      
       print*, ' '
       print*, '!============== Output files ==================!'
@@ -1912,6 +1953,7 @@ module library
       ! se escribe el res de las componentes de la velocidad
       select case(ndofn)
         case(1)
+          print*, 'Case 1 es un PROBLEMA ESCALAR'
           write(555,"(A)") 'Result "phi" "Electric Potential" 0 Scalar OnNodes'
           write(555,"(A)") 'ComponentNames "" '
           write(555,"(A)") 'Values'
@@ -1971,36 +2013,35 @@ module library
           endif
       end select
       
-      if(postpro.eq.1)then
-        write(*,'(A)') 'Writing Post Process.....'
-        goto 115 
-      elseif(postpro.eq.2)then
-        !write(*,'(A)') 'None Post Process'
-        goto 110
-      else
-        write(*,'(A)') 'No postrocess option defined'
-      end if
+      if (present(grad_sol) )then
+        if(postpro.eq.1)then
+          write(*,'(A)') 'Writing Post Process.....'
+          write(555,"(A,A)") 'GaussPoints "GP_1" ElemType ', Elem_Type 
+          write(555,"(A24,I1)") 'Number Of Gauss Points: ', totGp
+          write(555,"(A,A)") 'Natural Coordinates: ', "Given"
+          do igaus = 1, totGp
+          write(555,901) (ngaus(igaus,jj), jj=1,DimPr)
+          end do
+          write(555,"(A)") 'End GaussPoints'
 
-      115 write(555,"(A,A)") 'GaussPoints "GP_1" ElemType ', Elem_Type 
-      write(555,"(A24,I1)") 'Number Of Gauss Points: ', totGp
-      write(555,"(A,A)") 'Natural Coordinates: ', "Given"
-      do igaus = 1, totGp
-        write(555,901) (ngaus(igaus,jj), jj=1,DimPr)
-      end do
-      write(555,"(A)") 'End GaussPoints'
-      
-      write(555,"(A)") 'Result "Electric field" "ANALYSIS" 0 Vector OnGaussPoints "GP_1" '
-      write(555,"(A)") 'ComponentNames "Ex" "Ey" '
-      write(555,"(A)") 'Values'
-      do ielem = 1, nelem
-        write(555,'(I0)',Advance='NO') ielem
-        do igaus = 1, totGp
+          write(555,"(A)") 'Result "Electric field" "ANALYSIS" 0 Vector OnGaussPoints "GP_1" '
+          write(555,"(A)") 'ComponentNames "Ex" "Ey" '
+          write(555,"(A)") 'Values'
+          do ielem = 1, nelem
+          write(555,'(I0)',Advance='NO') ielem
+          do igaus = 1, totGp
           write(555,903) (grad_sol(ielem,igaus,icomp), icomp=1,2)
-        end do
-      end do
-      write(555,"(A)") 'End Values'
+          end do
+          end do
+          write(555,"(A)") 'End Values'
+        elseif(postpro.eq.2)then
+          !write(*,'(A)') 'None Post Process'
+          110 close(555)
+        else
+          write(*,'(A)') 'No postrocess option defined'
+        end if
+      endif
       
-      110 close(555)
       
       900 format(A15, A13, A1, A13)
       901 format(2(f10.5))
@@ -2053,6 +2094,7 @@ module library
       Sol_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      if(TwoHalf=='Y')File_Nodal_Vals=File_Nodal_Vals_ky//ky_id
       
       !delta_t 1e-3 ( time_fin - time_ini ) / (t_steps + 1.0)
       
