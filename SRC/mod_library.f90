@@ -498,6 +498,8 @@ module library
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do conma_loop
               
+              !LO IDEAL ES QUE NO SE EVALUE EL MISMO IF EN CADA GRADO DE LIBERATD SINO QUE SE
+              !HAGAN VARIOS GALERKIN PARA EVITAR LA MAYOR CANTIDAD DE EVALUACIONES IF POSIBLES
               if(TwoHalf =='Y')then
                 !if it is dealing with a 2.5D Problem
                 if(oper == 'LAPL')then
@@ -625,6 +627,8 @@ module library
         if((idofn == jdofn).and.(i == j))then
             ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
             ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+            !Aqui tengo que poner un identificador o LGO QUE dependiendo
+            !el problema, ponga una propiedad fisica u otra
             if(kstab == 0)then
               ! print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
                   print*,'desde param_stab',sigma
@@ -1749,6 +1753,10 @@ module library
       !  Êx3  Êx3  Êx3
       !  Êy3  Êy3  Êy3
       !  Êz3  Êz3  Êz3
+      !Como estoy dividiendo los problemas, deberia  agregar un check para
+      !ver que todos los archivos .dat existen, si no existen, esperar unn tiempo 
+      !y volver a revisar, y si existen, ejecutar la transformada
+      
       allocate( E_hat_ky(tot_ky,t_steps+1,ntotv))
       allocate( E_xyzt(ntotv,t_steps+1))
       allocate( E_3D(ntotv,1))
