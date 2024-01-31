@@ -160,29 +160,29 @@ module sourceTerm
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine currDensity(SrcType,time,eTime,Jsource)
+    subroutine currDensity(Jsource,time,eTime)
       
       implicit none
       
-      !declaracion para electric dipole in fullspace
       double precision, parameter   :: pi = 4*atan(1.d0)
-      double precision, intent(in)  :: eTime
-      integer         , intent(in)  :: time, SRCType
+      double precision, intent(in), optional :: eTime
+      integer         , intent(in), optional :: time
       integer                       :: tw, inode, ii
       double precision              :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S, mu
-      double precision, intent(out) :: Jsource(ntotv,1)
       
       !declaracion para electric dipole in fullspace
       double precision, dimension(ntotv, 1) :: E_field_full_space
       ! Declaración de una variable compleja de precisión doble
       complex(kind=16), dimension(ntotv, 1) :: E_hat_y
       complex(kind=16)                     :: inum
-      double precision, dimension(10) :: ky 
-      double precision     :: x, y, z, k_y
+      double precision     :: x, y, z
       double precision     :: SrcCurr,ds, sigma, nt, arg, r_vec, spi, theta, aa, bb, cc, ee
       double precision     :: dy,ex,ey,ez
       integer              :: n,i,j,k
+
+      double precision, allocatable, dimension(:,:), intent(out)  :: Jsource
       
+      allocate(Jsource(ntotv,1))
       Jsource = 0.0
       mu = 1./lambda
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
@@ -190,151 +190,155 @@ module sourceTerm
       
       
       
-      !!Esta fuente es para el caso de corriente directa
       
-      !Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
-      !if(BCsProb.eq.5)then
-      !  continue
-      !else
-      !  if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
-      !    print*,'delta source'
-      !    if(ndofn.eq.1)then
-      !      do ii=1,nodalSrc
-      !        if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
-      !        !print*,Icurr
-      !        A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
-      !      end do
-      !    else
-      !      do ii=1,nodalSrc
-      !        if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
-      !        !print*,Icurr
-      !        A_F((srcLoc(ii)-1)*ndofn+1,1) = -Icurr(1)
-      !        A_F((srcLoc(ii)-1)*ndofn+2,1) = -Icurr(2)
-      !      end do
-      !    endif
-      !  end if
-      !endif
-      
-      !!FIN fuente para el caso de corriente directa
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      select case(SRCType)
-        case(1)
-          theta_loop= 90.0
-          S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
-          
-          theta_loop=theta_loop*pi/180. ! theta=-30 deg
-          Mr=Icurr(1)*S 
-          Mx=Mr*sin(theta_loop)
-          My=Mr*cos(theta_loop)
-          Curr_x= Mx/S
-          Curr_y= My/S
-          
-          if(ndofn.eq.1)then !Fuente J o M para el problema escalar
-            do inode=1,nodalSrc 
-              !!# # # # # # source: Time derivative of Density Current
-              !if(time.eq.1.and.inode.eq.1)then
-              !  print*,time
-              !  print*,'J type source'
-              !endif
-              !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-              !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-              !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-              
-              ! # # # # # # source: Magnetic Moment
-              if(time.eq.1.and.inode.eq.1)then
-                print*,time
-                print*,'M type source'
-              endif
-              Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
-              if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
-            end do
-          else ! Fuente J o M para el caso de 2 o 3 grados de libertad
-            do inode=1,nodalSrc 
-              ! # # # # # # source: Time derivative of Density Current
-              !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-              !Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
-              !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-              !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-              
-              !! # # # # # # source: Magnetic Moment
-              ! print*,'M type source'
-              Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-              Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
-              if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
-              !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-            end do
+      ! select case(SRCType)
+      ! case(0)
+      ! Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
+      if(present(eTime).and.present(time))then
+        if(ndofn.eq.1)then !Fuente J o M para el problema escalar
+          do inode=1,nodalSrc 
+          !!# # # # # # source: Time derivative of Density Current
+          !if(time.eq.1.and.inode.eq.1)then
+          !  print*,time
+          !  print*,'J type source'
+          !endif
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+          !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+
+          ! # # # # # # source: Magnetic Moment
+          !if(time.eq.1.and.inode.eq.1)then
+          !  ! print*,time
+          !  print*,'M type source'
+          !endif
+          !theta_loop= 90.0
+          !S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
+          !theta_loop=theta_loop*pi/180. ! theta=-30 deg
+          !Mr=Icurr(1)*S 
+          !Mx=Mr*sin(theta_loop)
+          !My=Mr*cos(theta_loop)
+          !Curr_x= Mx/S
+          !Curr_y= My/S
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
+          end do
+        else ! Fuente J o M para el caso de 2 o 3 grados de libertad
+          do inode=1,nodalSrc 
+          ! if(time.eq.1.and.inode.eq.1)then
+          !   print*,'∂J/∂t type source'
+          ! endif
+
+          ! # # # # # # source: Time derivative of Density Current
+          Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
+          Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
+          Jsource((srcLoc(inode)-1)*ndofn+3,1) = Icurr(3)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+
+          !! # # # # # # source: Magnetic Moment
+          ! print*,'M type source'
+          !theta_loop= 90.0
+          !S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
+          !S=1.
+          !theta_loop=theta_loop*pi/180. ! theta=-30 deg
+          !Mr=Icurr(1)*S 
+          !Mx=Mr*sin(theta_loop)
+          !My=Mr*cos(theta_loop)
+          !Curr_x= Mx/S
+          !Curr_y= My/S
+
+          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+          !Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
+          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+
+          end do
+        end if
+      else 
+        if(BCsProb.eq.5)then
+          continue
+        else
+          ! if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
+          if((ndofn.eq.1).or.(ndofn.eq.3))then
+            if(ndofn.eq.1)then 
+              print*,'Scalar Problem'
+              do ii=1,nodalSrc
+              ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
+              !print*,Icurr
+              ! Jsource((srcLoc(ii)-1)*ndofn+1,1) = Icurr(1)
+              Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)
+              end do
+            else !
+              print*,'Vector problem'
+              do ii=1,nodalSrc
+              ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
+              Jsource((srcLoc(ii))*ndofn-2,1) = Icurr(1)
+              Jsource((srcLoc(ii))*ndofn-1,1) = Icurr(2)
+              Jsource((srcLoc(ii))*ndofn-0,1) = Icurr(3)
+              end do
+            endif
           end if
-        case(2)
-          !La fuente es de la forma J(x,y,z,t) = sigma(x,z)*E(x,y,z,t) 
-          ! where:
-          ! E(x,y,z,t) is defined by eq. (2.50) of Nabighian 1988 EM Methods (p. 175).
-          ! Electric Dipole in a full space
+        endif
+        !FIN fuente para el caso de corriente directa
+      endif 
+
           
-          !----Begin Comput Electric Dipole in a full-space
-          ! I*ds = dipole moment, is set to I*ds=1
-          SrcCurr  =  Icurr(1)
-          ds       =  1.0
-          sigma    =  1.0
-          nt  = time_ini
-          arg = 0.0; aa = 0.0; bb = 0.0; cc = 0.0; ee  = 0.0
-          ex  = 0.0; ey = 0.0; ez = 0.0
-          E_field_full_space = 0.0 
-          spi = sqrt(pi)
           
-          ! if(time==1)print'(A)', ' -Source term ---> Electric Dipole in full-space'
-          ! call WaveNumbers(1.0d-7,4.0d-2,10,ky); k_y = ky(idk_y)
-          ! k_y=1.0d-5
-          do inode = 1, nnodes  
-            x = coord(1,inode)
-            y = 1.0 !duda, cual es la popsicion de la fuente en y  
-            z = coord(2,inode)
-            
-            r_vec = sqrt(x*x+y*y+z*z)
-            cc    = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
-            theta = sqrt(mu*sigma/(4.0*time))
-            aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
-            arg   = -theta**2*r_vec**2
-            ee    = erfc(theta*r_vec)
-            aa    = aa*exp(arg)+3.0*ee
-            bb    = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
-            bb    = bb*exp(arg)+ee
-            
-            ! geometry term
-            ex    = cc * (aa*x**2/r_vec**2 - bb)
-            ey    = cc * aa*x*y/r_vec**2
-            ez    = cc * aa*x*z/r_vec**2
-            ! write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
-            E_field_full_space(ndofn*inode-2,1) = ex
-            E_field_full_space(ndofn*inode-1,1) = ey
-            E_field_full_space(ndofn*inode  ,1) = ez
-          end do
-          !----End Compute Electric Dipole in a full-space
-          ! # # # # # # source: sigma*E
-          do inode = 1, nnodes
-            Jsource(ndofn*inode-2,1) = 1.0 * E_field_full_space(ndofn*inode-2,1)
-            Jsource(ndofn*inode-1,1) = 1.0 * E_hat_y(ndofn*inode-1,1) 
-            Jsource(ndofn*inode  ,1) = 1.0 * E_field_full_space(ndofn*inode  ,1)
-          end do
-          
-        case default
-          write(*,'(A)') 'No geophysical source type defined on currDensity'
-      end select 
+      ! case(2)
+      !    
+      !    !La fuente es de la forma J(x,y,z,t) = sigma(x,z)*E(x,y,z,t) 
+      !    ! where:
+      !    ! E(x,y,z,t) is defined by eq. (2.50) of Nabighian 1988 EM Methods (p. 175).
+      !    ! Electric Dipole in a full space
+      !    
+      !    !----Begin Comput Electric Dipole in a full-space
+      !    ! I*ds = dipole moment, is set to I*ds=1
+      !    SrcCurr  =  Icurr(1)
+      !    ds       =  1.0
+      !    sigma    =  1.0
+      !    nt  = time_ini
+      !    arg = 0.0; aa = 0.0; bb = 0.0; cc = 0.0; ee  = 0.0
+      !    ex  = 0.0; ey = 0.0; ez = 0.0
+      !    E_field_full_space = 0.0 
+      !    spi = sqrt(pi)
+      !    
+      !    ! if(time==1)print'(A)', ' -Source term ---> Electric Dipole in full-space'
+      !    ! call WaveNumbers(1.0d-7,4.0d-2,10,ky); k_y = ky(idk_y)
+      !    ! k_y=1.0d-5
+      !    do inode = 1, nnodes  
+      !      x = coord(1,inode)
+      !      y = 1.0 !duda, cual es la popsicion de la fuente en y  
+      !      z = coord(2,inode)
+      !      
+      !      r_vec = sqrt(x*x+y*y+z*z)
+      !      cc    = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
+      !      theta = sqrt(mu*sigma/(4.0*time))
+      !      aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
+      !      arg   = -theta**2*r_vec**2
+      !      ee    = erfc(theta*r_vec)
+      !      aa    = aa*exp(arg)+3.0*ee
+      !      bb    = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
+      !      bb    = bb*exp(arg)+ee
+      !      
+      !      ! geometry term
+      !      ex    = cc * (aa*x**2/r_vec**2 - bb)
+      !      ey    = cc * aa*x*y/r_vec**2
+      !      ez    = cc * aa*x*z/r_vec**2
+      !      ! write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
+      !      E_field_full_space(ndofn*inode-2,1) = ex
+      !      E_field_full_space(ndofn*inode-1,1) = ey
+      !      E_field_full_space(ndofn*inode  ,1) = ez
+      !    end do
+      !    !----End Compute Electric Dipole in a full-space
+      !    ! # # # # # # source: sigma*E
+      !    do inode = 1, nnodes
+      !      Jsource(ndofn*inode-2,1) = 1.0 * E_field_full_space(ndofn*inode-2,1)
+      !      Jsource(ndofn*inode-1,1) = 1.0 * E_hat_y(ndofn*inode-1,1) 
+      !      Jsource(ndofn*inode  ,1) = 1.0 * E_field_full_space(ndofn*inode  ,1)
+      !    end do
+      !    
+      !  ! case default
+      !  !   write(*,'(A)') 'No geophysical source type defined on currDensity'
+      ! end select 
       
       
     end subroutine   
