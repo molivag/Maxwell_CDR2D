@@ -61,7 +61,7 @@ module inputInfo
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
       write(*,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(*,"(A30,2x,a12  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(*,"(A30,2x,a13  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
       write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
