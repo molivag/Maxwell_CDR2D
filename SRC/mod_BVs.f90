@@ -11,7 +11,7 @@ module BoundVal
       !en la primer columna: el numero de nodo. 
       ! La segunda columna tendra el tipo de nodo
       ! 1 = Nodo con valor preescrito (nodo con valor definido)
-      ! 0 = Nodo libre (su valor debera ser calculado)
+      ! 0 = Nodo libre (su valor debera ser calculado) eq to neumann integral = 0
       ! La tercera columna tendra el valor del nodo preescrito  
       !=========================================================================
       
@@ -50,7 +50,7 @@ module BoundVal
       
       
       if(ndofn.eq.1) then
-        print*, 'bvs ', ndofn 
+        print*, 'scalar Boundary Conditions ', ndofn 
         do i =1, nnodes
           x=coord(1,i)
           y=coord(2,i)
@@ -63,7 +63,7 @@ module BoundVal
               write(200,10) i, 1
               write(300,30) ux 
             else
-              write(200,10) i, 1                !Top boundary
+              write(200,10) i, 0                !Top boundary
               write(300,30) ux 
             end if
             a = a+1
