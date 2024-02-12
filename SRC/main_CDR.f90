@@ -2,29 +2,31 @@ program main_CDR3d
   use param; use geometry; use biunit; use inputInfo
   use library; use boundVal; use timeInt; use sourceTerm
 
-implicit none
+  implicit none
 
   external :: fdate
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   character(len=19)                                 :: name_inputFile
   character(len=13)                                 :: geometry_File
-  double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc !,Jsource
+  double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc
+  double precision, allocatable,  dimension(:,:)     :: Jsource
   double precision, allocatable, dimension(:,:)     :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:)     :: hes_xixi, hes_xieta, hes_etaeta
   !double precision,              dimension(3,4) :: Hesxieta
   double precision, allocatable, dimension(:,:)     :: Bvs
   integer,          allocatable, dimension(:,:)     :: condition, ifpre
   integer,          allocatable, dimension(:)       :: nofix
-  double precision                                              :: start, finish, k_y
+  double precision                                              :: start, finish
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   double precision, allocatable, dimension(:,:,:)   :: grad_u_sol
   double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol
-  double precision, allocatable, dimension(:)       :: Ex_field, ky
+  double precision, allocatable, dimension(:)       :: Ex_field
   external                                          :: dgbtrf, dgbtrs, dgbrfs
   integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
   character(len=1)                                  :: S_trans
   character(len=24)           :: date
-  integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol
+  integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol, ii_ky, ii
+  double precision, allocatable, dimension(:,:)     :: store_Spec
   
   !-----Input File
   call cpu_time(start)
@@ -54,92 +56,121 @@ implicit none
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
   call VinculBVs( condition,  BVs, nofix, ifpre, presc )
 
-  !----- Setting the wave numbers range ------!
-  call WaveNumbers(1.0d-7,4.0d-2,10,ky) !k**2 = i*mu*sigma*2pi*f
-  k_y = ky(idk_y)
-  print'(A13,I0,A3,E11.4)', ' -Wave number ',idk_y,'= ', k_y
-  ! do S_m=1,10
-  !   print'(e11.5)',ky(S_m)
-  ! enddo
 
+  !====================== Hasta aqui iria la parte general de todas las simulaciones para cada ky
   !-------- Problem Type Definition ----------!
+  print*, ' '
+  print'(A)', " !=============== Computation of 2D problems for each wave number =============! "
   select case(ProbType)
     case('TIME')
+      ! varPrimerSet = 10 -5 = 5
+      ! varSeconSet = varPrimerSet+1 = 6
+      if(splits == 'N')then
+        print*,'completo'
+        do ii_ky = 1,tot_ky-5 !First running of the code with tot_ky = 5
+        call TimeIntegration(ii_ky, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, nofix, ifpre, presc, Ex_field)
+        end do
+        !---------- Memory Relase -----------!
+        deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+        deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+        if((ii_ky==size(nodal_ky)+1) .and. (TwoHalf=='Y')) call invDFT !if para test cortos pero sin dividir la ejecucion
+        
+      elseif(splits == 'Y')then !If the problem split run as kind of parallel
+        print*,'dividido'
+        do ii_ky = tot_ky-4, tot_ky! this do for the case of 10 ky, will go from 6 to 10
+          call TimeIntegration(ii_ky, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, nofix, ifpre, presc, Ex_field)
+        end do
+        !---------- Memory Relase -----------!
+        deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+        deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+        call invDFT 
+        
+      endif
       
-      print*, ' '
-      print*, "!=============== Time Integration =============! "
-      call Timeintegration(k_y, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta,&
-      &                    nofix, ifpre, presc, Ex_field)
-     
-      ! call Res_Matlab(Ex_field)
-     
-      !---------- Memory Relase -----------!
-      deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
-      deallocate(hes_xixi, hes_xieta, hes_etaeta) 
     case('STAT')
       !---------- Global Matrix and Vector ------!
+      if(ProbType == 'STAT') t_steps=0
       print*,'  •BUILDING GLOBAL MATRIX (K) AND VECTOR (F).....'
-      !the allocate of A_K and A_F are inside of GlobalSystem
-      call GlobalSystem(k_y,basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
-      call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
-      
-      !call currDensity(SrcType,time,eTime,Jsource) !Este call debe modificarse para que incluya el 
-      !caso de corriente directa
-      
-      !----- Setting MKL-Solver Parammeters -----!
-      S_m     = size(A_K,2)  !antes ntotv
-      S_n     = size(A_K,2)  !antes ntotv
-      S_ldSol = max(1,S_n)
-      S_trans = 'N'
-      S_nrhs  = 1
-      
-      allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1) ) 
-      allocate( S_ipiv(max(1,min(S_m, S_n)) ) )
-      
-      print*, ' '
-      print*, '!================ MKL Solver ==================!'
-      print*,'  •SETTING VARIABLES FOR MKL LIBRARY.....'
-      AK_LU = A_K     !AK_band(ldab,*) The array AK_band contains the matrix A_K in band storage
-      u_sol = A_F     !Sol_vec will be rewrited by LAPACK solution avoiding lose A_F
-      
-      !---------- Solving System of Equations by INTEL MKL solver -----------!
-      print*,'  •PERFORMING LU BAND DECOMPOSITION.....'
-      call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
-      call MKLfactoResult('dgbtrf',info) 
-      print*,'  •SOLVING SYSTEM OF EQUATIONS.....'
-      
-      !---------- Computing nodal unknowns ux_i, uy_i and p_i ---------------!
-      call dgbtrs( S_trans, S_n, lowban, upban, S_nrhs, AK_LU, ldAKban, S_ipiv, u_sol, S_ldSol, info )
-      call MKLsolverResult('dgbtrs',info)
-   
-      !---------- Computing Inverse Fourier Transform------------------------!
-      ! call iFT(ky, u_sol, 3D_sol)
+      if(splits == 'N')then
+        ! print*,'completo'
+        do ii_ky = 1,tot_ky !First running of the code with tot_ky = 5
+          if(TwoHalf == 'Y')then !if it is a 2.5D problem, these variable gonna be updating 
+            ky_id = nodal_ky(ii_ky)
+            k_y = WaveNumbers(ii_ky) !Value of wave number for current problem (used in reama)
+            print'(A17,I0,A3,E11.4)', " !-------> for ky",ii_ky,"=",k_y
+          else
+            continue
+          endif
+          !the allocation of A_K and A_F are inside of GlobalSystem
+          call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
+          call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
+          call currDensity(Jsource) 
+          Jsource = Jsource+A_F
+          !----- Setting MKL-Solver Parammeters -----!
+          S_m     = size(A_K,2)  !antes ntotv
+          S_n     = size(A_K,2)  !antes ntotv
+          S_ldSol = max(1,S_n)
+          S_trans = 'N'
+          S_nrhs  = 1
+          allocate( store_Spec(S_ldSol,t_steps+1) )
+          allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1) ) 
+          allocate( S_ipiv(max(1,min(S_m, S_n)) ) )
+          
+          print*, ' '
+          print*, '!================ MKL Solver ==================!'
+          print*,'  •SETTING VARIABLES FOR MKL LIBRARY.....'
+          AK_LU = A_K      !AK_band(ldab,*) contains the matrix A_K in band storage
+          u_sol = Jsource  !u_sol gonna be rewrited by LAPACK avoiding lose Jsource
+          print*,'esto es u_sol en main',sum(Jsource)
+          !---------- Solving System of Equations by INTEL MKL solver -----------!
+          print*,'  •PERFORMING LU BAND DECOMPOSITION.....'
+          call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
+          call MKLfactoResult('dgbtrf',info) 
+          print*,'  •SOLVING SYSTEM OF EQUATIONS.....'
+          !---------- Computing nodal unknowns ux_i, uy_i and p_i ---------------!
+          call dgbtrs(S_trans,S_n,lowban,upban,S_nrhs,AK_LU,ldAKban,S_ipiv,u_sol,S_ldSol,info )
+          call MKLsolverResult('dgbtrs',info)
+          !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
+          call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,u_sol,grad_u_sol)
+          !---------- Print and write results -----------------------------------!
+          call GID_results(u_sol, grad_u_sol) 
+          do ii = 1, S_ldSol
+            store_Spec(ii,1) = u_sol(ii,1) 
+          end do
+          call storeSpectrum(ii_ky, store_Spec)
 
-      !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
-      call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,u_sol,grad_u_sol)
-      
-      !---------- Print and write results -----------------------------------!
-      call GID_results(u_sol, grad_u_sol) 
-      !call Res_Matlab(u_sol)
-      
-      write(*,*)
-      !---------- Memory Relase ---------------------------------------------!
-      DEALLOCATE( A_F, A_K, AK_LU, u_sol)
-      deallocate( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
-      deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+          !---------- Memory Relase ---------------------------------------------!
+          DEALLOCATE( A_F, A_K, AK_LU, u_sol)
+          DEALLOCATE( store_Spec, S_ipiv )
+        end do
+          deallocate( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
+          deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+        !End of 2D-problem computation for each wave number 
+        !---------- Performing the Inverse Fourier Transform -----------------------------!
+        TwoHalf = 'N'
+        call invDFT 
+        !call Res_Matlab(u_sol)
+        
+      endif
       
     case DEFAULT
       PRINT*, ' ' 
       print*, 'In Problem Type Transient or Static'
       write(*,*) 'Invalid Problem Type.'
       stop
-  end select
+    end select
+    
+  write(*,*)
 
-  call cpu_time(finish); call fdate(date); 
+  call cpu_time(finish); call fdate(date)
+  print*, ' '
+  print'(A)',' - - -' 
   write(*,'(A11,f14.5,A,f5.2,A,A)   ')' &
     &CPU-Time =', finish,' ~',((finish-start)/60.0)/10.0,' minutes. Finished on: ', date
-  print*,' ' 
-
+  ! primero entre 10 p[ara pasar de cientos de segundos a decenas de segundos y luego dividir esas decenas
+  ! en segmentos de sesenta  segundos que serian un minuto, por eso de ambas divisiones
+  print*,' ', finish-start
+  print*,' ', ((finish-start)/10.0)/60
 end program main_CDR3d
 
 
