@@ -473,6 +473,7 @@ module library
       
       ievab=0
       do inode=1,nne
+        reac = 0.0
         do idofn=1,ndofn
           ievab=ievab+1
           jevab=0
@@ -504,14 +505,14 @@ module library
                 !if it is dealing with a 2.5D Problem
                 if(oper == 'LAPL')then
                   ! print*,'Entra a Laplacian'
-                  print*,k_y
-                  print*,sigma
+                  ! print*,k_y
+                  ! print*,sigma
                   reac = basis(inode) * k_y**2 *sigma* reama(idofn,jdofn) * basis(jnode)
                 elseif(oper == 'MAXW')then
                   reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
                 endif
               else
-                ! print*,'!if it is NOT dealing with a 2.5D Problem'
+                print*,'!if it is NOT dealing with a 2.5D Problem'
                 reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               endif
               
@@ -631,7 +632,6 @@ module library
             !el problema, ponga una propiedad fisica u otra
             if(kstab == 0)then
               ! print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
-                  print*,'desde param_stab',sigma
               coeff = sigma
             else
               coeff = lambda
@@ -1769,7 +1769,7 @@ module library
           print'(53A,I0)', 'ioStat for OPPENING 2D electric field spectrum files ', stat
           print*, msg
         end if
-        read(5,*,iostat=stat,iomsg=msg) !se salta los encabezados 
+        read(5,*,iostat=stat,iomsg=msg) !se salta los encabezados
         do jj = 1,ntotv
           read(5,*,iostat=stat,iomsg=msg) (E_hat_ky(iwn,nt,jj), nt =1,t_steps+1 )
           IF ( stat /= 0 )then
@@ -1792,27 +1792,28 @@ module library
       open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
       write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
       if(ProbType=='TIME')then
-        write(300,"(A13, I0)") '%At the time ', t_steps-2
+        write(300,"(A13, I0)") '%At the time ', t_steps-2 
         ky_loop1: do ll = 1,tot_ky
           ky = WaveNumbers(ll)
           ! Ex_hat = (ndofn-1) = 3-1=2
           ! Ey_hat = (ndofn-2) = 3-2=1
           ! Ez_hat = (ndofn-3) = 3-3=0
           ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
-          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-2), jj=1,nodalRec),&
-            &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-1), jj=1,nodalRec),&
-            &(E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)-0), jj=1,nodalRec)
-          !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
+            &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
+            &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
         end do ky_loop1
       else
         !This is for a static and scalar problem
         if(ProbType=='STAT')t_steps=3 
         write(300,"(A)") '% No           ky                    Êx'
-        write(300,"(A13, I0)") '%At the time ', t_steps
+        write(300,"(A12, I0)") '%Receivers: ', nodalRec
+        write(300,903) (coord(1,receivers(jj)), jj=1,nodalRec) 
         ky_loop2: do ll = 1,tot_ky
           ky = WaveNumbers(ll)
-          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*recLoc(jj)), jj=1,nodalRec)
-          !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+          write(300,904) ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)), jj=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
         end do ky_loop2
         if(ProbType=='STAT')t_steps=0
       endif
@@ -1836,11 +1837,14 @@ module library
             ky_loop3: do ll =1, tot_ky
               ky=WaveNumbers(ll)
               E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*exp(-cmplx(0,1)*y_iFT*ky) * delta_ky
+              ! E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*cos(ky*y_iFT) * delta_ky
             end do ky_loop3
           end do DoF_loop
         end do nodes_loop
       end do time_loop
-      E_xyzt = (1./2.*pi) * E_xyzt 
+      ! E_xyzt = (1.0/2.0*pi) * E_xyzt   !Transformada Exponencial
+      E_xyzt = (1.0/pi) * E_xyzt     !Transformada coseno Moghaddam et al. 1991
+      ! E_xyzt = (2./pi) * E_xyzt      !Transformada coseno Queralt et al. 1989 
       
       ! print*,' '
       ! print*,' '
@@ -1894,7 +1898,9 @@ module library
       !    end do
       !    write(*,'(I5,2x,5(F7.3,1x))') k, f_t(k), reall(k), imagi(k), fhat(k)
       !  end do
-      904 format(I5,2x,e15.6,5x,99(e17.6))    !format to print the profile file
+      903 format(99f12.5)    !format to print the profile file
+      904 format(99(e18.6))    !format to print the profile file
+      ! 904 format(I5,2x,e15.6,5x,99(e17.6))    !format to print the profile file
     end subroutine invDFT
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -2234,8 +2240,8 @@ module library
         endif
         open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
         
-        write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin))), ipoin=1,nodalRec)
-        !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin))), ipoin=1,nodalRec)
+        !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
         !Creo que aqui en lugar del +1 debio ser -2 para que el grado de libertad del receptor
         !corresponda a la componente x
 
@@ -2246,7 +2252,7 @@ module library
         !  timeStep2 = 0.0
         !  do time2 = 1, t_steps+1
         !    timeStep2 = timeStep2 + delta_t
-        !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
+        !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*receivers(ipoin)+2)), ipoin=1,nodalRec)
         !  end do
         !endif
         
