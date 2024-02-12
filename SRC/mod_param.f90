@@ -13,7 +13,7 @@ module param
   integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
   integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
-  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv,initNodes, initElem, tot_ky, idk_y
+  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
   real              :: hnatu, patau
   double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
   double precision  :: ky_min, ky_max, y_iFT,  k_y, sigma
@@ -23,11 +23,11 @@ module param
   integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
   double precision, allocatable, dimension(:,:,:,:) :: difma
   double precision, allocatable, dimension(:,:,:)   :: conma
-  double precision, allocatable, dimension(:,:)     :: reama !Tensor materials
+  double precision, allocatable, dimension(:,:)     :: reama 
   double precision, allocatable, dimension(:)       :: force, Icurr, WaveNumbers !Force and Current vector (respectively)
   character(len=8), allocatable, dimension(:) :: files_ky        
   character(len=4), allocatable, dimension(:) :: nodal_ky
-  integer         , allocatable, dimension(:)       :: srcLoc, recLoc
+  integer         , allocatable, dimension(:) :: receivers, srcLoc
 
   contains
     
@@ -40,12 +40,14 @@ module param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      character(len=19)               :: name_inputFile
-      double precision                :: tsteps
-      character(len=180)              :: msg
-      character(len=*), parameter     :: fileplace = "./"
-      integer                         :: stat, ii
-      character(len=13), intent(out)  :: mesh_file
+      character(len=*), parameter                   :: fileplace = "./"
+      character(len=19)                             :: name_inputFile
+      character(len=180)                            :: msg
+      double precision                              :: tsteps
+      double precision, allocatable, dimension(:)   :: node_found_it
+      integer         , allocatable, dimension(:,:) :: recLoc
+      integer                                       :: stat, ii, idime
+      character(len=13), intent(out)                :: mesh_file
       
       
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
@@ -195,12 +197,24 @@ module param
       
       read(5,109,iostat=stat,iomsg=msg) signal
       read(5,109,iostat=stat,iomsg=msg) nodalRec
-      allocate( recLoc(nodalRec) )
+      allocate( recLoc(DimPr,nodalRec) )
       !Aqui deberia poner un if para verificar que los nodos tanto de la fuente como del receptor
       !No sobrepasan los nodos maximos disponibles en la malla
-      do ii =1, nodalRec
-        read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
+      do ii=1,nodalRec !number of total nodes
+        read(5,*,iostat=stat,iomsg=msg) (recLoc(idime,ii), idime =1,DimPr )
+        IF ( stat /= 0 )then
+          print*,'iostat= ',stat
+          print*, msg
+        end if
       end do
+      
+      ! do ii =1, nodalRec
+      !   read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
+      ! end do
+     
+      allocate(receivers(nodalRec), node_found_it(nodalRec))
+      call SearchingNodes(mesh_file, recLoc, node_found_it)
+      receivers = node_found_it
       
       close(5)
       
@@ -227,9 +241,9 @@ module param
         &            'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat',&
         &            'ky11.dat','ky12.dat','ky13.dat','ky14.dat'/)
 
-        File_3DNodal_Vals = "3D_Potential"
+        File_3DNodal_Vals = "PotentialNeu"
                            ! 3D_Potential
-        shape_spec_file = "DC_spectrum_correc3.dat"
+        shape_spec_file = "Test4_slides_cFT.dat"
         File_Nodal_Vals_ky = File_Nodal_Vals
       else
         tot_ky = 1
@@ -296,6 +310,81 @@ module param
       !108 format(11x,I3,I3,/) 
       
     end subroutine inputData
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
+    !
+    subroutine SearchingNodes(file_mesh, recLoc, node_found_it)
+      implicit none
+    
+      character(len=*), parameter :: fileplace = "Msh/"
+      integer         , parameter :: max_nodos = 10000
+      character(len=13)                 , intent(in) :: file_mesh
+      integer, dimension(Dimpr,nodalRec), intent(in) :: recLoc
+      character(len=180)              :: msg
+      double precision                :: coord_x(max_nodos), coord_y(max_nodos)
+      double precision                :: x, y
+      double precision                :: distancia_minima, distancia_actual
+      integer                         :: nodo(max_nodos)
+      integer                         :: nodo_mas_cercano
+      integer                         :: i, ireceiver, num_nodos, stat
+      double precision, dimension(nodalRec), intent(out) :: node_found_it
+    
+      ! Leer el archivo de coordenadas (coor.dat)
+      open(1, file=fileplace//file_mesh, status='old', action='read',IOSTAT=stat, IOMSG=msg)
+      ! open(unit=1, file='coor.dat', status='old', action='read')
+      print*, fileplace
+      num_nodos = 0
+      read(1,*)
+      read(1,*) nnodes
+      do i = 1, nnodes 
+         read(1, *, end=10) nodo(i), coord_x(i), coord_y(i)
+         num_nodos = i
+      end do
+      if (stat.ne.0)then
+        print*, ' '
+        print*,'!============ STATUS READING COORDINATE FILE FOR RECEIVERS. ============!'
+        print "(A9,I0,A)", "- Status ",stat,"while coordinates were reading for receivers"
+        print*, ' '
+        print*, ' '
+        print'(A8,1x,A180)','iomsg = ',msg
+        print*, 'if status = 64 = Preconnected file comprises unformatted records'
+        print*, 'mean there is a <tab> instead of <BS> in file it is being read it'
+        print*, ' '
+      else
+        continue
+      end if
+      10 close(1)
+    
+      loop_receiver: do ireceiver =1, nodalRec
+        ! Leer las coordenadas a buscar
+        write(*,*) "Ingrese la coordenada x:"
+        ! read(*,*) x = recLoc(1, ireceiver)
+        x = recLoc(1, ireceiver)
+        write(*,*) "Ingrese la coordenada y:"
+        ! read(*,*) y = recLoc(2, ireceiver)
+        y = recLoc(2, ireceiver)
+        
+        ! Inicializar la distancia mínima
+        distancia_minima = sqrt((x - coord_x(1))**2 + (y - coord_y(1))**2)
+        nodo_mas_cercano = nodo(1)
+        ! Buscar la coordenada más cercana
+        do i = 2, num_nodos
+           distancia_actual = sqrt((x - coord_x(i))**2 + (y - coord_y(i))**2)
+           if (distancia_actual < distancia_minima) then
+              distancia_minima = distancia_actual
+              nodo_mas_cercano = nodo(i)
+           end if
+        end do
+        node_found_it(ireceiver) = nodo_mas_cercano
+        write(*,*) "El nodo más cercano a (", x, ",", y, ") es el nodo ", nodo_mas_cercano
+      end do loop_receiver
+      
+      ! Mostrar el resultado
+      
+    end subroutine SearchingNodes
+    
+    
     
   !end contains
     
