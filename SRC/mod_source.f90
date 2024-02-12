@@ -187,10 +187,6 @@ module sourceTerm
       mu = 1./lambda
       !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
       
-      
-      
-      
-      
       ! select case(SRCType)
       ! case(0)
       ! Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
@@ -260,12 +256,11 @@ module sourceTerm
           ! if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
           if((ndofn.eq.1).or.(ndofn.eq.3))then
             if(ndofn.eq.1)then 
-              print*,'Scalar Problem'
               do ii=1,nodalSrc
               ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
               !print*,Icurr
-              ! Jsource((srcLoc(ii)-1)*ndofn+1,1) = Icurr(1)
-              Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)
+              ! Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)/2.0    !Transformada coseno Queralt et al. 1989 
+              Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)          !Transformada coseno y completa 
               end do
             else !
               print*,'Vector problem'
@@ -280,8 +275,6 @@ module sourceTerm
         endif
         !FIN fuente para el caso de corriente directa
       endif 
-
-          
           
       ! case(2)
       !    
