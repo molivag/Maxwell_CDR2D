@@ -241,9 +241,9 @@ module param
         &            'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat',&
         &            'ky11.dat','ky12.dat','ky13.dat','ky14.dat'/)
 
-        File_3DNodal_Vals = "PotentialNeu"
+        File_3DNodal_Vals = "TransV_Fixed"
                            ! 3D_Potential
-        shape_spec_file = "Test4_slides_cFT.dat"
+        shape_spec_file = "Test5_slides_eFT.dat"
         File_Nodal_Vals_ky = File_Nodal_Vals
       else
         tot_ky = 1
@@ -323,7 +323,7 @@ module param
       integer, dimension(Dimpr,nodalRec), intent(in) :: recLoc
       character(len=180)              :: msg
       double precision                :: coord_x(max_nodos), coord_y(max_nodos)
-      double precision                :: x, y
+      double precision                :: x, dummy, y
       double precision                :: distancia_minima, distancia_actual
       integer                         :: nodo(max_nodos)
       integer                         :: nodo_mas_cercano
@@ -338,7 +338,7 @@ module param
       read(1,*)
       read(1,*) nnodes
       do i = 1, nnodes 
-         read(1, *, end=10) nodo(i), coord_x(i), coord_y(i)
+         read(1, *, end=10) nodo(i), coord_x(i), dummy ,  coord_y(i)
          num_nodos = i
       end do
       if (stat.ne.0)then
@@ -358,10 +358,10 @@ module param
     
       loop_receiver: do ireceiver =1, nodalRec
         ! Leer las coordenadas a buscar
-        write(*,*) "Ingrese la coordenada x:"
+        ! write(*,*) "Ingrese la coordenada x:"
         ! read(*,*) x = recLoc(1, ireceiver)
         x = recLoc(1, ireceiver)
-        write(*,*) "Ingrese la coordenada y:"
+        ! write(*,*) "Ingrese la coordenada y:"
         ! read(*,*) y = recLoc(2, ireceiver)
         y = recLoc(2, ireceiver)
         
