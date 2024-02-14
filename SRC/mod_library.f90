@@ -1842,9 +1842,9 @@ module library
           end do DoF_loop
         end do nodes_loop
       end do time_loop
-      ! E_xyzt = (1.0/2.0*pi) * E_xyzt   !Transformada Exponencial
-      E_xyzt = (1.0/pi) * E_xyzt     !Transformada coseno Moghaddam et al. 1991
-      ! E_xyzt = (2./pi) * E_xyzt      !Transformada coseno Queralt et al. 1989 
+      E_xyzt = (1.0/2.0*pi) * E_xyzt   !Transformada Exponencial
+      ! E_xyzt = (1.0/pi) * E_xyzt       !Transformada coseno Moghaddam et al. 1991
+      ! E_xyzt = (2./pi) * E_xyzt          !Transformada coseno Queralt et al. 1989 
       
       ! print*,' '
       ! print*,' '
@@ -1878,6 +1878,13 @@ module library
         end do nodes_loop3
         call GID_results(E_3D) 
       endif
+      open(unit=10, file=path2//"spatial_profile.dat", ACTION="write", STATUS="replace")
+      do jj =1,nodalRec
+          ! print*, ndofn*receivers(jj)
+          write(10,902) coord(1,ndofn*receivers(jj)), E_3D(ndofn*receivers(jj),1)
+          ! El error esta aqui por que no se imprime lo que debe ser el valor de E3D
+      end do
+      close(10)
         
         
       !  NN = 19
@@ -1898,6 +1905,7 @@ module library
       !    end do
       !    write(*,'(I5,2x,5(F7.3,1x))') k, f_t(k), reall(k), imagi(k), fhat(k)
       !  end do
+      902 format(5(E18.6))
       903 format(99f12.5)    !format to print the profile file
       904 format(99(e18.6))    !format to print the profile file
       ! 904 format(I5,2x,e15.6,5x,99(e17.6))    !format to print the profile file
@@ -1906,12 +1914,14 @@ module library
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine GID_results(solution, grad_sol)
+    ! subroutine GID_results(solution, grad_sol,profile)
       
       implicit none
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
       double precision, dimension(nelem,totGp,DimPr), intent(in), optional :: grad_sol
+      ! integer                                       , intent(in), optional :: profile
       character(len=10)                       :: ext1, ext2
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
@@ -1943,7 +1953,8 @@ module library
       write(555,"(A)")'Coordinates'
       write(555,"(A)") '#   No        X           Y'
       do ipoin = 1, nnodes
-        write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+        ! write(555,906) ipoin, xcor(1,ipoin),  ycor(1,ipoin)
+        write(555,906) ipoin, xcor(1,ipoin), y_iFT,  ycor(1,ipoin)
       end do
       write(555,"(A)") 'End Coordinates'
       
@@ -2026,6 +2037,16 @@ module library
             write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
           endif
       end select
+
+      ! if(present(profile)then
+      !   open(unit=10, file=path2//"spatial_profile.dat", ACTION="write", STATUS="replace")
+      !   do ipoin =1,nodalRec
+      !       write(10,903) coord(1,receivers(ipoin)), solution_T(1,receivers(ipoin))
+      !   end do
+      !   close(10)
+      ! else
+      !   write(*,'(A)') 'No spatial profile required'
+      ! endif
       
       if (present(grad_sol) )then
         if(postpro.eq.1)then
@@ -2061,7 +2082,7 @@ module library
       901 format(2(f10.5))
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
       903 format(2(E15.5))
-      906 format(I7,4x,2(f15.5,3x)) !format for msh
+      906 format(I7,4x,3(f15.5,3x)) !format for msh
       908 format(10(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E15.5)  !format for scalar case
@@ -2136,7 +2157,7 @@ module library
         write(100,"(A)")'Coordinates'
         write(100,"(A)") '#   No        X           Y'
         do ipoin = 1, nnodes
-          write(100,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
+          write(100,906) ipoin, xcor(1,ipoin), y_iFT ,ycor(1,ipoin)
         end do
        
         write(100,"(A)") 'End Coordinates'
@@ -2330,7 +2351,7 @@ module library
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
       904 format(I5,2x,e15.6,2x,99(e15.6))    !format to print the profile file
-      906 format(I7,2(3x,f9.4)) !format for msh
+      906 format(I7,3(f15.5,3x)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
