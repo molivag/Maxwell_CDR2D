@@ -23,10 +23,11 @@ use param
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
       implicit none
       
-      character(len=*), parameter     :: fileplace = "Msh/"
-      character(len=13), intent(in)   :: file_mesh
-      character(len=180)              :: msg
-      double precision                :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
+      character(len=*), parameter                   :: fileplace = "Msh/"
+      character(len=13), intent(in)                 :: file_mesh
+      character(len=180)                            :: msg
+      double precision, allocatable, dimension(:,:) :: cord3D
+      double precision                              :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
       integer                         :: ielem, jpoin, idime, i,j, stat, dmy, gmsh_nne
       integer                         :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
       integer                         :: npoiw,nelew,nnodw, npoif
@@ -36,14 +37,19 @@ use param
       open(5, file=fileplace//file_mesh, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       !open(5, file=fileplace//'inputCDR.dsc',status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
+      !para el caso de quitar los mxnow y los demas parameters, ya habia hecho el calculo de cuanto 
+      !se incrementa el numero de nodos y elmentos usando Powell-Sabin o Criss-Cross,
+      !ese calculo debe ir aqui para hacer dinamicas las matrices y que se quite los parameters
+      !que ocupan mucha memoria
+      
       
       !do i=1,skipline
       !read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       !end do
-      read(5,*) !se salta todas las lineas del archivo .msh comenzando a leer nodos
+      read(5,*,IOSTAT=stat, IOMSG=msg) !se salta la lineas del archivo .msh
       if ( stat /= 0 )then
         print*, ' ' 
-        print*, 'error in read mesh module geometry' 
+        print*, 'error in read mesh file first line, module geometry' 
         print'(A9,I3)','iostat= ',stat
         print'(A8,1x,A180)','iomsg= ',msg
         print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
@@ -51,12 +57,22 @@ use param
         stop
       end if
       
-      read(5,*) initNodes
+      read(5,*,IOSTAT=stat, IOMSG=msg) initNodes
+      if ( stat /= 0 )then
+        print*, ' ' 
+        print*, 'error while reading init nodes in mesh file at, module geometry' 
+        print'(A9,I3)','iostat= ',stat
+        print'(A8,1x,A180)','iomsg= ',msg
+        print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
+        print*, ' ' 
+        stop
+      end if
       nnodes = initNodes
-      allocate( coord(Dimpr,initNodes))
+      allocate(cord3D(3,initNodes), coord(Dimpr,initNodes))
       coord = 0.0 
       do i=1,nnodes !number of total nodes
-        read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
+        read(5,*,iostat=stat,iomsg=msg) jpoin,(cord3D(idime,jpoin), idime =1,3 )
+        ! read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
         IF ( stat /= 0 )then
           print*,'iostat= ',stat
           print*, msg
@@ -69,6 +85,11 @@ use param
           print*, msg
         endif
       end do
+      
+      do j =1 , initNodes
+        coord(1,j) = cord3D(1,j)
+        coord(2,j) = cord3D(3,j)
+      enddo
       
       !do jpoin = 1, nnodes
       !  print'(i5, 2x,2(F16.9))', jpoin, (coord(idime,jpoin),idime=1,DimPr)
@@ -85,12 +106,20 @@ use param
       !mshType  = 1                !Mesh builder 1=GID; 2=GMSH       
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, dmy,dmy, gmsh_nne, (lnods(ielem,j), j =1,initnne)
+        if(gmsh_nne.ne.initnne)then
+          print*," error in Number of Nodes in the element "
+          stop
+        endif
         IF ( stat /= 0 )then!
           print*,'iostat= ',stat
           print*, msg
+          stop
         END IF
       end do
       read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
+      !Aqui fallo al leer triangulos cuando debio decirme que los nne no coincidian o que los GP no coincidian
+      !Por lo tanto, agregar un algo que en lugar de que falle aqui, verifique que son triangulos o cuadrados
+      !lo que se esta leyendo
       
       !do i = 1, nelem
       !  print'(i5, 2x,5(I6))', i, (lnods(i,j),j=1,initnne)
@@ -222,11 +251,11 @@ use param
       do ielem=1,nelem
         !*** 2D: NNODE = 3 --> NNODE = 4 6 & 7
         if(refiType.eq.'PS')then
-          !Si quiero que el refinado PS parta tambien de cuadrados entonces primero debo poner las lineas
-          !de dividir un cuadrado en 4 triangulos (es decir abajo la que crea el criss-cross pero en lugar
-          !de dividir en 4, divido en 2 y con ello ya tendre triangulos que luego seguira en el ciclo !here
-          !que agregara 3 nodos mas y luego uno al centro es decir todo queda igual solo agregar aqui previ
-          !al primer ciclo do, el ciclo de dividir un cuadrado en dos elementos y ya
+        !Si quiero que el refinado PS parta tambien de cuadrados entonces primero debo poner las lineas
+        !de dividir un cuadrado en 4 triangulos (es decir abajo la que crea el criss-cross pero en lugar
+        !de dividir en 4, divido en 2 y con ello ya tendre triangulos que luego seguira en el ciclo !here
+        !que agregara 3 nodos mas y luego uno al centro es decir todo queda igual solo agregar aqui previ
+        !al primer ciclo do, el ciclo de dividir un cuadrado en dos elementos y ya
           if(ielem.eq.1)write(*,'(a)') 'Powell-Sabin refinement type selectd use triangle as a initial element'
           if(initnne.ne.3)then 
             write(*,'(a)') 'PS refinment not compatible with quadrilateral element'
