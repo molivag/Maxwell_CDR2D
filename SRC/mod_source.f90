@@ -259,8 +259,8 @@ module sourceTerm
               do ii=1,nodalSrc
               ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
               !print*,Icurr
-              ! Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)/2.0    !Transformada coseno Queralt et al. 1989 
-              Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)          !Transformada coseno y completa 
+              ! Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)/2.0  !Transformada coseno Queralt et al. 1989
+              Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)        !Transformada coseno y completa 
               end do
             else !
               print*,'Vector problem'

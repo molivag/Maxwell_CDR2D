@@ -156,7 +156,7 @@ module inputInfo
         write(*,'(A)') ' -Location'
         if(nodalSrc.eq.1)then
           write(*,'(A)')' -Source point' 
-          write(*,'(A,F8.3,A,F8.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) '
+          write(*,'(A,F10.3,A,F10.3,A)') '(',coord(1,Srcloc(1)),',',coord(2,Srcloc(1)),' ) '
           print*, ' '
           write(*,'(A24,99(I0,4x))')' -Source point at node: ', (Srcloc(i), i=1,nodalSrc) 
           print*, ' '
