@@ -47,59 +47,39 @@ use param
       !read(5,*) !se salta todas las lineas del input file hasta donde comienza la malla
       !end do
       read(5,*,IOSTAT=stat, IOMSG=msg) !se salta la lineas del archivo .msh
-      if ( stat /= 0 )then
-        print*, ' ' 
-        print*, 'error in read mesh file first line, module geometry' 
-        print'(A9,I3)','iostat= ',stat
-        print'(A8,1x,A180)','iomsg= ',msg
-        print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
-        print*, ' ' 
-        stop
-      end if
+      call checkStatus(4,stat,msg)
       
       read(5,*,IOSTAT=stat, IOMSG=msg) initNodes
-      if ( stat /= 0 )then
-        print*, ' ' 
-        print*, 'error while reading init nodes in mesh file at, module geometry' 
-        print'(A9,I3)','iostat= ',stat
-        print'(A8,1x,A180)','iomsg= ',msg
-        print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',file_mesh
-        print*, ' ' 
-        stop
-      end if
+      call checkStatus(5,stat,msg)
+      
       nnodes = initNodes
       allocate(cord3D(3,initNodes), coord(Dimpr,initNodes))
       coord = 0.0 
-      do i=1,nnodes !number of total nodes
-        read(5,*,iostat=stat,iomsg=msg) jpoin,(cord3D(idime,jpoin), idime =1,3 )
-        ! read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
-        IF ( stat /= 0 )then
-          print*,'iostat= ',stat
-          print*, msg
-        end if
-      end do
+      if(view == 'xz')then
+        print*, 'plano xz'
+        do i=1,nnodes !number of total nodes
+          read(5,*,iostat=stat,iomsg=msg) jpoin,(cord3D(idime,jpoin), idime =1,3 )
+        end do
+        do j =1 , initNodes
+          coord(1,j) = cord3D(1,j) !coordenada x
+          coord(2,j) = cord3D(3,j) !coordenada z
+        enddo
+      else
+        print*, 'plano xy'
+        do i=1,nnodes !number of total nodes
+          read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
+        end do
+      endif
       do i=1,2
         read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
-        if ( stat /= 0 )then
-          print*,'iostat= ',stat
-          print*, msg
-        endif
       end do
-      
-      do j =1 , initNodes
-        coord(1,j) = cord3D(1,j)
-        coord(2,j) = cord3D(3,j)
-      enddo
       
       !do jpoin = 1, nnodes
       !  print'(i5, 2x,2(F16.9))', jpoin, (coord(idime,jpoin),idime=1,DimPr)
       !end do
       
       read(5,*) initElem 
-        IF ( stat /= 0 )then
-          print*,'iostat= ',stat
-          print*, msg
-        END IF
+      call checkStatus(8,stat,msg)
       nelem = initElem
       allocate( lnods(initElem,initnne))
       lnods = 0.0
@@ -107,14 +87,10 @@ use param
       do i=1,nelem
         read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, dmy,dmy, gmsh_nne, (lnods(ielem,j), j =1,initnne)
         if(gmsh_nne.ne.initnne)then
-          print*," error in Number of Nodes in the element "
+          print*," error in Number of Nodes in the element, while reading lnodes in geometry module "
           stop
         endif
-        IF ( stat /= 0 )then!
-          print*,'iostat= ',stat
-          print*, msg
-          stop
-        END IF
+        call checkStatus(9,stat,msg)
       end do
       read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
       !Aqui fallo al leer triangulos cuando debio decirme que los nne no coincidian o que los GP no coincidian
