@@ -36,8 +36,15 @@ module BoundVal
       xmax = maxval(coord(1,:)) !the greatest number in x column
       ymin = minval(coord(2,:)) !the smallest number in y column
       ymax = maxval(coord(2,:)) !the greatest number in y column
-      xmiddle =  ((xmax)-(xmin))/2.0
-      ymiddle =  ((ymax)-(ymin))/2.0
+      if(TwoHalf == 'Y')then
+        xmiddle =  (abs(xmax)-abs(xmin))/2.0
+        ymiddle =  ((ymax)-(ymin))/2.0
+        print*,ymiddle
+      else
+        xmiddle =  (abs(xmax)-abs(xmin))/2.0
+        ymiddle =  (abs(ymax)-abs(ymin))/2.0
+      endif
+      
       print*, ' '
       print*, '!================ Domain Dimensions ===========!'
       write(*,'(A)') ' -    xmin ,   xmax'
@@ -54,13 +61,13 @@ module BoundVal
         do i =1, nnodes
           x=coord(1,i)
           y=coord(2,i)
-          ux = 0.0 
+          ux = 0.00001 
           if(y.eq.ymax) then
             if(x.eq.xmax)then                   !right top corner 
-              write(200,10) i, 1
+              write(200,10) i, 0
               write(300,30) ux 
             elseif(x.eq.xmin)then               !left top corner 
-              write(200,10) i, 1
+              write(200,10) i, 0
               write(300,30) ux 
             else
               write(200,10) i, 0                !Top boundary
