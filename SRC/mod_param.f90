@@ -7,8 +7,9 @@ module param
   character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
   character(len=12) :: File_3DNodal_Vals
   character(len=8)  :: File_Nodal_Vals_ky
+  
   character(len=4)  :: ProbType, ElemType, initElemType, ky_id, oper
-  character(len=2)  :: refiType, splits, TwoHalf
+  character(len=2)  :: refiType, splits, TwoHalf, view
   integer           :: nBVs, nBVscol, nband, t_steps, exacSol, BCsProb
   integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
@@ -42,6 +43,7 @@ module param
       
       character(len=*), parameter                   :: fileplace = "./"
       character(len=19)                             :: name_inputFile
+      character(len=5)                             :: obj
       character(len=180)                            :: msg
       double precision                              :: tsteps
       double precision, allocatable, dimension(:)   :: node_found_it
@@ -54,25 +56,13 @@ module param
       
       read(5, 100,iostat=stat,iomsg=msg) &
       ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro, sigma, oper,&
-      mesh_file, initnne, i_exp, hnatu, refiType,&
+      mesh_file, view ,initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
       TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, &
       theta, time_ini, time_fin, t_steps, Src_ON,&
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
-      if (stat.ne.0)then
-        print*, ' '
-        print*,'!============ STATUS READING INPUT FILE. ============!'
-        print "(A38,I4)", "- Status while reading input file is: ", stat
-        print*, ' '
-        print*, ' '
-        print'(A8,1x,A180)','iomsg = ',msg
-        print*, 'if status = 64 = Preconnected file comprises unformatted records'
-        print*, 'mean there is a <tab> instead of <BS> in input file'
-        print*, ' '
-      else
-        continue
-      end if
-     
+      call checkStatus(0,stat,msg)
+      
       allocate( difma(ndofn,ndofn,DimPr,DimPr) )
       allocate( conma(ndofn,ndofn,DimPr) )
       allocate( reama(ndofn,ndofn) )
@@ -82,22 +72,49 @@ module param
       difma = 0.0;  conma = 0.0; reama = 0.0
       force = 0.0;  Icurr = 0.0; WaveNumbers = 0.0
       
-      if(ndofn.eq.1)then
-        read(5,101) difma(1,1,1,1), difma(1,1,1,2)
-        read(5,101) difma(1,1,2,1), difma(1,1,2,2)
-       
-        read(5,101) conma(1,1,1)
-        read(5,101) conma(1,1,2)
+      if(ndofn.eq.1)then        !1 degree of freedom
+        obj = 'difma'
+        read(5,101,iostat=stat,iomsg=msg) difma(1,1,1,1), difma(1,1,1,2)
+        read(5,101,iostat=stat,iomsg=msg) difma(1,1,2,1), difma(1,1,2,2)
+        call checkStatus(1,stat,msg)
+        !reading CONMA 1 DoF
+        obj = 'conma'
+        read(5,101,iostat=stat,iomsg=msg) conma(1,1,1)
+        read(5,101,iostat=stat,iomsg=msg) conma(1,1,2)
+        call checkStatus(1,stat,msg)
+        !reading REAMA 1 DoF
+        obj = 'reama'
+        read(5,101,iostat=stat,iomsg=msg) reama(1,1)
+        call checkStatus(1,stat,msg)
+        !reading FORCE 1 DoF
+        obj = 'force'
+        read(5,105,iostat=stat,iomsg=msg) force(1)
+        call checkStatus(1,stat,msg)
         
-        read(5,101) reama(1,1)
+      elseif(ndofn.eq.2) then      !2 degree of freedom
+        read(5,102,iostat=stat,iomsg=msg) & 
+        difma(1,1,1,1), difma(1,2,1,1),   & 
+        difma(2,1,1,1),difma(2,2,1,1)
+        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
+        call checkStatus(2,stat,msg)
         
-        read(5,105) force(1)
+        read(5,102,iostat=stat,iomsg=msg) & 
+        difma(1,1,1,2), difma(1,2,1,2),   &
+        difma(2,1,1,2),difma(2,2,1,2)
+        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
+        call checkStatus(2,stat,msg)
         
-      elseif(ndofn.eq.2) then
-        read(5,102) difma(1,1,1,1), difma(1,2,1,1), difma(2,1,1,1),difma(2,2,1,1)
-        read(5,102) difma(1,1,1,2), difma(1,2,1,2), difma(2,1,1,2),difma(2,2,1,2)
-        read(5,102) difma(1,1,2,1), difma(1,2,2,1), difma(2,1,2,1),difma(2,2,2,1)
-        read(5,102) difma(1,1,2,2), difma(1,2,2,2), difma(2,1,2,2),difma(2,2,2,2)
+        read(5,102,iostat=stat,iomsg=msg) & 
+        difma(1,1,2,1), difma(1,2,2,1),   &
+        difma(2,1,2,1),difma(2,2,2,1)
+        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
+        call checkStatus(2,stat,msg)
+        
+        read(5,102,iostat=stat,iomsg=msg) & 
+        difma(1,1,2,2), difma(1,2,2,2),   &
+        difma(2,1,2,2),difma(2,2,2,2)
+        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
+        call checkStatus(2,stat,msg)
         
         read(5,102) conma(1,1,1), conma(1,2,1), conma(2,1,1), conma(2,2,1)
         read(5,102) conma(1,1,2), conma(1,2,2), conma(2,1,2), conma(2,2,2)
@@ -106,70 +123,59 @@ module param
         
         read(5,106) force(1), force(2)
         
-      elseif(ndofn.eq.3)then
-        
+      elseif(ndofn.eq.3)then        !3 degree of freedom
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,1), difma(1,2,1,1), difma(1,3,1,1), &
         difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1), &
         difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_xx= ',stat
-          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
-        end if
-
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xx= ',stat
+        call checkStatus(3,stat,msg)
+        
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
         difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2), &
         difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_xy= ',stat
-          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
-        end if
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xy= ',stat
+        call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
         difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1), &
         difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_yx= ',stat
-          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
-        end if
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_yx= ',stat
+        call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
         difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2), &
         difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_yy= ',stat
-          print'(A13,1x,A180)','iomsg_DIFMA= ',msg
-        end if
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_yy= ',stat
+        call checkStatus(3,stat,msg)
         
-        read(5,103,iostat=stat,iomsg=msg) &
+        read(5,103,iostat=stat,iomsg=msg) & !reading CONMA for 3DoF
         conma(1,1,1), conma(1,2,1), conma(1,3,1), &
         conma(2,1,1), conma(2,2,1), conma(2,3,1), &
         conma(3,1,1), conma(3,2,1), conma(3,3,1)
-        if(stat.ne.0)then
-          print'(A9,I3)','iostat= ',stat
-          print'(A8,1x,A180)','iomsg_CONMA= ',msg
-        end if
+        if(stat.ne.0)print'(A14,I3)','iostat_CONMA_x= ',stat
+        call checkStatus(3,stat,msg)
         
-        read(5,103,iostat=stat,iomsg=msg) &
+        read(5,103,iostat=stat,iomsg=msg) & !reading REAMA for 3DoF
         conma(1,1,2), conma(1,2,2), conma(1,3,2), &
         conma(2,1,2), conma(2,2,2), conma(2,3,2), &
         conma(3,1,2), conma(3,2,2), conma(3,3,2)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg_CONMA = ',msg
+        if(stat.ne.0)print'(A14,I3)','iostat_CONMA_y= ',stat
+        call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         reama(1,1), reama(1,2), reama(1,3), &
         reama(2,1), reama(2,2), reama(2,3), &
         reama(3,1), reama(3,2), reama(3,3)
-        if (stat.ne.0)print'(A8,1x,A180)','iomsg = ',msg
+        if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
+        call checkStatus(3,stat,msg)
         
        read(5,107,iostat=stat,iomsg=msg) force(1), force(2), force(3)
-        if(stat.ne.0)then
-          print'(A9,I3)','iostat= ',stat
-          print'(A8,1x,A180)','iomsg = ',msg
-        end if
+        if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
+        call checkStatus(3,stat,msg)
         
       end if
       
@@ -188,6 +194,7 @@ module param
       else
         write(*,*) 'Source must be 1 or 3 DoF'
       endif
+      print*,'acaba la lectura'
       
       read(5,104,iostat=stat,iomsg=msg) nodalSrc
       allocate( srcLoc(nodalSrc) )
@@ -200,20 +207,16 @@ module param
       allocate( recLoc(DimPr,nodalRec) )
       !Aqui deberia poner un if para verificar que los nodos tanto de la fuente como del receptor
       !No sobrepasan los nodos maximos disponibles en la malla
+      
+      !Reading receivers location x,z from input file
       do ii=1,nodalRec !number of total nodes
         read(5,*,iostat=stat,iomsg=msg) (recLoc(idime,ii), idime =1,DimPr )
-        IF ( stat /= 0 )then
-          print*,'iostat= ',stat
-          print*, msg
-        end if
+        call checkStatus(15,stat,msg)
       end do
-      
-      ! do ii =1, nodalRec
-      !   read(5,*,iostat=stat,iomsg=msg) recLoc(ii)
-      ! end do
-     
       allocate(receivers(nodalRec), node_found_it(nodalRec))
+      !Searching the nearest node to the coordinate pair read
       call SearchingNodes(mesh_file, recLoc, node_found_it)
+      !Store the nodes at receivers variable
       receivers = node_found_it
       
       close(5)
@@ -228,9 +231,8 @@ module param
           WaveNumbers(ii) = 10.0**(log10(ky_min)+(log10(ky_max/ky_min)/real(tot_ky-1))*real(ii-1) )
         end do
         
-        ! WaveNumbers=(/1.0D-6, 5.0D-6, 1.0D-5, 5.5D-5, 5.0D-4,&
-        ! &             2.5D-3, 5.0D-3, 1.0D-2, 2.5D-2, 5.0D-2,&
-        ! &             8.0D-2, 1.0D-1, 2.5D-1, 5.0D-1/)
+        ! WaveNumbers=(/1.0D-6, 5.0D-6, 1.0D-5, 5.5D-5, 5.0D-4, 2.5D-3, 5.0D-3,&
+        ! &             1.0D-2, 2.5D-2, 5.0D-2, 8.0D-2, 1.0D-1, 2.5D-1, 5.0D-1/)
         ! ky_min = WaveNumbers(1) 
         ! ky_max = WaveNumbers(tot_ky)
         
@@ -241,9 +243,9 @@ module param
         &            'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat',&
         &            'ky11.dat','ky12.dat','ky13.dat','ky14.dat'/)
 
-        File_3DNodal_Vals = "TransV_Fixed"
+        File_3DNodal_Vals = "TransfVFinal"
                            ! 3D_Potential
-        shape_spec_file = "Test5_slides_eFT.dat"
+        shape_spec_file = "wavenumber_Voltage.dat"
         File_Nodal_Vals_ky = File_Nodal_Vals
       else
         tot_ky = 1
@@ -255,6 +257,8 @@ module param
       !time_fin = 20*delta_t
       
       delta_t = (time_fin/ t_steps)
+      ! delta_t = (time_fin - time_ini)/t_steps
+      
       !print*, 'delta_t', delta_t
       !t_steps = floor(tsteps) !redondeo al numero inmediato superior 
       !print*, 'time stpes ', t_steps
@@ -290,7 +294,7 @@ module param
       !Initial elemental and global variables, it will changes if refination is selected.
       
       100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,       2/,&  !model parameters
-      &          11x,A13,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
+      &          11x,A13,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),             2/,&  !stabi
       &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/,  2/,&  !Fourier Transform
       &          11x,I1,/, 2(11x,e12.7,/), 2(11x,I5,/),                   2/,&  !time
@@ -304,7 +308,6 @@ module param
       106 format(1/,e15.5,e15.5,2/) 
       107 format(1/,3(f15.5),2/) 
       108 format(1/,F10.5,F10.5,F10.5,2/) 
-     
       109 format(2/,11x,I2)
       110 format(2/,11x,I2,/)
       !108 format(11x,I3,I3,/) 
@@ -333,28 +336,15 @@ module param
       ! Leer el archivo de coordenadas (coor.dat)
       open(1, file=fileplace//file_mesh, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       ! open(unit=1, file='coor.dat', status='old', action='read')
-      print*, fileplace
       num_nodos = 0
       read(1,*)
       read(1,*) nnodes
       do i = 1, nnodes 
-         read(1, *, end=10) nodo(i), coord_x(i), dummy ,  coord_y(i)
-         num_nodos = i
+        read(1, *, iostat=stat, iomsg=msg) nodo(i), coord_x(i), dummy ,  coord_y(i)
+        num_nodos = i
+        call checkStatus(6,stat,msg)
       end do
-      if (stat.ne.0)then
-        print*, ' '
-        print*,'!============ STATUS READING COORDINATE FILE FOR RECEIVERS. ============!'
-        print "(A9,I0,A)", "- Status ",stat,"while coordinates were reading for receivers"
-        print*, ' '
-        print*, ' '
-        print'(A8,1x,A180)','iomsg = ',msg
-        print*, 'if status = 64 = Preconnected file comprises unformatted records'
-        print*, 'mean there is a <tab> instead of <BS> in file it is being read it'
-        print*, ' '
-      else
-        continue
-      end if
-      10 close(1)
+      close(1)
     
       loop_receiver: do ireceiver =1, nodalRec
         ! Leer las coordenadas a buscar
@@ -377,13 +367,110 @@ module param
            end if
         end do
         node_found_it(ireceiver) = nodo_mas_cercano
-        write(*,*) "El nodo más cercano a (", x, ",", y, ") es el nodo ", nodo_mas_cercano
+        ! write(*,125) "El nodo más cercano a (", x, " , ", y, ") es el nodo ", nodo_mas_cercano
+        write(*,125) "El nodo: ", nodo_mas_cercano, " es el más cercano a (", x, " , ", y, ")"
       end do loop_receiver
       
+      ! 125 format(A26,f10.1,A3,f3.1,A14,I0)
+      125 format(A9,I5,A24,f6.1,A3,f3.1,A1)
       ! Mostrar el resultado
       
     end subroutine SearchingNodes
-    
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
+    !
+    subroutine checkStatus(id_reading, stat, msg)
+      implicit none
+      character(len=150) , intent(in)  :: msg
+      integer, intent(in)              :: stat, id_reading
+      character(len=5)                 :: object
+      
+      select case(id_reading)
+        case(0)
+        if (stat.ne.0)then
+          print*, ' '
+          print*,'!============ STATUS READING INPUT FILE. ============!'
+          print "(A38,I0)", "- Status while reading input file is: ", stat
+          ! print*, ' '
+          print'(A9,A)','- iomsg: ',msg
+          print*, ' >>>>> if status = 64 = Preconnected file comprises unformatted records'
+          print*, ' >>>>> mean there is a <tab> instead of <BS> in input file'
+          print*, ' >>>>> program stopped <<<<'
+          stop
+        else
+          continue
+        end if
+        case(1)
+          if(stat.ne.0)then
+            print'(A13,1x,A180)','In input file error while reading tensor properties= ',msg
+            print*, ' >>>>> program stopped <<<<'
+          end if
+        case(2)
+          if(stat.ne.0)then
+            print'(A13,1x,A180)','In input file error while reading tensor properties= ',msg
+            print*, ' >>>>> program stopped <<<<'
+          end if
+        case(3)
+          if(stat.ne.0)then
+            print'(A13,1x,A180)','In input file error while reading tensor properties= ',msg
+            print*, ' >>>>> program stopped <<<<'
+            stop
+          end if
+        case(4)
+          if ( stat /= 0 )then
+            print*, ' ' 
+            print*, 'error in read mesh file first line, module geometry' 
+            print'(A9,I3)','iostat= ',stat
+            print'(A8,1x,A180)','iomsg= ',msg
+            print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ', mesh_file
+            print*, ' ' 
+            stop
+          end if
+          
+        case(5)
+          if( stat /= 0 )then
+            print*, ' ' 
+            print*, 'error while reading init nodes in mesh file at, module geometry' 
+            print'(A9,I3)','iostat= ',stat
+            print'(A8,1x,A180)','iomsg= ',msg
+            print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ',mesh_file
+            print*, ' ' 
+            stop
+          end if
+        case(6)
+          if(stat.ne.0)then
+            print*, ' '
+            print "(A46,I4)", " -Status while reading receiver locations is: ", stat
+            print'(A74,1x,A)',' >>>>>>>Error in reading receivers coordinate location in SearchingNodes = ',msg
+            print*, ' '
+            stop
+          end if
+        case(7)
+          IF( stat /= 0 )then
+            print*,'error while reading mesh file in geometry module cord3D, iostat= ',stat
+            print*, msg
+          end if
+        case(8)
+          IF( stat /= 0 )then
+            print*,'error while reading initELem in geometry module iostat= ',stat
+            print*, msg
+          END IF
+        case(9)
+          IF( stat /= 0 )then
+            print*,'error while reading lnodes in geometry module iostat= ',stat
+            print*, msg
+          END IF
+        case(15)
+          IF( stat /= 0 )then
+            print*,'iostat= ',stat
+            print'(A8,1x,A180)','iomsg = ',msg
+            print*, 'In recLoc there is an error in reading input file'
+            stop
+          end if
+      end select
+      
+    end subroutine checkStatus
     
     
   !end contains
