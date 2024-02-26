@@ -1,16 +1,9 @@
-# Actualizado el 15/07/2021
-# Actualizado el 21/09/2021
-# Actualizado el 3/11/2021
-# Actualizado el 26/01/2022
-
-
-#========== Definicion de variables ==========
-#	compiler
+# weather-buoys Makefile
 FC = ifort
+SRCDIR = SRC
+OBJDIR = OBJ
+OBJS = $(addprefix $(OBJDIR)/, mod_param.o mod_geometry.o mod_inputInfo.o mod_biunit.o mod_BVs.o mod_source.o mod_library.o mod_exacSol.o mod_timeInt.o)
 
-#OBJ_DIR = ./obj	#FOR OBJECTS FILES
-#BIN_DIR = ./bin  #FOR EXECUTABLE
-#SRC_DIR = .
 
 #	compiler flags
 CFLAGS = -stand f08#f03 #f90 #f08
@@ -21,24 +14,11 @@ CFLAGS += -warn all
 #	optimization flags
 CFLAGS += -O0 -heap-arrays
 #	error finding options
-#CFLAGS +=  -check all -traceback -mcmodel large -fp-stack-check -check noarg_temp_created
-CFLAGS +=  -check all -traceback -fp-stack-check -check noarg_temp_created
-# at the end of the tests return to -check all option
+CFLAGS +=  -check all -traceback -mcmodel large -fp-stack-check -check noarg_temp_created
 #	mkl library
-CFLAGS += -mkl
-	
-#	source files
-SRCS = mod_param mod_geometry mod_inputInfo mod_biunit mod_BVs mod_source mod_library mod_timeInt main_CDR
+CFLAGS += -qmkl
 
-#	object files
-OBJS = $(SRCS:=.o)
-
-#	executable
-MAIN = CDR2dEM.exe
-#========== Fin variables ===========
-
-#	compile project
-all : $(MAIN)
+all: main_CDR.exe #weather_stats_parallel
 #	@echo Compiling files . . . . .
 #	@echo Making objects  . . . . .
 #	@echo Building an executable . . . . .
@@ -47,28 +27,35 @@ all : $(MAIN)
 	@echo Compilation completed . . . . .
 	@echo '======================'
 
-$(MAIN) : $(OBJS)
-	@$(FC) $(CFLAGS) -o $(MAIN) $(OBJS)
-#If the libray is comented (not used) in the code, must them desactivated the flegs
+.SUFFIXES: .f90 .o
 
-.SUFFIXES : .o .f90
-#.o.f90 :Dos opciones, cual sera la correcta?
-#The following line indicate to transform the source files.f90 into a objects
-.f90.o :
-	@$(FC) $(CFLAGS) -c $<
+$(OBJDIR)/%.o: $(SRCDIR)/%.f90
+	@$(FC) $(CFLAGS) -c $< -o $@ -module $(OBJDIR)
 
-#Stackoverflow solution:
-#$(OBJDIR)/%.o: %.c
-#	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+main_CDR.exe: $(SRCDIR)/main_CDR.f90 $(OBJS)
+	@$(FC) $(CFLAGS) $< $(OBJS) -o $@ -module $(OBJDIR)
+
+%.o: %.mod
+
+$(OBJS): | $(OBJDIR)
 
 
-#	Regla ficticia, es decir que no tiene dependencias (phony rules)
-clean :
-	@$(RM) *.o *.mod *.exe $(MAIN)
-#@$(RM) -rf Res/*.txt
-#@$(RM) Res/ *.txt
-#	clean no tiene dependencias pero si objetivos
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+
+.PHONY: run
+
+run: main_CDR.exe
+	@./main_CDR.exe
+
+
+.PHONY: clean
+
+clean:
+	@$(RM) -r $(OBJDIR)/*.o $(OBJDIR)/*.mod *.dat main_CDR.exe
 	@echo ' '
 	@echo '* * * * * '
 	@echo ' - Everything is clean -'
 	@echo '* * * * * '
+>>>>>>> developing

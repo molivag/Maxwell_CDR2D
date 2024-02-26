@@ -51,6 +51,75 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
+    subroutine spatialProfile_BubbleSort(solution)
+      
+      implicit none
+      
+      character(len=*), parameter                      :: path2 = "Pos/Plots/"
+      double precision, dimension(ntotv,1), intent(in) :: solution(:,:) 
+      double precision, dimension(1, ntotv)            :: Sol_T
+      double precision, allocatable, dimension(:,:)    :: x_profile, temp
+      double precision, dimension(1,nnodes)            :: xcor, ycor
+      integer                                          :: id_poin, ipoin, jpoin, ii, xpoin
+      
+      xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      
+      Sol_T = transpose(solution)
+      !loop cuantos nodos at z=0
+      id_poin = 0
+      do ipoin =1,nnodes
+        if((ycor(1,ipoin).eq.0) .and. (xcor(1,ipoin)>=0))then
+          id_poin = id_Poin+1 !total de puntos que componen el perfil de: distancia en z=0
+        else
+          continue
+        endif
+      end do
+      !contados cuantos nodos, se asigna espacio con ese valor
+      allocate(x_profile(2,id_poin), temp(2,id_poin))
+      xpoin = 0 
+      !comienza el llenado de la matriz recien formada guardando numero de nodo y su coordenada
+      do ipoin = 1,nnodes
+        if((ycor(1,ipoin).eq.0) .and. (xcor(1,ipoin)>=0))then
+          xpoin = xpoin+1 !Contador que va recorriendo las filas para x_profile
+          x_profile(1,xpoin) = real(ipoin)
+          x_profile(2,xpoin) = xcor(1,ipoin)
+        else
+          continue
+        endif
+      enddo
+      !aplicando bubble sort method para reacomodar perfil en x de menor a mayor (0-->inf)
+      do ipoin = 1, id_poin-1
+        do jpoin = 1, id_poin-ipoin
+          if (x_profile(2, jpoin) > x_profile(2, jpoin+1)) then
+            ! Intercambiar filas si están en orden incorrecto
+            temp(:, jpoin) = x_profile(:, jpoin)            ! Copiar fila jpoin a temp
+            x_profile(:, jpoin) = x_profile(:, jpoin+1)     ! Copiar fila jpoin+1 a jpoin
+            x_profile(:, jpoin+1) = temp(:, jpoin)          ! Copiar temp a fila jpoin+1
+          end if
+        end do
+      end do
+      !Una vez reacomodado, imprimir archivo con No  x-cor, value        
+      open(unit=10, file=path2//"3_direct_spatial_profile.dat", ACTION="write", STATUS="replace")
+      ipoin = 0
+      !Si el perfil se quisiera de determinada longitud aqui se deberia llamar SearchingNodes
+      !para que, dada una coordenada (x,0) se busque el nodo mas cercano y con ese nodo hacer
+      !algo como:
+      !id_poin = int(x_profile(nodo_encontrado)) con esto id_poin llegara hasta la distancia deseada
+      do ii = 1,id_poin 
+        ipoin = int(x_profile(1,ii))
+        write(10,100) ipoin, x_profile(2,ii), Sol_T(1, ndofn*ipoin)!, Ez_r(ndofn*ipoin)
+      end do
+      close(10)
+      !El siguiente write es por si se quisiera la solucion en determinados receptores
+      !write(10,902) coord(1,ndofn*receivers(jj)), E_3D(ndofn*receivers(jj),1)
+      
+      100 format(I0,1x, f20.12, E20.8)
+      
+    end subroutine spatialProfile_BubbleSort
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap, xi_cor, yi_cor)
       
       implicit none
@@ -473,6 +542,7 @@ module library
       
       ievab=0
       do inode=1,nne
+        reac = 0.0
         do idofn=1,ndofn
           ievab=ievab+1
           jevab=0
@@ -480,26 +550,44 @@ module library
             do jdofn=1,ndofn
               jevab=jevab+1
               diff=0.0
-              do i=1,2
-                do j=1,2   
-                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-                  if(kstab.eq.6)call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
-                  !print"(A8, e12.5)",'Product ', cte * difma(idofn,jdofn,i,j)
-                  if(kstab.eq.6)diff = diff+ dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
+              x_difma_loop: do i=1,2
+                z_difma_loop: do j=1,2   
+                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+                  !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+                  call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
+                  ! print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
+                  diff = diff + dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, e12.5)",'diff ', diff
-                  !!diff = diff+ dNdxy(i,inode) * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print*, '- - - - - - - - - - - - - - - - - - -'
                   !print*, ' '
-                end do
-              end do
+                end do z_difma_loop
+              end do x_difma_loop
               convec=0.0
-              do i=1,2
+              conma_loop: do i=1,2
                 !print*,conma(idofn,jdofn,i)
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
-              end do
-              reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              cpcty = basis(inode) * basis(jnode)
+              end do conma_loop
+              
+              !LO IDEAL ES QUE NO SE EVALUE EL MISMO IF EN CADA GRADO DE LIBERATD SINO QUE SE
+              !HAGAN VARIOS GALERKIN PARA EVITAR LA MAYOR CANTIDAD DE EVALUACIONES IF POSIBLES
+              if(TwoHalf =='Y')then
+                ! print*,'!if it is dealing with a 2.5D Problem'
+                if(oper == 'LAPL')then
+                  ! print*,'Entra a Laplacian'
+                  ! print*,k_y
+                  ! print*,sigma
+                  reac = basis(inode) * k_y**2 *sigma* reama(idofn,jdofn) * basis(jnode)
+                elseif(oper == 'MAXW')then
+                  reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
+                endif
+              else
+                print*,'!if it is NOT dealing with a 2.5D Problem'
+                reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
+              endif
+              
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
+              
+              cpcty = sigma * (basis(inode) * basis(jnode) )
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
@@ -512,7 +600,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine param_stab(idofn, jdofn, i, j, helem, coeff)       
+    subroutine param_stab(idofn, jdofn, i, j, elem_size_h, coeff)       
       !***********************************************************!
       !                                                           !
       ! Subroutine which check the dofn, x and y position in the  !
@@ -524,92 +612,107 @@ module library
       !                                                           !
       !  λ = 1/µ  = reluctivity of the medium                     !
       !                                                           !
-      !  h = helem 
+      !  h = elem_size_h 
       !                                                           !
       !***********************************************************!
       
       implicit none
       
       integer, intent(in) :: idofn, jdofn, i, j
-      double precision, intent(in) :: helem
+      double precision, intent(in) :: elem_size_h
       double precision, intent(out) :: coeff
       
       
       !print*, 'getting into param_stab'
       
       coeff = 0.0 
-      !print'(A9,F10.5)', 'helem  : ', helem
-      !print'(A9,F10.5)', 'helem^2: ', helem**2
-      
-      if(idofn.eq.1)then
-        if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
-          if(i==1 .and. j==1)then                      !difma(1,1,1,1)
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
-            !print'(A2,e12.5)','Su', coeff
+      !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+      !print'(A9,F10.5)', 'elem_size_h^2: ', elem_size_h**2
+      if(kstab.eq.6)then !coefficients for MVAF 
+        ! print*,'!coefficients for MVAF'
+        !print*,'stabi',kstab
+        if(idofn.eq.1)then
+          if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
+            if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+           
+            if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+              coeff = lambda
+              !print'(A2,e12.5)','λ ', coeff
+            endif
+            
+          elseif(jdofn==2)then                           !difma(1,2,1,2)
+            if(i==1 .and. j==2)then
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+            
+            if(i==2.and.j==1)then                        !difma(1,2,2,1)
+              coeff = lambda
+              !print'(A3,e12.5)','λ ', coeff
+            end if
           end if
-         
-          if(i==2 .and. j==2)then                      !difma(1,1,2,2)
-            coeff = lambda
-            !print'(A2,e12.5)','λ ', coeff
+          
+        elseif(idofn==2)then
+          if(jdofn.eq.1)then
+            if(i==1 .and. j==2)then                      !difma(2,1,1,2)
+              coeff = lambda
+              !print'(A3,e12.5)', 'λ ', coeff
+            end if
+            
+            if(i==2 .and. j==1)then                      !difma(2,1,2,1)
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            endif
+           
+          elseif(jdofn==2)then
+            if(i==1 .and. j==1)then
+              coeff = lambda
+              !print'(A3,e12.5)','λ ', coeff
+            end if
+            
+            if(i==2.and.j==2)then                        !difma(2,2,2,2)
+              coeff = Cu*lambda*(elem_size_h**2/ell**2)
+              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+              !print'(A2,e12.5)','Su', coeff
+            end if
+          end if
+          
+        elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
+          if( i==j )then
+            coeff = ell**2/lambda
+              !print'(A2,e12.5)','Sp', coeff
           endif
           
-        elseif(jdofn==2)then                           !difma(1,2,1,2)
-          if(i==1 .and. j==2)then
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
-            !print'(A2,e12.5)','Su', coeff
-          end if
-          
-          if(i==2.and.j==1)then                        !difma(1,2,2,1)
-            coeff = lambda
-            !print'(A3,e12.5)','λ ', coeff
-          end if
+        else
+          continue
         end if
-        
-      elseif(idofn==2)then
-        if(jdofn.eq.1)then
-          if(i==1 .and. j==2)then                      !difma(2,1,1,2)
-            coeff = lambda
-            !print'(A3,e12.5)', 'λ ', coeff
-          end if
-          
-          if(i==2 .and. j==1)then                      !difma(2,1,2,1)
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
-            !print'(A2,e12.5)','Su', coeff
-          endif
-         
-        elseif(jdofn==2)then
-          if(i==1 .and. j==1)then
-            coeff = lambda
-            !print'(A3,e12.5)','λ ', coeff
-          end if
-          
-          if(i==2.and.j==2)then                        !difma(2,2,2,2)
-            coeff = Cu*lambda*(helem**2/ell**2)
-            !print'(A9,F10.5)', 'helem  : ', helem
-            !print'(A2,e12.5)','Su', coeff
-          end if
-        end if
-        
-      elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
-        if( i==j )then
-          coeff = ell**2/lambda
-            !print'(A2,e12.5)','Sp', coeff
-        endif
-        
+        !close(10)
       else
-        continue
+        if((idofn == jdofn).and.(i == j))then
+            ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+            ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+            !Aqui tengo que poner un identificador o LGO QUE dependiendo
+            !el problema, ponga una propiedad fisica u otra
+            if(kstab == 0 .and. oper=='LAPL')then
+              !if((kstab == 3 .or.kstab==0) .and. oper=='LAPL')then  **Este if es mas general**
+              !print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
+              coeff = sigma
+            elseif(kstab == 3 .and. oper=='LAPL')then
+              coeff = sigma
+            elseIF(kstab == 0 .and. oper=='MAXW')then
+              coeff = lambda
+            else
+              print*, 'No diferential opperator defined for param_stab in LIBRARY module'
+            endif
+           
+        end if
       end if
-      !close(10)
-      
-      15 continue 
-      !9 format(A20,A6,I1,A1,I1,A1,I1,A1,I1,A1,I1,A1)
-      !Next lines are to taste the 
-      !print*, 'helem,', h
-      !print*, 'Cu µ h^2/ell^2', Cu*lambda*(h**2/ell**2)
-      !print*, 'ell^2/µ', ell**2/lambda
       
     end subroutine param_stab
     !
@@ -648,281 +751,294 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    !subroutine pertur( idofn, jdofn, workm, derxy, basis, pertu )
-    !  
-    !  !***************************************************************************
-    !  !
-    !  ! Perturbation of the test function according to the type of method:
-    !  !
-    !  !   SUPG    :                 A_i   V,i           (kstab=1)
-    !  !   GLS     : -(K_ij V,j),i + A_i   V,i + S   V   (kstab=2)
-    !  !   SGS, TG :  (K_ij V,j),i + A^t_i V,i - S^t V   (kstab=3,5)
-    !  !   CG      :            diag(A_i)  V,i           (kstab=4)
-    !  !***************************************************************************
-    !  
-    !  implicit none
-    !  
-    !  double precision, intent(in)     :: workm(2,2),derxy(2),basis
-    !  integer                          :: idofn, jdofn, k, l
-    !  double precision                 :: prod1, prod2, prod3
-    !  double precision, intent(in out) :: pertu
-    !  
-    !  
-    !  ! SUPG
-    !  if(kstab.eq.1) then
-    !    prod1=0.0
-    !    do k=1,2
-    !      prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
-    !    end do
-    !    pertu=prod1
-    !    
-    !    ! galerkin least squares
-    !  else if(kstab.eq.2)then
-    !    prod1=0.0
-    !    do k=1,2
-    !      prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
-    !    end do
-    !    prod2=0.0
-    !    do k=1,2
-    !      do l=1,2
-    !        !call param_stab(jdofn,idofn,k,l,cte1)
-    !        !prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
-    !        prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
-    !      end do
-    !    end do
-    !    prod3=reama(jdofn,idofn)*basis
-    !    pertu=-prod2+prod1+prod3
-    !    
-    !    ! subgrid scale & taylor galerkin
-    !  else if((kstab.eq.3).or.(kstab.eq.5)) then
-    !    prod1=0.0
-    !    do k=1,2
-    !      prod1=prod1+conma(idofn,jdofn,k)*derxy(k)
-    !    end do
-    !    prod2=0.0
-    !    do k=1,2
-    !      do l=1,2
-    !        !call param_stab(idofn,jdofn,k,l,cte2)
-    !        !prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
-    !        prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
-    !      end do
-    !    end do
-    !    prod3=reama(idofn,jdofn)*basis
-    !    pertu=prod2+prod1-prod3
-    !    
-    !    ! characteristic galerkin
-    !  else if(kstab.eq.4) then
-    !    prod1=0.0
-    !    if(idofn.eq.jdofn) then
-    !      do k=1,2
-    !        prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
-    !      end do
-    !    end if
-    !    pertu=prod1
-    !  end if
-    !  
-    !end subroutine pertur
+    subroutine pertur(hmaxi, idofn, jdofn, workm, derxy, basis, pertu )
+      
+      !***************************************************************************
+      !
+      ! Perturbation of the test function according to the type of method:
+      !
+      !   SUPG    :                 A_i   V,i           (kstab=1)
+      !   GLS     : -(K_ij V,j),i + A_i   V,i + S   V   (kstab=2)
+      !   SGS, TG :  (K_ij V,j),i + A^t_i V,i - S^t V   (kstab=3,5)
+      !   CG      :            diag(A_i)  V,i           (kstab=4)
+      !***************************************************************************
+      
+      implicit none
+      
+      double precision, intent(in)     :: workm(2,2),derxy(2),basis, hmaxi
+      integer                          :: idofn, jdofn, k, l
+      double precision                 :: prod1, prod2, prod3, cte1, cte2
+      double precision, intent(in out) :: pertu
+      
+      
+      ! SUPG
+      if(kstab.eq.1) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+        end do
+        pertu=prod1
+        
+        ! galerkin least squares
+      else if(kstab.eq.2)then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+        end do
+        prod2=0.0
+        do k=1,2
+          do l=1,2
+            call param_stab(jdofn, idofn, k, l, hmaxi, cte1) 
+            prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
+            !prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
+          end do
+        end do
+        prod3=reama(jdofn,idofn)*basis
+        pertu=-prod2+prod1+prod3
+        
+        ! subgrid scale & taylor galerkin
+      else if((kstab.eq.3).or.(kstab.eq.5)) then
+        prod1=0.0
+        do k=1,2
+          prod1=prod1+conma(idofn,jdofn,k)*derxy(k)
+        end do
+        prod2=0.0
+        do k=1,2
+          do l=1,2
+            call param_stab(idofn, jdofn, k, l, hmaxi, cte2) 
+            prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
+            !prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
+          end do
+        end do
+        prod3=reama(idofn,jdofn)*basis
+        pertu=prod2+prod1-prod3
+        
+        ! characteristic galerkin
+      else if(kstab.eq.4) then
+        prod1=0.0
+        if(idofn.eq.jdofn) then
+          do k=1,2
+            prod1=prod1+conma(jdofn,idofn,k)*derxy(k)
+          end do
+        end if
+        pertu=prod1
+      end if
+      
+    end subroutine pertur
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    !subroutine TauMat(hmaxi,tauma)
-    !  
-    !  !Matrix of intrinsic time scales, computed as
-    !  ! TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
-    ! 
-    !  implicit none
-    !  
-    !  double precision, intent(in) :: hmaxi
-    !  integer :: i, j, k
-    !  double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
-    !  double precision :: a, b, c, tau, det                     !hnatu -> declarado en parameters
-    !  double precision, intent(out) :: tauma(3,3)               !ndofn -> en parameters
-    !  
-    !  tauma = 0.0
-    !  if(kstab.eq.0) return
-    !  tauin = 0.0
-    !  chaco = 0.0
-    !  chadi = 0.0
-    !  
-    !  !  Characteristic convection matrix: A = sqrt | A_i A_i |
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      chaco(i,j)=0.0
-    !      do k=1,ndofn
-    !        chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
-    !      end do
-    !    end do
-    !  end do
-    !  call sqrtma(chaco,chaco)
-    !  !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      chadi(i,j)=0.0
-    !      do k=1,ndofn
-    !        chadi(i,j) = chadi(i,j) + difma(i,k,1,1) * difma(k,j,1,1) + &
-    !          &difma(i,k,1,2)*difma(k,j,1,2)*2.0 + difma(i,k,2,1)*difma(k,j,2,1)*2.0 + &
-    !          &difma(i,k,2,2)*difma(k,j,2,2)
-    !      end do
-    !    end do
-    !  end do
-    !  
-    !  call sqrtma(chadi,chadi)
-    !  
-    !  !  Characteristic reaction matrix: S = | S |
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      chare(i,j)=0.0
-    !      do k=1,ndofn
-    !        chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
-    !      end do
-    !    end do
-    !  end do
-    !  call sqrtma(chare,chare)
-    !  
-    !  ! Invers of the matrix of characteristic times
-    !  do i=1,ndofn
-    !    do j=1,ndofn
-    !      tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
-    !    end do
-    !  end do
-    !  
-    !  ! Matrix tau, corresponding to:
-    !  ! KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
-    !  !       = 1: T = diag(t1,t2,t3), ti is the minimum of the admissible tau's for the i-th row (equation)
-    !  !       = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
-    !  
-    !  if(ktaum.eq.0) then
-    !    tau = 0.0
-    !    do i=1,ndofn
-    !      do j=1,ndofn
-    !        tau = max(tau,abs(tauin(i,j)))
-    !      end do
-    !    end do
-    !    tau = patau/tau
-    !    do i=1,ndofn
-    !      tauma(i,i) = tau
-    !    end do
-    !  
-    !  else if(ktaum.eq.1) then
-    !    a = 0.0
-    !    b = 0.0
-    !    c = 0.0
-    !    do j=1,ndofn
-    !      a = max(a,abs(tauin(    1,j)))
-    !      b = max(b,abs(tauin(    2,j)))
-    !      c = max(c,abs(tauin(ndofn,j)))
-    !    end do
-    !    a = patau/a
-    !    b = patau/b
-    !    c = patau/c
-    !    tauma(    1,    1) = a
-    !    tauma(    2,    2) = b
-    !    tauma(ndofn,ndofn) = c
-    !    
-    !  else if(ktaum.eq.2) then
-    !    call invmtx(tauin,det,tauma)
-    !    do i = 1,ndofn
-    !      do j = 1,ndofn
-    !        tauma(i,j) = tauma(i,j)*patau
-    !      end do
-    !    end do
-    !    tauma(ndofn,ndofn) = 0.0
-    !   
-    !  else if(ktaum.eq.3) then
-    !    !call param_stab(1,1,1,1,cte)
-    !    !a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-    !    a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
-    !    tauma(1,1) = a
-    !    tauma(2,2) = a
-    !    a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
-    !    a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
-    !    tauma(3,3) = a
-    !  end if
-    !  
-    !end subroutine TauMat
+    subroutine TauMat(hmaxi,tauma)
+      
+      !Matrix of intrinsic time scales, computed as
+      ! TAU = PATAU * [ 4 K / h^2 + 2 A / h + S ]^{-1}
+     
+      implicit none
+      
+      double precision, intent(in) :: hmaxi
+      integer :: i, j, k
+      double precision :: chadi(3,3), chaco(3,3), chare(3,3), tauin(3,3)
+      double precision :: a, b, c, tau, det             !hnatu -> declarado en parameters
+      double precision, intent(out) :: tauma(3,3)       !ndofn -> en parameters
+      double precision :: cte, cte1, cte2, cte3, cte4, cte5, cte6, cte7, cte8
+      
+      tauma = 0.0
+      if(kstab.eq.0) return
+      tauin = 0.0
+      chaco = 0.0
+      chadi = 0.0
+      
+      !  Characteristic convection matrix: A = sqrt | A_i A_i |
+      do i=1,ndofn
+        do j=1,ndofn
+          chaco(i,j)=0.0
+          do k=1,ndofn
+            chaco(i,j) = chaco(i,j) + conma(i,k,1)*conma(k,j,1) + conma(i,k,2)*conma(k,j,2)
+          end do
+        end do
+      end do
+      call sqrtma(chaco,chaco)
+      !  Characteristic diffusion matrix: K = sqrt( K_ij K_ij )
+      do i=1,ndofn
+        do j=1,ndofn
+          chadi(i,j)=0.0
+          do k=1,ndofn
+            call param_stab(i, k, 1, 1, hmaxi, cte1)
+            call param_stab(k, j, 1, 1, hmaxi, cte2)
+            call param_stab(i, k, 1, 2, hmaxi, cte3)
+            call param_stab(k, j, 1, 2, hmaxi, cte4)
+            call param_stab(i, k, 2, 1, hmaxi, cte5)
+            call param_stab(k, j, 2, 1, hmaxi, cte6)
+            
+            call param_stab(i, k, 2, 2, hmaxi, cte7)
+            call param_stab(k, j, 2, 2, hmaxi, cte8)
+            
+            chadi(i,j) = chadi(i,j) + cte1*difma(i,k,1,1) * cte2*difma(k,j,1,1) + &
+              &cte3*difma(i,k,1,2)*cte4*difma(k,j,1,2)*2.0 + &
+              &cte5*difma(i,k,2,1)*cte5*difma(k,j,2,1)*2.0 + &
+              &cte7*difma(i,k,2,2)*cte8*difma(k,j,2,2)
+          end do
+        end do
+      end do
+      
+      call sqrtma(chadi,chadi)
+      
+      !  Characteristic reaction matrix: S = | S |
+      do i=1,ndofn
+        do j=1,ndofn
+          chare(i,j)=0.0
+          do k=1,ndofn
+            chare(i,j)=chare(i,j) + reama(i,k) * reama(k,j)
+          end do
+        end do
+      end do
+      call sqrtma(chare,chare)
+      
+      ! Invers of the matrix of characteristic times
+      do i=1,ndofn
+        do j=1,ndofn
+          tauin(i,j) = 4.0*chadi(i,j)/(hmaxi*hmaxi) + 2.0*chaco(i,j)/hmaxi + chare(i,j)
+        end do
+      end do
+      
+      ! Matrix tau, corresponding to:
+      ! KTAUM = 0: T = t I, where t is the minimum of all the admissible tau's
+      !       = 1: T = diag(t1,t2,t3), ti is the minimum of the admissible tau's for the i-th row (equation)
+      !       = 2: T = [ 4 K / h^2 + 2 A / h + S ]^{-1}
+      
+      if(ktaum.eq.0) then
+        tau = 0.0
+        do i=1,ndofn
+          do j=1,ndofn
+            tau = max(tau,abs(tauin(i,j)))
+          end do
+        end do
+        tau = patau/tau
+        do i=1,ndofn
+          tauma(i,i) = tau
+        end do
+      
+      else if(ktaum.eq.1) then
+        a = 0.0
+        b = 0.0
+        c = 0.0
+        do j=1,ndofn
+          a = max(a,abs(tauin(    1,j)))
+          b = max(b,abs(tauin(    2,j)))
+          c = max(c,abs(tauin(ndofn,j)))
+        end do
+        a = patau/a
+        b = patau/b
+        c = patau/c
+        tauma(    1,    1) = a
+        tauma(    2,    2) = b
+        tauma(ndofn,ndofn) = c
+        
+      else if(ktaum.eq.2) then
+        call invmtx(tauin,det,tauma)
+        do i = 1,ndofn
+          do j = 1,ndofn
+            tauma(i,j) = tauma(i,j)*patau
+          end do
+        end do
+        tauma(ndofn,ndofn) = 0.0
+       
+      else if(ktaum.eq.3) then
+        call param_stab(1,1,1,1, hmaxi, cte)
+        a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        !a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
+        tauma(1,1) = a
+        tauma(2,2) = a
+        a = (hmaxi*hmaxi*hmaxi*hmaxi)/(patau*patau)
+        !a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/(difma(1,1,1,1))) !cte*(difma(1,1,1,1)))
+        a = a*(patau/(hmaxi*hmaxi*reama(1,1)) + 1.0d0/cte*(difma(1,1,1,1)))
+        tauma(3,3) = a
+      end if
+      
+    end subroutine TauMat
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
     !
-    !subroutine Stabilization(dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
-    !  !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
-    !  
-    !  ! Contribution to the system matrix and RHS from the stabilization term
-    !  
-    !  implicit none
-    !  
-    !  double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
-    !  double precision, intent(in)  :: dvolu, source(ndofn)
-    !  double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
-    !  double precision              :: prod1, prod2, prod3
-    !  integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
-    !  double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
-    !  
-    !  ! integer :: nnode,ndofn,nevab,kstab,n_ini
-    !  !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
-    !  !common/proper/difma,conma,reama,force
-    !  
-    !  ievab = 0
-    !  !print*, 'in'
-    !  pertu =  0.0
-    !  
-    !  do inode=1,nne
-    !    workm(1,1)=HesXY(1,inode)
-    !    workm(2,2)=HesXY(3,inode)
-    !    workm(1,2)=HesXY(2,inode)
-    !    workm(2,1)=workm(1,2)
-    !    do idofn=1,ndofn
-    !      
-    !      ievab=ievab+1
-    !      do jdofn=1,ndofn
-    !        prod1 = reama(jdofn,idofn)*basis(inode)
-    !        prod2=0.0
-    !        do k=1,2
-    !          prod2 = prod2 + conma(jdofn,idofn,k)*derxy(k,inode)
-    !        end do
-    !        prod3=0.0
-    !        do k=1,2
-    !          do l=1,2
-    !            !call param_stab(jdofn,idofn,k,l,cte)
-    !            !prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
-    !            prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
-    !          end do
-    !        end do
-    !        
-    !        resid(jdofn,ievab) = prod1 + prod2 - prod3
-    !        call pertur( idofn, jdofn, workm, derxy(1,inode), basis(inode), pertu(ievab,jdofn) )
-    !      end do
-    !    end do
-    !  end do
-    !  
-    !  ievab=0
-    !  do inode=1,nne
-    !    do idofn=1,ndofn
-    !      ievab=ievab+1
-    !      jevab=0
-    !      do jnode=1,nne
-    !        do jdofn=1,ndofn
-    !          jevab=jevab+1
-    !          prod1=0.0
-    !          do k=1,ndofn
-    !            do l=1,ndofn
-    !              prod1 = prod1 + pertu(ievab,k)*tauma(k,l)*resid(l,jevab)
-    !            end do
-    !          end do
-    !          Ke(ievab,jevab) = Ke(ievab,jevab) + prod1 * dvolu
-    !        end do
-    !      end do
-    !      
-    !      prod1=0.0
-    !      do k=1,ndofn
-    !        do l=1,ndofn
-    !          prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l) * source(l)
-    !        end do
-    !      end do
-    !      Fe(ievab) = Fe(ievab) + prod1 * dvolu
-    !    end do
-    !  end do
-    !  
-    !end subroutine Stabilization
+    subroutine Stabilization(hmaxi, dvolu, basis, derxy,HesXY,source, tauma, Ke,Fe)
+      !subroutine Stabilization(dvolu, basis, derxy,HesXY,tauma,Ke,Fe,pertu,workm,resid)
+      
+      ! Contribution to the system matrix and RHS from the stabilization term
+      
+      implicit none
+      
+      double precision, intent(in)  :: basis(nne), derxy(DimPr,nne), HesXY(3,nne), tauma(3,3)
+      double precision, intent(in)  :: dvolu, source(ndofn), hmaxi
+      double precision              :: pertu(nevab,ndofn), workm(2,2),  resid(ndofn,nevab)
+      double precision              :: prod1, prod2, prod3, cte
+      integer                       :: ievab, inode, idofn, jdofn, jevab, jnode, k, l
+      double precision, intent(out) :: Ke(nevab,nevab), Fe(nevab)
+      
+      ! integer :: nnode,ndofn,nevab,kstab,n_ini
+      !difma(3,3,2,2), conma(3,3,2), reama(3,3), force(3)
+      !common/proper/difma,conma,reama,force
+      
+      ievab = 0
+      !print*, 'in'
+      pertu =  0.0
+      
+      do inode=1,nne
+        workm(1,1)=HesXY(1,inode)
+        workm(2,2)=HesXY(3,inode)
+        workm(1,2)=HesXY(2,inode)
+        workm(2,1)=workm(1,2)
+        do idofn=1,ndofn
+          
+          ievab=ievab+1
+          do jdofn=1,ndofn
+            prod1 = reama(jdofn,idofn)*basis(inode)
+            prod2=0.0
+            do k=1,2
+              prod2 = prod2 + conma(jdofn,idofn,k)*derxy(k,inode)
+            end do
+            prod3=0.0
+            do k=1,2
+              do l=1,2
+                call param_stab(jdofn, idofn, k, l, hmaxi, cte) 
+                prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
+                !prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
+              end do
+            end do
+            
+            resid(jdofn,ievab) = prod1 + prod2 - prod3
+            call pertur(hmaxi,idofn,jdofn,workm,derxy(1,inode),basis(inode),pertu(ievab,jdofn) )
+          end do
+        end do
+      end do
+      
+      ievab=0
+      do inode=1,nne
+        do idofn=1,ndofn
+          ievab=ievab+1
+          jevab=0
+          do jnode=1,nne
+            do jdofn=1,ndofn
+              jevab=jevab+1
+              prod1=0.0
+              do k=1,ndofn
+                do l=1,ndofn
+                  prod1 = prod1 + pertu(ievab,k)*tauma(k,l)*resid(l,jevab)
+                end do
+              end do
+              Ke(ievab,jevab) = Ke(ievab,jevab) + prod1 * dvolu
+            end do
+          end do
+          
+          prod1=0.0
+          do k=1,ndofn
+            do l=1,ndofn
+              prod1 = prod1 + pertu(ievab,k) * tauma(k,l) * force(l) * source(l)
+            end do
+          end do
+          Fe(ievab) = Fe(ievab) + prod1 * dvolu
+        end do
+      end do
+      
+    end subroutine Stabilization
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
@@ -984,7 +1100,8 @@ module library
       iband=0
       do ielem =1, nelem
         do inode = 1, nne
-          ipoin = lnods(ielem,inode) !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
+          !Este +1 es para que comience en los nodos (columna 2) y no del numeor de elemento
+          ipoin = lnods(ielem,inode) 
           do jnode = 1, nne
             jpoin = lnods(ielem,jnode)
             iband = max(iband,abs(jpoin-ipoin))
@@ -999,6 +1116,11 @@ module library
       lowban = nband
       totban = lowban + upban + 1
       ldAKban= 2*lowban + upban + 1   
+      
+      ! ldAKban represents the leading dimension of the Banded Global Stiffnes matrix AK_band . 
+      ! This variable specifies how the AK_band matrix is stored in memory and is used to correctly 
+      ! access and manipulate the AK_band matrix during the Solver process. 
+      ! In Fortran, the leading dimension specifies the number of rows used for storage. 
       
       print*, ' '
       print*,'!================ Bandwidth Info ==============!'
@@ -1019,6 +1141,7 @@ module library
       
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+      ! double precision,                       intent(in) :: k_y
       double precision, dimension(ndofn)        :: EMsource
       double precision, dimension(nne)          :: basis, xi_cor, yi_cor
       double precision, dimension(DimPr,nne)    :: dN_dxy
@@ -1026,11 +1149,10 @@ module library
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce
       double precision, dimension(nevab)        :: Fe
-      !double precision, dimension(3,3)          :: tauma
+      double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ!, aaa
-      
+      double precision                          :: dvol, hmaxi, detJ
       integer                                   :: igaus, ibase, ielem
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
@@ -1041,7 +1163,7 @@ module library
       
       A_K = 0.0
       A_F = 0.0
-      !hmaxi = 0.0
+      A_C = 0.0
       
       do ielem = 1, nelem 
         !gather
@@ -1051,24 +1173,28 @@ module library
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !do-loop: compute element stiffness matrix Ke
         do igaus = 1, TotGp
-        !print*, 'gauss point:', igaus
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          !Jaco = xjacm(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = djacb(Jaco)
-          !Jinv = xjaci(detJ,Jaco)
-          dvol = detJ *  weigp(igaus,1)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
+          call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
+          dvol  = detJ *  weigp(igaus,1)
           hmaxi = elemSize(Jinv)
           do ibase = 1, nne
             basis(ibase) = N(ibase,igaus)
           end do
-          !call TauMat(hmaxi,tauma)
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          ! print"(A12,I3,A26,3f15.5)",'for element',ielem,' the RHS contribution is: ', EMsource
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          if(kstab.eq.6.or.kstab.eq.0)then
+            !print*, kstab, ' sin estabi'
+            continue
+          else
+            !print*, 'entra en stabi GlobalSystem'
+            call TauMat(hmaxi,tauma)
+            call Stabilization(hmaxi, dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          endif
+          
         end do
         !stop
         
@@ -1352,286 +1478,27 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine Res_Matlab(solution)
+    subroutine checkMKL(typpe, time,info)
       
       implicit none
       
-      double precision, parameter :: pi = 4*atan(1.d0)
-      character(len=*), parameter :: fileplace = "Res/Exact_Solutions/"
-      character(len=*), parameter :: fileplace2 = "Res/Geometry/"
-      double precision, dimension(ntotv, 1), intent(in) :: solution
-      double precision, dimension(ntotv, 1)             :: E_field_exac
-      double precision, dimension(t_steps+1)            :: Ex_field
-     
-      double precision, dimension(1, ntotv) :: solution_T
-      !double precision, dimension(1,nnodes) :: xcoor, ycoor
-      !double precision, dimension(nnodes)   :: x, y
-      !double precision, dimension(t_steps) :: t
-      double precision, dimension(nnodes)    :: exact_y, exact_x, exact_p, FEM_x, FEM_y, FEM_p
-      double precision, dimension(t_steps)   :: Texact_y, Texact_x, Texact_z, t
-      double precision     :: aa, bb, cc, dd, ee, ds, sigma, mu, SrcCurr, r_vec, spi
-      double precision     :: x, y, z, x1, y1, x2, y2
-      double precision     :: theta,ex,ey,ez, nt, arg
-      double precision     :: sum_error, error_EM, error_p, errL2_x, errL2_y, errL2_p
-      double precision     :: x_FEM, y_FEM, p_FEM, uxSol, uySol, multi
-      double precision     :: fi, psi, der_fi, der_psi 
-      double precision     :: rho1, rho2 
-      !double precision     :: SrcCurr, z, sigma, ds
-      character(len=4)     :: extension!, File_Solution
-      integer              :: ipoin, ielem, inode, i, itime, ii
+      character(1), intent(in) :: typpe
+      integer     , intent(in) :: info, time
       
-      
-      extension =".dat"
-      !File_Solution ="globsolution"
-      
-      solution_T = transpose(solution)
-      
-      errL2_x=0.0; errL2_y=0.0; errL2_p=0.0
-      error_EM = 0.0
-      error_p  = 0.0
-      sum_error = 0.0
-      exact_x = 0.0
-      exact_y = 0.0
-      exact_p = 0.0
-      uxSol = 0.0 
-      uySol = 0.0
-      multi = 1E-10
-      
-      select case(exacSol)
-        case(1)
-          aa = (2.0/3.0)*n_val
-          bb = 0.0
-          cc = (n_val/3.0) - 1.0
-          !cc = (n_val/3.0) - (1.0/2.0)
-          dd = 0.0
-          ee = 0.0 
-          !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-          do inode = 1, nnodes  
-            x = coord(1,inode)
-            y = coord(2,inode)
-            
-           !exact solution
-            bb    = ((x**2 + y**2))
-            
-            
-            if(abs(x).ne.0.01.and.abs(x).le.1.0e-4)then
-              dd    = y/x
-              ee    = atan(dd)
-            else
-              ee    = pi/2.0
-            end if
-              
-            uxSol = aa * bb**cc * ( x*sin(aa*ee) - y*cos(aa*ee) )
-            uySol = aa * bb**cc * ( y*sin(aa*ee) + x*cos(aa*ee) )
-            !uxSol = aa * bb**cc * sin(aa*ee)
-            !uySol = aa * bb**cc * cos(aa*ee)
-            
-            !FEM solution
-            x_FEM = solution_T(1,ndofn*inode-2)
-            y_FEM = solution_T(1,ndofn*inode-1)
-            
-            !write(*,"(4(f15.5,1x))") x_FEM, uxSol, y_FEM, uySol
-            !error = error + (x_FEM - uxSol)**2 + (y_FEM - uySol)**2 
-            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
-            !print*, 'error', error  
-            
-            !Write to plotting file 
-            exact_x(inode) = uxSol 
-            exact_y(inode) = uySol
-            
-          end do
-        case(2)
-          ! Implements eq. (2.50) of Nabighian 1988 EM Methods (EM Theory book) (p. 175)
-          !Nota: Esta solucion analitica determina el campo electrico en un punto de la malla (x,y)
-          !para usarse de comparacion se requiere ejecutar el codigo y luego en el post-proceso 
-          !extraer en un punto determinado ux e uy para todos los tiempos simulados
-          
-          ! Define variables
-          ! I*ds = dipole moment, is set to I*ds=1
-          SrcCurr  =  Icurr(1)
-          ds       =  1.0
-          sigma    =  1.0
-          mu       =  1.0/lambda 
-          
-          nt  = time_ini
-          arg = 0.0
-          aa  = 0.0
-          ee  = 0.0
-          ex  = 0.0; ey = 0.0; ez = 0.0
-          E_field_exac  = 0.0 
-          ii = 0.0
-          
-          !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)  
-          
-          do i=1,t_steps 
-            t(i) = nt 
-            nt   = nt + delta_t
-          end do
-          
-          spi  = sqrt(pi)
-          
-          write(*,*) ' Writing exact solution'
-          do i=1,t_steps
-            !print*, i
-            do inode = 1, nnodes  
-              x = coord(1,inode)
-              y = coord(2,inode)
-              z = 0.0
-              
-              r_vec= sqrt(x*x+y*y+z*z)
-              cc   = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
-              
-              theta = sqrt(mu*sigma/(4.0*t(i)))
-              aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
-              arg   = -theta**2*r_vec**2
-              ee    = erfc(theta*r_vec)
-              aa    = aa*exp(arg)+3.0*ee
-              bb    = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
-              bb    = bb*exp(arg)+ee
-              
-              ! geometry term
-              ex    = cc * (aa*x**2/r_vec**2 - bb)
-              ey    = cc * aa*x*y/r_vec**2
-              ez    = cc * aa*x*z/r_vec**2
-              !write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
-              E_field_exac(ndofn*inode-2,1) = ex
-              E_field_exac(ndofn*inode-1,1) = ey
-              E_field_exac(ndofn*inode-0,1) = ez
-            end do
-              !write(*,'(I5, e15.5, 3(E14.6))') i-1, t(i), E_field_exac( 
-              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
-              ii = ii+1.0
-          end do
-           
-          !call GID_PostProcess(2,E_field_exac, 'msh', 0, t(1), time_fin, Ex_field) 
-          
-        case(3) !new test of polynomial solution
-          
-          do inode = 1, nnodes  !simple Function
-            x = coord(1,inode)
-            y = coord(2,inode)
-            
-            !exact solution
-            uxSol   = x**2 * (1.0-2.0*x + x**2)*(2*y**3 -3*y**2 +y)
-            uySol   =-(2.0*x**3 -3.0*x**2 +x)*y**2 *(1.0-2.0*y + y**2)
-            
-            !FEM solution
-            x_FEM = solution_T(1,ndofn*inode-2)
-            y_FEM = solution_T(1,ndofn*inode-1)             
-            p_FEM = solution_T(1,ndofn*inode)
-           
-            error_EM = error_EM + ( (uxSol - x_FEM)**2  + (uySol - y_FEM)**2 )
-            error_p  = error_p  + (multi - p_FEM )**2
-            
-            !Write to plotting file 
-            exact_x(inode) = uxSol
-            exact_y(inode) = uySol
-            exact_p(inode) = multi
-            FEM_x(inode) = solution_T(1,ndofn*inode-2)
-            FEM_y(inode) = solution_T(1,ndofn*inode-1)
-            FEM_p(inode) = solution_T(1,ndofn*inode-0) 
-          end do
-          
-        case(4)
-          goto 115 
-        case(5)
-         
-        case(6)
-          print*,'DC simulation No analytic solution'
+      select case(typpe)
+        case('f')
+          if(info.ne.0)then
+            print'(A34,I0)', '<<<Error in factorization at time: ', time
+            call MKLfactoResult('dgbtrf',info) 
+          endif
+        case('s')
+          if(info.ne.0)then
+            print'(A48,I0)', '<<<Error in solving system of equation at time: ', time
+            call MKLsolverResult('dgbtrs',info) 
+          endif
       end select
-     
-      error_EM = sqrt(error_EM/nnodes)
-      error_p = sqrt(error_p/nnodes)
-     
-      errL2_x=norm2(exact_x - FEM_x)/norm2(exact_x)
-      errL2_y=norm2(exact_y - FEM_y)/norm2(exact_y)
-      errL2_p=norm2(exact_p - FEM_p)/norm2(exact_p)
       
-      ! = = = = = = Begin Error computations lines
-      !== Lines to write the error computation in a file to be load it in matlab
-      open(unit=777, file= fileplace//error_name//extension, ACTION="write", STATUS="replace")
-      write(777,"(1x,E15.5,3x, A)") error_EM,'%error in electric field'
-      write(777,"(1x,E15.5,3x, A)") error_p, '%error in multiplier'
-      write(777,"(1x,E15.5,3x, A)") errL2_x,'%L2error in ex'
-      write(777,"(1x,E15.5,3x, A)") errL2_y,'%L2error in ey'
-      write(777,"(1x,E15.5,3x, A)") errL2_p,'%L2error in multiplier'
-      close(777)
-      print*, ' '
-      print*, '!============== Error Estimation ==============!'
-      write(*,"(A10,f7.5,A25,E13.5)")' -For h = ', helem, 'the error estimation is '
-      write(*,"(A14,E13.5)")' -For u     : ', error_EM
-      write(*,"(A14,E13.5)")' -For p     : ', error_p
-      write(*,"(A14,E13.5)")' -Norm L2 ux: ', errL2_x
-      write(*,"(A14,E13.5)")' -Norm L2 uy: ', errL2_y
-      write(*,"(A14,E13.5)")' -Norm L2 p : ', errL2_p
-      print*, ' '
-      ! = = = = = = End Error computations lines
-      
-      
-      ! = = = = = = Begin writing FEM and Exact solutions
-      open(unit=111, file= fileplace//File_Nodal_Vals//extension, ACTION="write", STATUS="replace")
-      !write(*,*) '       FEMx','            Ex_x', '            FEMy','           Ex_y'
-     
-      if(ProbType.eq.'TIME')then
-        print*, 'xxxxxxxxxxxxxxx'
-        write(111,'(A)')'%  Time         step         ex             ey             ez'
-        do itime = 1, t_steps
-          write(111,908) itime-1, t(itime), Texact_x(itime), Texact_y(itime), Texact_z(itime)
-        end do
-      else
-        if(exacSol.eq.2)goto 10 
-        if(ndofn.eq.3)then
-          do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-            write(111,'(A)') '%      FEM_x             FEM_y             Exact_x           Exact_y'
-            write(111,906)&
-            &   solution_T(1,ndofn*ipoin-2),solution_T(1,ndofn*ipoin-1), exact_x(ipoin), exact_y(ipoin)
-          end do
-          
-        elseif(ndofn.eq.1)then 
-          do ipoin = 1, nnodes  !   uh_x    uh_y    uex_x   uex_y
-            write(111,'(A)') '%      FEM               Exact_x'
-            write(111,906) solution_T(1, ipoin), exact_x(ipoin)
-          end do
-        else
-          print*, 'In Res_Matlab, Problem type not defined'
-          stop
-        end if
-        10 continue
-      end if
-      
-      print*, ' '
-      print*, '!====== Matlab file ======'
-      write(*,"(A7,A16,A23,A)") ' -File ',File_Nodal_Vals//extension,'written succesfully in ',fileplace
-      close(111)
-      ! = = = = = = End writing FEM and Exact solutions
-      
-      ! = = = = = = Begin write geometry
-      open(unit=444, file= fileplace2//coord_name//extension, ACTION="write", STATUS="replace")
-      open(unit=333, file= fileplace2//conec_name//extension, ACTION="write", STATUS="replace")
-      
-      do ielem=1,nelem
-        write(333,902) (lnods(ielem,inode),inode=1,nne)
-      end do
-      
-      do ipoin = 1, nnodes
-        write(444,904) ipoin, coord(1,ipoin), coord(2,ipoin)
-      end do
-      write(*,903)&
-      ' -File ',coord_name//extension,' and ',conec_name//extension,'written succesfully in ',fileplace2
-      print*, ' '
-      close(333)
-      close(444)
-      ! = = = = = = End write geometry
-      
-     
-      902 format(1x,i5,10(1x,i5))
-      903 format(A7,A16,A5,A16,A23,A)
-      904 format(I7,2(3x,f9.4) ) !format for msh
-      906 format(6(E15.5, 3x))
-      908 format(I5,1x, F15.5, 3(E15.6))
-      
-      115 continue
-    end subroutine Res_Matlab
+    end subroutine checkMKL
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
@@ -1762,7 +1629,7 @@ module library
       !print*,' '
     end subroutine MKLsolverResult
     !
-    !--------------------------------------------------------------------------------  
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine writeMatrix(Matrix, name1, Vector, name2)
       implicit none
@@ -1800,7 +1667,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine PostPro_EMfield(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, glob_potential, grad_sol)
+    subroutine PostPro_EMfield(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,glob_potential,grad_sol)
       
       implicit none
       
@@ -1821,21 +1688,21 @@ module library
       double precision, allocatable, dimension(:,:,:), intent(out) :: grad_sol
       
       allocate(grad_sol(nelem,totGp,DimPr))
-
+      
       if(postpro.eq.1)then
         write(*,'(A)') 'Running Post Process'
-        goto 115 
       elseif(postpro.eq.2)then
         write(*,'(A)') ' '
         write(*,'(A)') ' -No Post Process'
         goto 110
       else
         write(*,'(A)') 'No postrocess option defined'
+        goto 110
       end if
      
-      115 open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
+      open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
       
-      write(100,'(2x,A5,8x,A5,10x,A2,15x,A2,16x,A,15x,A)') 'ielem','igaus','ex','ey','x', 'y'
+      write(100,50) 'ielem','igaus','ex','ey','x', 'y'
       
       do ielem = 1,nelem
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
@@ -1849,8 +1716,7 @@ module library
           y = 0.0
           
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, dN_dxy, HesXY)
-          
+          call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
           do inode = 1, nne
             basis(inode) = N(inode,igaus)
           end do
@@ -1864,14 +1730,13 @@ module library
           grad_sol(ielem,igaus,1) = -du_dx(ielem)
           grad_sol(ielem,igaus,2) = -du_dy(ielem) 
           
-          
           do inode = 1, nne 
             x = x + basis(inode)*xi_cor(inode)
             y = y + basis(inode)*yi_cor(inode)
             !print"(3(1x,f10.7))",  basis(ibase), yi_cor(ibase), basis(ibase)*yi_cor(ibase)
           end do
           
-          write(100,'(2(I5,1x),1x,2(1x,F15.5),3x,2(E15.5))') ielem, igaus, x, y, grad_sol(ielem,igaus,1), grad_sol(ielem,igaus,2)
+          write(100,60) ielem, igaus, x, y, grad_sol(ielem,igaus,1), grad_sol(ielem,igaus,2)
         end do
         !print*,' '
       end do
@@ -1883,28 +1748,283 @@ module library
       !    write(*,'(2(1x,e15.5))') ( grad_sol(ielem, igaus, jj), jj=1,2 )
       !  end do
       !end do
+      50 format(2x,A5,8x,A5,10x,A2,15x,A2,16x,A,15x,A)
+      60 format(2(I5,1x),1x,2(1x,F15.5),3x,2(E15.5))
       
     end subroutine PostPro_EMfield
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
+    subroutine storeSpectrum( indexx, spectrum)
+      
+      implicit none
+      
+      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
+      character(len=8)                                :: id_file
+      ! double precision, dimension(ntotv, 1),intent(in) :: u_pre
+      double precision, dimension(ntotv, 1),intent(in) :: spectrum
+      !double precision, dimension(ntotv, t_steps+1)            :: spectrum
+      integer                              ,intent(in) :: indexx
+      integer                                          :: ii, jj
+      
+      id_file = files_ky(indexx)
+      
+      ! do ii = 1, S_ldSol
+      !   store_Spec(ii,time+1) = u_pre(ii,1) 
+      ! end do
+      
+      ! Se guardan las componentes del campo transformado para cada tiempo:
+      !   t1  t2  t3
+      !----- ----  --- 
+      !  Êx1  Êx1  Êx1
+      !  Êy1  Êy1  Êy1
+      !  Êz1  Êz1  Êz1
+      !  Êx2  Êx2  Êx2
+      !  Êy2  Êy2  Êy2
+      !  Êz2  Êz2  Êz2
+      !  Êx3  Êx3  Êx3
+      !  Êy3  Êy3  Êy3
+      !  Êz3  Êz3  Êz3
+     
+      open(unit=200, file=path1//'spectrumE_field_'//id_file, ACTION="write", STATUS="replace")
+      write(200,"(A)") '#Transformed Voltage (total variables, time steps)'
+      do ii = 1, ntotv
+        write(200,917) (spectrum(ii,jj), jj = 1, t_steps+1)
+      end do
+      close(200)
+      
+      
+      917 format(999(3x,E15.5)) !format for store transformed E-field
+      
+    end subroutine storeSpectrum
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine invDFT(E_3D)
+      
+      use, intrinsic                                  :: iso_c_binding
+      implicit none
+      
+      external                                        :: fdate 
+      character(len=*), parameter                     :: path1 = "Pos/Plots/Spectrums/"
+      character(len=*), parameter                     :: path2 = "Pos/Plots/"
+      double precision, parameter                     :: pi = 4*atan(1.d0)
+      !Hacer una rutina que contenga los casos posibles de cantidad de numeros de onda a emplear
+      !Que sean 10, 15, 20 
+      character(len=8)                                :: id_file
+      character(len=24)                               :: date
+      character(len=180)                              :: msg
+      double precision                                :: ky, delta_ky, dt, dky
+      double precision, allocatable, dimension(:,:)   :: E_xyzt
+      double precision, dimension(t_steps+1)          :: dummy
+      double precision, allocatable, dimension(:,:,:) :: E_hat_ky
+      integer                                         :: nt,ii,jj,kk,ll,stat,iwn,totv,idDoF
+      double precision, allocatable, dimension(:,:), intent(out)  :: E_3D
+      
+      ! Declara la función sleep de C
+      interface
+        subroutine usleep(useconds) bind(c, name="usleep")
+          import :: c_int
+          integer(c_int), value :: useconds
+        end subroutine usleep
+      end interface
+      print*, ' ' 
+      print'(A)', " !=============== Performing the Inverse Fourier Transform =============! "
+      ! Pausa durante 1 segundo (1,000,000 microsegundos)
+      call usleep(1000000)
+      
+      !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
+      !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
+      !en los siguiente pasos:
+      !       1) Leer los resultados 2D para cada numero de onda y guardarlos en una matriz de matrices Ê(ky,
+      !       2) 
+      !       3)
+      !       4)
+      
+      ! Se guardan las componentes del campo transformado para cada tiempo:
+      !   t1  t2  t3
+      !----- ----  --- 
+      !  Êx1  Êx1  Êx1
+      !  Êy1  Êy1  Êy1
+      !  Êz1  Êz1  Êz1
+      !  Êx2  Êx2  Êx2
+      !  Êy2  Êy2  Êy2
+      !  Êz2  Êz2  Êz2
+      !  Êx3  Êx3  Êx3
+      !  Êy3  Êy3  Êy3
+      !  Êz3  Êz3  Êz3
+      !Como estoy dividiendo los problemas, deberia  agregar un check para
+      !ver que todos los archivos .dat existen, si no existen, esperar unn tiempo 
+      !y volver a revisar, y si existen, ejecutar la transformada
+      
+      allocate( E_hat_ky(tot_ky,t_steps+1,ntotv))
+      allocate( E_xyzt(ntotv,t_steps+1))
+      allocate( E_3D(ntotv,1))
+      
+      idDoF = (ndofn-1) != 3-1=2 = vecor or 1-1 = 0 = scalar problem 
+      
+      reading_2D_results: do iwn = 1,tot_ky
+        id_file = files_ky(iwn)
+        open(5,file=path1//'spectrumE_field_'//id_file, status='old',action='read',IOSTAT=stat, IOMSG=msg)
+        IF ( stat /= 0 )then
+          print'(53A,I0)', 'ioStat for OPPENING 2D electric field spectrum files ', stat
+          print*, msg
+        end if
+        read(5,*,iostat=stat,iomsg=msg) !se salta los encabezados
+        do jj = 1,ntotv
+          read(5,*,iostat=stat,iomsg=msg) (E_hat_ky(iwn,nt,jj), nt =1,t_steps+1 )
+          IF ( stat /= 0 )then
+            print'(53A,I0)', 'ioStat for READING 2D electric field spectrum files ', stat
+            print*, msg
+          end if
+        end do
+        close(5) 
+      end do reading_2D_results
+      
+      !!Este print es para imprimir en pantalla las matrices que conforman la matriz de resultados 2D
+      !do iwn = 1, tot_ky
+      !  print'(A3,I0)','Ky',iwn
+      !  do ii = 1,t_steps+1
+      !    print'(99(E11.3))', (E_hat_ky(iwn,ii,jj), jj=1,ntotv)
+      !  end do
+      !end do
+     
+      call fdate(date) 
+      open(unit=300, file=path2//profile_name, ACTION="write", STATUS="replace")
+      write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
+      if(ProbType=='TIME')then
+        write(300,"(A13, I0)") '%At the time ', t_steps-2 
+        ky_loop1: do ll = 1,tot_ky
+          ky = WaveNumbers(ll)
+          ! Ex_hat = (ndofn-1) = 3-1=2
+          ! Ey_hat = (ndofn-2) = 3-2=1
+          ! Ez_hat = (ndofn-3) = 3-3=0
+          ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
+          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
+            &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
+            &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
+        end do ky_loop1
+      else
+        !This is for a static and scalar problem
+        if(ProbType=='STAT')t_steps=3 
+        write(300,"(A)") '% No           ky                    Êx'
+        write(300,"(A12, I0)") '%Receivers: ', nodalRec
+        write(300,903) (coord(1,receivers(jj)), jj=1,nodalRec) 
+        ky_loop2: do ll = 1,tot_ky
+          ky = WaveNumbers(ll)
+          write(300,904) ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)), jj=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
+        end do ky_loop2
+        if(ProbType=='STAT')t_steps=0
+      endif
+      close(300)
+     
+     
+      
+      ! = = = = = = = = = = = = = PERFORMING INVERSE FOURIER TRANSFORM = = = = = = = = = = = = = = 
+      !                            1  __∞_
+      !             Ê(x,y,z,t) = ___  \     E(x,ky,z,t) * exp(-i*ky*y) dky   !How to choose dky?
+      !                           2π  /___
+      !                               ky=0
+      !
+      print*,'Esto es t_steps antes de comenzar la TDF', t_steps
+      delta_ky = (ky_max-ky_min)/ tot_ky
+      E_xyzt = 0.0
+      time_loop: do ii =1,t_steps+1     !Para el caso STATIC este ciclo va de 1 a 1
+        nodes_loop: do jj =1,nnodes     !Ciclo sobre los nodos de la malla
+          totv = jj*ndofn
+          DoF_loop: do kk = idDoF,0,-1
+            dky = WaveNumbers(1)        !Al inicio de cada nodo para cada grado de libertad, inicializo dky 
+            ky_loop3: do ll =1, tot_ky
+              ky=WaveNumbers(ll)
+              dky = dky + delta_ky      !Actualizacion de delta ky con la contribucion correspondiente
+              ! write(*,*)'dky',dky,'en para WN=',ll
+              E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*exp(-cmplx(0,1)*y_iFT*ky) * dky
+              ! E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*cos(ky*y_iFT) * delta_ky
+            end do ky_loop3
+          end do DoF_loop
+        end do nodes_loop
+      end do time_loop
+      E_xyzt = (1.0/(2.0*pi)) * E_xyzt   
+      !E_xyzt = (1.0/pi) * E_xyzt       !Transformada coseno Moghaddam et al. 1991
+      ! E_xyzt = (2./pi) * E_xyzt          !Transformada coseno Queralt et al. 1989 
+      ! print*,' '
+      ! print'(A)','E_xyzt'
+      ! do jj=1,ntotv
+      !   print'(99(E11.3))', (E_xyzt(jj,ii), ii = 1,t_steps+1)
+      ! end do
+      ! print*,' '
+      
+      E_3D = 0.0
+      if(ProbType == 'TIME')then
+        dt = time_ini
+        time_loop2: do ii =1,t_steps+1  
+          dt = dt + delta_t!,time_fin,delta_t
+          nodes_loop2: do jj =1,nnodes
+            totv = jj*ndofn
+            DoF_loop2: do kk = idDoF,0,-1
+              E_3D(totv-kk,1) = E_xyzt(totv-kk,ii)
+              end do DoF_loop2
+          end do nodes_loop2
+          call GID_PostProcess(1, E_3D, 'res', ii-1, dt, time_fin, dummy)
+        end do time_loop2
+        call GID_PostProcess(1, E_3D, 'msh', 0, dt, time_fin, dummy)
+      else
+        nodes_loop3: do jj =1,nnodes
+        totv = jj*ndofn
+          DoF_loop3: do kk = idDoF,0,-1
+            E_3D(totv-kk,1) = E_xyzt(totv-kk,1)
+          end do DoF_loop3
+        end do nodes_loop3
+      endif
+      
+      
+      !  NN = 19
+      !  w0 = 2.0*pi/NN
+      !  reAll = 0.0
+      !  imagi = 0.
+      !  ! Esto deberia ser el campo electrico transformado que debo leer desde un inputfile
+      !  do i = 1, size(t)
+      !    arg = 2*pi*12.5*t(i)
+      !    f_t(i)= cos(arg)
+      !  end do
+      !  do k =0, NN-1
+      !    do n = 0, NN-1
+      !      angle = k*w0*n
+      !      reall(k) = reall(k) + f_t(n)*cos(angle) / NN
+      !      imagi(k) = imagi(k) - f_t(n)*sin(angle) / NN
+      !      fhat(k) = fhat(k) + f_t(n)*exp(-cmplx(0,1)*angle)
+      !    end do
+      !    write(*,'(I5,2x,5(F7.3,1x))') k, f_t(k), reall(k), imagi(k), fhat(k)
+      !  end do
+      902 format(5(E18.6))
+      903 format(99f12.5)    !format to print the profile file
+      904 format(99(e18.6))    !format to print the profile file
+      ! 904 format(I5,2x,e15.6,5x,99(e17.6))    !format to print the profile file
+    end subroutine invDFT
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
     subroutine GID_results(solution, grad_sol)
+    ! subroutine GID_results(solution, grad_sol,profile)
       
       implicit none
       
       character(len=*), parameter    :: fileplace = "Pos/"
       double precision, dimension(ntotv, 1), intent(in) :: solution
-      double precision, dimension(nelem,totGp,DimPr), intent(in) :: grad_sol
+      double precision, dimension(nelem,totGp,DimPr), intent(in), optional :: grad_sol
+      ! integer                                       , intent(in), optional :: profile
       character(len=10)                       :: ext1, ext2
       character(len=15)                       :: Elem_Type
       double precision, dimension(1, ntotv)   :: solution_T
       double precision, dimension(1,nnodes)   :: xcor, ycor
-      integer                                 :: ipoin, ii, ielem, inode, jj, igaus, icomp
+      integer                                 :: ipoin, ii, ielem, inode, jj, igaus, icomp, RESconma
       
       solution_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
-      
+      if(TwoHalf=='Y')File_Nodal_Vals=File_Nodal_Vals_ky//ky_id
      
       print*, ' '
       print*, '!============== Output files ==================!'
@@ -1921,15 +2041,19 @@ module library
       write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
       write(555,900) '#Element tipe: ', ElemType,'/',ElemType
-      
-      
       write(555,"(A)")'Coordinates'
       write(555,"(A)") '#   No        X           Y'
-      do ipoin = 1, nnodes
-        write(555,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-      end do
-      write(555,"(A)") 'End Coordinates'
+      if(view == 'xz')then
+        do ipoin = 1, nnodes
+          write(555,906) ipoin, xcor(1,ipoin), y_iFT,  ycor(1,ipoin)
+        end do
+      else 
+        do ipoin = 1, nnodes
+          write(555,906) ipoin, xcor(1,ipoin),  ycor(1,ipoin)
+        end do
+      endif
       
+      write(555,"(A)") 'End Coordinates'
       
       
       write(555,"(A)") 'Elements'
@@ -1950,6 +2074,7 @@ module library
       ! se escribe el res de las componentes de la velocidad
       select case(ndofn)
         case(1)
+          print*, 'Case 1 es un PROBLEMA ESCALAR'
           write(555,"(A)") 'Result "phi" "Electric Potential" 0 Scalar OnNodes'
           write(555,"(A)") 'ComponentNames "" '
           write(555,"(A)") 'Values'
@@ -1967,74 +2092,97 @@ module library
           write(555,"(A)") 'Values'
           write(555,*) '#',   'No    ','             ex ','               ey '
           do ipoin = 1, nnodes
-            write(555,918) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            write(555,919) ipoin, solution_T(1, ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
           end do
           write(555,"(A)") 'End Values'
           
         case(3)
-          write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
-          write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
-          write(555,"(A)") 'Values'
-          write(555,*) '#',   'No    ','             ex ','               ey'
-          do ipoin = 1, nnodes
-            write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
-          end do
-          write(555,"(A)") 'End Values'
-          write(555,"(A)") 'Result "Multiplier" "Multiplier" 0 Scalar OnNodes'
-          write(555,"(A)") 'ComponentNames "" '
-          write(555,"(A)") 'Values'
-          write(555,*) '#',   'No    ','             p '
-          !  se escribe el res para el caso escalar de un grado de libertad
-          write(555,914)
-          ii=1
-          do ipoin = 3, nnodes*3,3
-            write(555,916) ii, solution_T(1,ipoin)
-            ii=ii+1
-          end do
-          write(555,"(A)") 'End Values'
-          write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
+          RESconma = sum(sum(conma, DIM=1))
+          if(RESconma == 0)then
+            write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
+            write(555,"(A)") 'Values'
+            write(555,"(A)") '#No                 ex                ey                 ez'
+            do ipoin = 1, nnodes
+              write(555,918) ipoin,&
+              &       solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1), solution_T(1,ndofn*ipoin)
+            end do
+            write(555,"(A)") 'End Values'
+            
+          else
+            write(555,"(A)") 'Result "EM field" "EM  field" 0 Vector OnNodes'
+            write(555,"(A)") 'ComponentNames "ex" "ey" "--" "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             ex ','               ey'
+            do ipoin = 1, nnodes
+              write(555,919) ipoin, solution_T(1, ndofn*ipoin-2), solution_T(1,ndofn*ipoin-1)
+            end do
+            write(555,"(A)") 'End Values'
+            write(555,"(A)") 'Result "Multiplier" "Multiplier" 0 Scalar OnNodes'
+            write(555,"(A)") 'ComponentNames "" '
+            write(555,"(A)") 'Values'
+            write(555,*) '#',   'No    ','             p '
+            !  se escribe el res para el caso escalar de un grado de libertad
+            write(555,914)
+            ii=1
+            do ipoin = 3, nnodes*3,3
+              write(555,916) ii, solution_T(1,ipoin)
+              ii=ii+1
+            end do
+            write(555,"(A)") 'End Values'
+            write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
+          endif
       end select
-      
-      if(postpro.eq.1)then
-        write(*,'(A)') 'Writing Post Process.....'
-        goto 115 
-      elseif(postpro.eq.2)then
-        !write(*,'(A)') 'None Post Process'
-        goto 110
-      else
-        write(*,'(A)') 'No postrocess option defined'
-      end if
 
-      115 write(555,"(A,A)") 'GaussPoints "GP_1" ElemType ', Elem_Type 
-      write(555,"(A24,I1)") 'Number Of Gauss Points: ', totGp
-      write(555,"(A,A)") 'Natural Coordinates: ', "Given"
-      do igaus = 1, totGp
-        write(555,901) (ngaus(igaus,jj), jj=1,DimPr)
-      end do
-      write(555,"(A)") 'End GaussPoints'
+      ! if(present(profile)then
+      !   open(unit=10, file=path2//"spatial_profile.dat", ACTION="write", STATUS="replace")
+      !   do ipoin =1,nodalRec
+      !       write(10,903) coord(1,receivers(ipoin)), solution_T(1,receivers(ipoin))
+      !   end do
+      !   close(10)
+      ! else
+      !   write(*,'(A)') 'No spatial profile required'
+      ! endif
       
-      write(555,"(A)") 'Result "Electric field" "ANALYSIS" 0 Vector OnGaussPoints "GP_1" '
-      write(555,"(A)") 'ComponentNames "Ex" "Ey" '
-      write(555,"(A)") 'Values'
-      do ielem = 1, nelem
-        write(555,'(I0)',Advance='NO') ielem
-        do igaus = 1, totGp
+      if (present(grad_sol) )then
+        if(postpro.eq.1)then
+          write(*,'(A)') 'Writing Post Process.....'
+          write(555,"(A,A)") 'GaussPoints "GP_1" ElemType ', Elem_Type 
+          write(555,"(A24,I1)") 'Number Of Gauss Points: ', totGp
+          write(555,"(A,A)") 'Natural Coordinates: ', "Given"
+          do igaus = 1, totGp
+          write(555,901) (ngaus(igaus,jj), jj=1,DimPr)
+          end do
+          write(555,"(A)") 'End GaussPoints'
+
+          write(555,"(A)") 'Result "Electric field" "ANALYSIS" 0 Vector OnGaussPoints "GP_1" '
+          write(555,"(A)") 'ComponentNames "Ex" "Ey" '
+          write(555,"(A)") 'Values'
+          do ielem = 1, nelem
+          write(555,'(I0)',Advance='NO') ielem
+          do igaus = 1, totGp
           write(555,903) (grad_sol(ielem,igaus,icomp), icomp=1,2)
-        end do
-      end do
-      write(555,"(A)") 'End Values'
+          end do
+          end do
+          write(555,"(A)") 'End Values'
+        elseif(postpro.eq.2)then
+          !write(*,'(A)') 'None Post Process'
+          110 close(555)
+        else
+          write(*,'(A)') 'No postrocess option defined'
+        end if
+      endif
       
-      110 close(555)
       
       900 format(A15, A13, A1, A13)
       901 format(2(f10.5))
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
       903 format(2(E15.5))
-      906 format(I7,4x,2(f15.5,3x)) !format for msh
+      906 format(I7,4x,3(f15.5,3x)) !format for msh
       908 format(10(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E15.5)  !format for scalar case
-      918 format(I7,3x,E12.5,3x,E12.5) !format for res velocity
+      918 format(I7,3(4x,E15.5)) !format for res velocity
       919 format(I7,2(4x,E15.5)) !format for res velocity
       
     end subroutine GID_results 
@@ -2048,23 +2196,28 @@ module library
     
     subroutine GID_PostProcess(id,solution, activity, time, timeStep, time_final, Ex_field)
       
+      ! use E0field
+      
       implicit none
       external                                             :: fdate 
       
-      character(len=*), parameter                          :: fileplace = "Pos/"
-      character(len=*), parameter                          :: fileplace2 = "Res/FEM_TEM/"
-      character(len=24)                                    :: date
-      double precision, dimension(ntotv, 1),intent(in)     :: solution
-      character(*)                         ,intent(in)     :: activity
-      integer                              ,intent(in)     :: time
-      double precision                     ,intent(in)     :: timeStep, time_final
-      character(len=10)                                    :: ext1, ext2
-      character(len=4)                                     :: ext3
-      character(len=15)                                    :: Elem_Type
-      double precision, dimension(1, ntotv)                :: Sol_T
-      double precision, dimension(1,nnodes)                :: xcor, ycor
+      character(len=*), parameter  :: fileplace = "Pos/"
+      character(len=*), parameter  :: fileplace2 = "Res/FEM_TEM/"
+      character(len=*), parameter  :: fileplace3 = "Exact_Sol_TEM/2D_DoubleLine_WholeSpace/"
+      character(len=24)                                :: date
+      double precision, dimension(ntotv, 1),intent(in) :: solution
+      character(*)                         ,intent(in) :: activity
+      integer                              ,intent(in) :: time
+      double precision                     ,intent(in) :: timeStep, time_final
+      character(len=10)                                :: ext1, ext2
+      character(len=4)                                 :: ext3
+      character(len=15)                                :: Elem_Type
+      double precision, dimension(1, ntotv)            :: Sol_T
+      double precision                                 :: Ez_r(ntotv), tEz
+      double precision, dimension(1,nnodes)            :: xcor, ycor
+      integer                                          :: ipoin, ii, ielem, inode, time2,id, RESconma
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
-      integer                                              :: ipoin, ii, ielem, inode, time2,id
+      double precision :: x_profile
       
       !double precision :: delta_t, timeStep2
       
@@ -2072,6 +2225,7 @@ module library
       Sol_T = transpose(solution)
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      if(TwoHalf=='Y')File_Nodal_Vals=File_Nodal_Vals_ky//ky_id
       
       !delta_t 1e-3 ( time_fin - time_ini ) / (t_steps + 1.0)
       
@@ -2090,8 +2244,6 @@ module library
       endif
       !open(unit=555, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
       
-      
-      
       if(activity == "msh")then !quitar este if y acomodar el numero de unidad
         open(unit=100, file= fileplace//File_Nodal_Vals//ext1, ACTION="write", STATUS="replace")
         
@@ -2100,9 +2252,15 @@ module library
         write(100,900) '#Element tipe: ', ElemType,'/',ElemType
         write(100,"(A)")'Coordinates'
         write(100,"(A)") '#   No        X           Y'
-        do ipoin = 1, nnodes
-          write(100,906) ipoin, xcor(1,ipoin), ycor(1,ipoin)
-        end do
+        if(view == 'xz')then
+          do ipoin = 1, nnodes
+            write(100,906) ipoin, xcor(1,ipoin), y_iFT,  ycor(1,ipoin)
+          end do
+        else 
+          do ipoin = 1, nnodes
+            write(100,906) ipoin, xcor(1,ipoin),  ycor(1,ipoin)
+          end do
+        endif
         write(100,"(A)") 'End Coordinates'
         write(100,"(A)") 'Elements'
         do ielem=1,nelem
@@ -2149,30 +2307,47 @@ module library
             end do
             write(200,"(A)") 'End Values'
           case(3)
-            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
-            write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
-            write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','             ex ','               ey'
-           ! do ipoin = 1, nnodes
-           !   write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
-           ! end do
-            do ipoin = 1, nnodes
-              write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
-            end do
-            write(200,"(A)") 'End Values'
-            write(200,"(A24, I0, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
-            write(200,"(A)") 'ComponentNames "" '
-            write(200,"(A)") 'Values'
-            write(200,*) '#',   'No    ','     P '
-            !  se escribe el res para el caso escalar de un grado de libertad
-            write(200,914)
-            ii=1
-            do ipoin = 3, nnodes*3,3
-              write(200,916) ii, Sol_T(1,ipoin)
-              ii=ii+1
-            end do
-            write(200,"(A)") 'End Values'
+            RESconma = sum(sum(conma, DIM=1))
+            if(RESconma == 0)then
+              write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+              write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
+              write(200,"(A)") 'Values'
+              write(200,*) '#No      ','             ex ','               ey','               ez'
+              do ipoin = 1, nnodes
+                write(200,919) ipoin,&
+                &       Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
+              end do
+              write(200,"(A)") 'End Values'
+              
+            else
+              write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+              write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
+              write(200,"(A)") 'Values'
+              write(200,*) '#',   'No    ','             ex ','               ey'
+           !   do ipoin = 1, nnodes
+           !     write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
+           !   end do
+              do ipoin = 1, nnodes
+                write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
+              end do
+              write(200,"(A)") 'End Values'
+              write(200,"(A24, I0, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
+              write(200,"(A)") 'ComponentNames "" '
+              write(200,"(A)") 'Values'
+              write(200,*) '#',   'No    ','     P '
+              !  se escribe el res para el caso escalar de un grado de libertad
+              write(200,914)
+              ii=1
+              do ipoin = 3, nnodes*3,3
+                write(200,916) ii, Sol_T(1,ipoin)
+                ii=ii+1
+              end do
+              write(200,"(A)") 'End Values'
+            end if
         end select
+        
+        
+        
       elseif(activity == "profile")then
         Ex_field = 0.0 
         if(time == 0)then
@@ -2181,14 +2356,16 @@ module library
           write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
           write(300,"(A)") ' '
           write(300,"(A)") '% - - - - - - - Component ex'
-          if(time == 0) write(300,"(A)") '% time       timeStep          receiver1'
+          if(time == 0) write(300,"(A)") '% time     timeStep        receiver1'
         else
           continue
         endif
-        open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+        open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
         
-        write(300,904) time, timeStep, (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
-        !Ex_fieldi(time) = (Sol_T(1,(ndofn*recLoc(ipoin)+1)), ipoin=1,nodalRec)
+        write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin))), ipoin=1,nodalRec)
+        !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
+        !Creo que aqui en lugar del +1 debio ser -2 para que el grado de libertad del receptor
+        !corresponda a la componente x
 
         !if( time == t_steps+1 ) then
         !  write(300,"(A)") ' '
@@ -2197,9 +2374,54 @@ module library
         !  timeStep2 = 0.0
         !  do time2 = 1, t_steps+1
         !    timeStep2 = timeStep2 + delta_t
-        !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*recLoc(ipoin)+2)), ipoin=1,nodalRec)
+        !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*receivers(ipoin)+2)), ipoin=1,nodalRec)
         !  end do
         !endif
+        
+      elseif(activity == "spatial")then
+        !id_poin = 113
+        !open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
+        !do ipoin =1,nnodes
+        !  if(ycor(1,ipoin).eq.0.0)then
+        !    id_poin = id_poin+1
+        !    write(10,906) ipoin, xcor(1,ipoin)
+        !  else
+        !    continue
+        !  endif
+        !end do
+        !close(10)
+
+
+
+        !if(time == 1)then
+        !  open(unit=6, file=fileplace3//"test_for_commit.dat", STATUS="replace", ACTION="write")
+        !else
+        !  open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
+        !endif
+        
+        !open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
+        !!allocate(efile_profile(id))
+        
+        !tEz = timeStep 
+        !call Efield_WholeSpace(time, tEz, Ez_r)
+        
+        !write(6,'(A7,I0,A,e10.3,A)') ' #t',time,'=',timeStep
+        !write(6,'(A)') "index xcor FEM Exact"
+        !if(ndofn.eq.1)then
+        !  do ii = 1,id_poin                !id_poin viene del modulo E0field como variable global 
+        !    read(5,*) ipoin, x_profile
+        !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin), Ez_r(ndofn*ipoin)
+        !  end do
+        !else
+        !  do ii = 1,id_poin
+        !    read(5,*) ipoin, x_profile
+        !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2), Ez_r(ndofn*ipoin)
+        !  end do
+        !endif
+        !write(6,*)' '
+        !write(6,*)' '
+        !close(5)
+       !close(6)
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
@@ -2229,27 +2451,85 @@ module library
       
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-      904 format(2x,I5,1x,e15.6,2x,99(e15.6))    !format to print the profile file
-      906 format(I7,2(3x,f9.4)) !format for msh
+      904 format(I5,2x,e15.6,2x,99(e15.6))    !format to print the profile file
+      906 format(I7,3(f15.5,3x)) !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
       916 format(I7,2x,E12.5)  !format for scalar case
-      918 format(I7,3x,E15.5,3x,E15.5) !format for res velocity
+      918 format(I7,3x,5(E14.6,3x)) !format for res velocity
       919 format(I7,3(3x,E15.5)) !format for res velocity
       
     end subroutine GID_PostProcess
-   
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    !
+    subroutine infoTime(time)
+      
+      implicit none 
+      integer, intent(in) :: time
+      double precision    :: check1, check2, check3, check4, check5
+      double precision    :: check6, check7, check8, check9, check10
+      
+      check1=((t_steps/20)*100)/t_steps
+      check2=((t_steps/8)*100)/t_steps
+      check3=((t_steps/3)*100)/t_steps
+      check4=((t_steps/2.2)*100)/t_steps
+      check5=((t_steps/1.9)*100)/t_steps
+      check6=((t_steps/1.6)*100)/t_steps
+      check7=((t_steps/1.4)*100)/t_steps
+      check8=((t_steps/1.2)*100)/t_steps
+      check9=((t_steps/1.06)*100)/t_steps
+      check10=((t_steps/1.01)*100)/t_steps
+      check1= ceiling(check1)
+      check2= ceiling(check2)
+      check3= ceiling(check3)
+      check4= ceiling(check4)
+      check5= ceiling(check5)
+      check6= ceiling(check6)
+      check7= ceiling(check7)
+      check8= ceiling(check8)
+      check9= ceiling(check9)
+      check10= ceiling(check10)
 
-
-
-    
-    
-    
-    
+      ! print*,'1',check1
+      ! print*,'2',check2
+      ! print*,'3',check3
+      ! print*,'4',check4
+      ! print*,'5',check5
+      ! print*,'6',check6
+      ! print*,'7',check7
+      ! print*,'8',check8
+      ! print*,'9',check9
+      ! print*,'10',check10
+      
+      
+      if((time==floor(t_steps*check1*0.01)))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check1), '%'
+      elseif(time==floor(t_steps*check2*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check2), '%'
+      elseif(time==floor(t_steps*check3*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check3), '%'
+      elseif(time==floor(t_steps*check4*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check4), '%'
+      ! elseif(time==floor(t_steps*check5))then
+        ! print*, ' -Completed5',check5, '%'
+      elseif(time==floor(t_steps*check6*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check6), '%'
+      ! elseif(time==floor(t_steps*check7))then
+        ! print*, ' -Completed',check7, '%'
+      elseif(time==floor(t_steps*check8*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check8), '%'
+      elseif(time==floor(t_steps*check9*0.01))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check9), '%'
+      elseif((time==floor(t_steps*check10*0.01)))then
+        print'(A12,i0,1x,A)', ' -Completed ',int(check10), '%'
+      endif
+    end subroutine infoTime
     
     
     !subroutine GlobalSystem_Time(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,delta_t,ugl_pre,A_F)
     subroutine prevTime(N,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldSol,ugl_pre,A_M)
+      !        BDF1_u_prev
       
       use sourceTerm
       
@@ -2258,6 +2538,7 @@ module library
       double precision, allocatable, dimension(:,:), intent(in out) :: ugl_pre
       double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
       double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
+      ! double precision,                       intent(in) :: k_y
       !double precision, dimension(3,nne), intent(in)     :: Hesxieta
       integer                               , intent(in) :: S_ldSol
       double precision, dimension(ndofn)        :: EMsource
@@ -2267,7 +2548,7 @@ module library
       double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
       double precision, dimension(nevab, nevab) :: Ke, Ce, rhs_CN
       double precision, dimension(nevab)        :: Fe, Mu_time, ue_pre, time_cont
-      !double precision, dimension(3,3)          :: tauma
+      double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ!, delta_t
@@ -2275,7 +2556,6 @@ module library
       double precision, allocatable, dimension(:,:), intent(out)  :: A_M
       
       allocate( A_M(ntotv, 1) )
-      !allocate(ugl_pre(S_ldSol,1) )
       
       A_M = 0.0
       do ielem = 1, nelem 
@@ -2289,9 +2569,6 @@ module library
         !do-loop: compute element capacity and stiffness matrix Ke Ce and element vector Fe
         do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
-          !Jaco = J2D(element_nodes, dN_dxi, dN_deta, igaus)
-          !detJ = m22det(Jaco)
-          !Jinv = inv2x2(Jaco)
           dvol = detJ *  weigp(igaus,1)
           !call DerivativesXY(igaus, Jinv, dN_dxi, dN_deta, Hesxieta, dN_dxy, HesXY)
           call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
@@ -2300,26 +2577,34 @@ module library
             basis(ibase) = N(ibase,igaus)
           end do
           
-          !call TauMat(hmaxi,tauma)
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
+          !En este Galerkin deberia quitar la construccion de la matriz Ke para evitar Calculamos
+          !inecesarios pues solo se calcula Ce y Fe y Ke ya no, REVISA RUTINA Galerkin_prevTime 
+          !y ver si esa se puede implementar tal cual aqui en lugar de Galerkin completo
           call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
-          !if(kstab.ne.6.or.kstab.ne.0)call Stabilization(dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           
+          if(kstab.eq.6.or.kstab.eq.0)then
+            !print*, kstab, ' sin estabi'
+            continue
+          else
+            !print*, 'entra en stabi Prev Time'
+            call TauMat(hmaxi,tauma)
+            call Stabilization(hmaxi, dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
+          endif
           !estas multiplicaciones deberias ser globales pero por la matriz en banda se deben 
           !hacer locales, es lo mismo.
           select case(theta)
-          case(2)
-          Mu_time = matmul(Ce,time_cont) 
-          case(3)
-          rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
-          Mu_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
+            case(2)
+              Mu_time = matmul(Ce,time_cont) 
+            case(3) !Este caso se debe quitar de aqi. Esta rutina no se llama en Crank-Nicholson
+              rhs_CN  = (1.0/delta_t)*Ce - 0.5*Ke
+              Mu_time = 0.5*Fe + matmul(rhs_CN,ue_pre)
           endselect
           
         end do
         
-        !call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)      !Assemble Global Conductivity Matrix K
         !call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)      !Assemble Global Capacity Matrix C 
         call Assemb_Glob_Vec(nodeIDmap, Mu_time, A_M) !Assemble Global Source vector F
         
