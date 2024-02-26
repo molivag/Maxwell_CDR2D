@@ -58,4 +58,3 @@ clean:
 	@echo '* * * * * '
 	@echo ' - Everything is clean -'
 	@echo '* * * * * '
->>>>>>> developing
