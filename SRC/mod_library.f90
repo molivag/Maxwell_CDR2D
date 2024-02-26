@@ -51,6 +51,75 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
+    subroutine spatialProfile_BubbleSort(solution)
+      
+      implicit none
+      
+      character(len=*), parameter                      :: path2 = "Pos/Plots/"
+      double precision, dimension(ntotv,1), intent(in) :: solution(:,:) 
+      double precision, dimension(1, ntotv)            :: Sol_T
+      double precision, allocatable, dimension(:,:)    :: x_profile, temp
+      double precision, dimension(1,nnodes)            :: xcor, ycor
+      integer                                          :: id_poin, ipoin, jpoin, ii, xpoin
+      
+      xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
+      ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
+      
+      Sol_T = transpose(solution)
+      !loop cuantos nodos at z=0
+      id_poin = 0
+      do ipoin =1,nnodes
+        if((ycor(1,ipoin).eq.0) .and. (xcor(1,ipoin)>=0))then
+          id_poin = id_Poin+1 !total de puntos que componen el perfil de: distancia en z=0
+        else
+          continue
+        endif
+      end do
+      !contados cuantos nodos, se asigna espacio con ese valor
+      allocate(x_profile(2,id_poin), temp(2,id_poin))
+      xpoin = 0 
+      !comienza el llenado de la matriz recien formada guardando numero de nodo y su coordenada
+      do ipoin = 1,nnodes
+        if((ycor(1,ipoin).eq.0) .and. (xcor(1,ipoin)>=0))then
+          xpoin = xpoin+1 !Contador que va recorriendo las filas para x_profile
+          x_profile(1,xpoin) = real(ipoin)
+          x_profile(2,xpoin) = xcor(1,ipoin)
+        else
+          continue
+        endif
+      enddo
+      !aplicando bubble sort method para reacomodar perfil en x de menor a mayor (0-->inf)
+      do ipoin = 1, id_poin-1
+        do jpoin = 1, id_poin-ipoin
+          if (x_profile(2, jpoin) > x_profile(2, jpoin+1)) then
+            ! Intercambiar filas si están en orden incorrecto
+            temp(:, jpoin) = x_profile(:, jpoin)            ! Copiar fila jpoin a temp
+            x_profile(:, jpoin) = x_profile(:, jpoin+1)     ! Copiar fila jpoin+1 a jpoin
+            x_profile(:, jpoin+1) = temp(:, jpoin)          ! Copiar temp a fila jpoin+1
+          end if
+        end do
+      end do
+      !Una vez reacomodado, imprimir archivo con No  x-cor, value        
+      open(unit=10, file=path2//"3_direct_spatial_profile.dat", ACTION="write", STATUS="replace")
+      ipoin = 0
+      !Si el perfil se quisiera de determinada longitud aqui se deberia llamar SearchingNodes
+      !para que, dada una coordenada (x,0) se busque el nodo mas cercano y con ese nodo hacer
+      !algo como:
+      !id_poin = int(x_profile(nodo_encontrado)) con esto id_poin llegara hasta la distancia deseada
+      do ii = 1,id_poin 
+        ipoin = int(x_profile(1,ii))
+        write(10,100) ipoin, x_profile(2,ii), Sol_T(1, ndofn*ipoin)!, Ez_r(ndofn*ipoin)
+      end do
+      close(10)
+      !El siguiente write es por si se quisiera la solucion en determinados receptores
+      !write(10,902) coord(1,ndofn*receivers(jj)), E_3D(ndofn*receivers(jj),1)
+      
+      100 format(I0,1x, f20.12, E20.8)
+      
+    end subroutine spatialProfile_BubbleSort
+    !
+    != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
+    ! 
     subroutine SetElementNodes(elm_num, element_nodes, nodeIDmap, xi_cor, yi_cor)
       
       implicit none
