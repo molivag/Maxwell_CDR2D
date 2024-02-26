@@ -486,7 +486,7 @@ module library
                   !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
                   !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
                   call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
-                  !print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
+                  ! print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
                   diff = diff + dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, e12.5)",'diff ', diff
                   !print*, '- - - - - - - - - - - - - - - - - - -'
@@ -502,7 +502,7 @@ module library
               !LO IDEAL ES QUE NO SE EVALUE EL MISMO IF EN CADA GRADO DE LIBERATD SINO QUE SE
               !HAGAN VARIOS GALERKIN PARA EVITAR LA MAYOR CANTIDAD DE EVALUACIONES IF POSIBLES
               if(TwoHalf =='Y')then
-                !if it is dealing with a 2.5D Problem
+                ! print*,'!if it is dealing with a 2.5D Problem'
                 if(oper == 'LAPL')then
                   ! print*,'Entra a Laplacian'
                   ! print*,k_y
@@ -630,11 +630,16 @@ module library
             ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
             !Aqui tengo que poner un identificador o LGO QUE dependiendo
             !el problema, ponga una propiedad fisica u otra
-            if(kstab == 0)then
-              ! print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
+            if(kstab == 0 .and. oper=='LAPL')then
+              !if((kstab == 3 .or.kstab==0) .and. oper=='LAPL')then  **Este if es mas general**
+              !print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
               coeff = sigma
-            else
+            elseif(kstab == 3 .and. oper=='LAPL')then
+              coeff = sigma
+            elseIF(kstab == 0 .and. oper=='MAXW')then
               coeff = lambda
+            else
+              print*, 'No diferential opperator defined for param_stab in LIBRARY module'
             endif
            
         end if
@@ -1667,7 +1672,7 @@ module library
       double precision, dimension(ntotv, 1),intent(in) :: spectrum
       !double precision, dimension(ntotv, t_steps+1)            :: spectrum
       integer                              ,intent(in) :: indexx
-      integer                                          :: ipoin, ii, jj
+      integer                                          :: ii, jj
       
       id_file = files_ky(indexx)
       
@@ -1702,7 +1707,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine invDFT
+    subroutine invDFT(E_3D)
       
       use, intrinsic                                  :: iso_c_binding
       implicit none
@@ -1716,11 +1721,12 @@ module library
       character(len=8)                                :: id_file
       character(len=24)                               :: date
       character(len=180)                              :: msg
-      double precision                                :: ky, delta_ky, dt
-      double precision, allocatable, dimension(:,:)   :: E_xyzt, E_3D
+      double precision                                :: ky, delta_ky, dt, dky
+      double precision, allocatable, dimension(:,:)   :: E_xyzt
       double precision, dimension(t_steps+1)          :: dummy
       double precision, allocatable, dimension(:,:,:) :: E_hat_ky
       integer                                         :: nt,ii,jj,kk,ll,stat,iwn,totv,idDoF
+      double precision, allocatable, dimension(:,:), intent(out)  :: E_3D
       
       ! Declara la función sleep de C
       interface
@@ -1733,6 +1739,7 @@ module library
       print'(A)', " !=============== Performing the Inverse Fourier Transform =============! "
       ! Pausa durante 1 segundo (1,000,000 microsegundos)
       call usleep(1000000)
+      
       !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
       !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
       !en los siguiente pasos:
@@ -1762,6 +1769,7 @@ module library
       allocate( E_3D(ntotv,1))
       
       idDoF = (ndofn-1) != 3-1=2 = vecor or 1-1 = 0 = scalar problem 
+      
       reading_2D_results: do iwn = 1,tot_ky
         id_file = files_ky(iwn)
         open(5,file=path1//'spectrumE_field_'//id_file, status='old',action='read',IOSTAT=stat, IOMSG=msg)
@@ -1789,7 +1797,7 @@ module library
       !end do
      
       call fdate(date) 
-      open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
+      open(unit=300, file=path2//profile_name, ACTION="write", STATUS="replace")
       write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
       if(ProbType=='TIME')then
         write(300,"(A13, I0)") '%At the time ', t_steps-2 
@@ -1802,7 +1810,7 @@ module library
           write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
             &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
             &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
-          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
         end do ky_loop1
       else
         !This is for a static and scalar problem
@@ -1813,7 +1821,7 @@ module library
         ky_loop2: do ll = 1,tot_ky
           ky = WaveNumbers(ll)
           write(300,904) ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)), jj=1,nodalRec)
-          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
+          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
         end do ky_loop2
         if(ProbType=='STAT')t_steps=0
       endif
@@ -1830,31 +1838,31 @@ module library
       print*,'Esto es t_steps antes de comenzar la TDF', t_steps
       delta_ky = (ky_max-ky_min)/ tot_ky
       E_xyzt = 0.0
-      time_loop: do ii =1,t_steps+1  
-        nodes_loop: do jj =1,nnodes
+      time_loop: do ii =1,t_steps+1     !Para el caso STATIC este ciclo va de 1 a 1
+        nodes_loop: do jj =1,nnodes     !Ciclo sobre los nodos de la malla
           totv = jj*ndofn
           DoF_loop: do kk = idDoF,0,-1
+            dky = WaveNumbers(1)        !Al inicio de cada nodo para cada grado de libertad, inicializo dky 
             ky_loop3: do ll =1, tot_ky
               ky=WaveNumbers(ll)
-              E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*exp(-cmplx(0,1)*y_iFT*ky) * delta_ky
+              dky = dky + delta_ky      !Actualizacion de delta ky con la contribucion correspondiente
+              ! write(*,*)'dky',dky,'en para WN=',ll
+              E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*exp(-cmplx(0,1)*y_iFT*ky) * dky
               ! E_xyzt(totv-kk,ii) = E_xyzt(totv-kk,ii) + E_hat_ky(ll,ii,totv-kk)*cos(ky*y_iFT) * delta_ky
             end do ky_loop3
           end do DoF_loop
         end do nodes_loop
       end do time_loop
-      E_xyzt = (1.0/2.0*pi) * E_xyzt   !Transformada Exponencial
-      ! E_xyzt = (1.0/pi) * E_xyzt       !Transformada coseno Moghaddam et al. 1991
+      E_xyzt = (1.0/(2.0*pi)) * E_xyzt   
+      !E_xyzt = (1.0/pi) * E_xyzt       !Transformada coseno Moghaddam et al. 1991
       ! E_xyzt = (2./pi) * E_xyzt          !Transformada coseno Queralt et al. 1989 
-      
-      ! print*,' '
       ! print*,' '
       ! print'(A)','E_xyzt'
       ! do jj=1,ntotv
       !   print'(99(E11.3))', (E_xyzt(jj,ii), ii = 1,t_steps+1)
       ! end do
-
-      TwoHalf = 'N'
-      File_Nodal_Vals = File_3DNodal_Vals
+      ! print*,' '
+      
       E_3D = 0.0
       if(ProbType == 'TIME')then
         dt = time_ini
@@ -1876,17 +1884,9 @@ module library
             E_3D(totv-kk,1) = E_xyzt(totv-kk,1)
           end do DoF_loop3
         end do nodes_loop3
-        call GID_results(E_3D) 
       endif
-      open(unit=10, file=path2//"spatial_profile.dat", ACTION="write", STATUS="replace")
-      do jj =1,nodalRec
-          ! print*, ndofn*receivers(jj)
-          write(10,902) coord(1,ndofn*receivers(jj)), E_3D(ndofn*receivers(jj),1)
-          ! El error esta aqui por que no se imprime lo que debe ser el valor de E3D
-      end do
-      close(10)
-        
-        
+      
+      
       !  NN = 19
       !  w0 = 2.0*pi/NN
       !  reAll = 0.0
@@ -1948,16 +1948,19 @@ module library
       write(555,902) 'MESH', '"Domain"', 'dimension', DimPr, 'ElemType', Elem_Type, 'Nnode', nne
       write(555,"(A)") '#2D Convection-Diffusion-Reaction'
       write(555,900) '#Element tipe: ', ElemType,'/',ElemType
-      
-      
       write(555,"(A)")'Coordinates'
       write(555,"(A)") '#   No        X           Y'
-      do ipoin = 1, nnodes
-        ! write(555,906) ipoin, xcor(1,ipoin),  ycor(1,ipoin)
-        write(555,906) ipoin, xcor(1,ipoin), y_iFT,  ycor(1,ipoin)
-      end do
-      write(555,"(A)") 'End Coordinates'
+      if(view == 'xz')then
+        do ipoin = 1, nnodes
+          write(555,906) ipoin, xcor(1,ipoin), y_iFT,  ycor(1,ipoin)
+        end do
+      else 
+        do ipoin = 1, nnodes
+          write(555,906) ipoin, xcor(1,ipoin),  ycor(1,ipoin)
+        end do
+      endif
       
+      write(555,"(A)") 'End Coordinates'
       
       
       write(555,"(A)") 'Elements'
@@ -2156,10 +2159,15 @@ module library
         write(100,900) '#Element tipe: ', ElemType,'/',ElemType
         write(100,"(A)")'Coordinates'
         write(100,"(A)") '#   No        X           Y'
-        do ipoin = 1, nnodes
-          write(100,906) ipoin, xcor(1,ipoin), y_iFT ,ycor(1,ipoin)
-        end do
-       
+        if(view == 'xz')then
+          do ipoin = 1, nnodes
+            write(100,906) ipoin, xcor(1,ipoin), y_iFT,  ycor(1,ipoin)
+          end do
+        else 
+          do ipoin = 1, nnodes
+            write(100,906) ipoin, xcor(1,ipoin),  ycor(1,ipoin)
+          end do
+        endif
         write(100,"(A)") 'End Coordinates'
         write(100,"(A)") 'Elements'
         do ielem=1,nelem
@@ -2259,7 +2267,7 @@ module library
         else
           continue
         endif
-        open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+        open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
         
         write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin))), ipoin=1,nodalRec)
         !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
