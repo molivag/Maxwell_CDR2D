@@ -19,7 +19,7 @@ program main_CDR3d
   double precision                                              :: start, finish
   ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
   double precision, allocatable, dimension(:,:,:)   :: grad_u_sol
-  double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol
+  double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol, E_3D
   double precision, allocatable, dimension(:)       :: Ex_field
   external                                          :: dgbtrf, dgbtrs, dgbrfs
   integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
@@ -56,6 +56,7 @@ program main_CDR3d
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
   call VinculBVs( condition,  BVs, nofix, ifpre, presc )
 
+  stop
 
   !====================== Hasta aqui iria la parte general de todas las simulaciones para cada ky
   !-------- Problem Type Definition ----------!
@@ -73,7 +74,7 @@ program main_CDR3d
         !---------- Memory Relase -----------!
         deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
         deallocate(hes_xixi, hes_xieta, hes_etaeta) 
-        if((ii_ky==size(nodal_ky)+1) .and. (TwoHalf=='Y')) call invDFT !if para test cortos pero sin dividir la ejecucion
+        if((ii_ky==size(nodal_ky)+1) .and. (TwoHalf=='Y')) call invDFT(E_3D) !if para test cortos pero sin dividir la ejecucion
         
       elseif(splits == 'Y')then !If the problem split run as kind of parallel
         print*,'dividido'
@@ -83,17 +84,17 @@ program main_CDR3d
         !---------- Memory Relase -----------!
         deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
         deallocate(hes_xixi, hes_xieta, hes_etaeta) 
-        call invDFT 
+        call invDFT(E_3D) 
         
       endif
       
     case('STAT')
       !---------- Global Matrix and Vector ------!
-      if(ProbType == 'STAT') t_steps=0
+      ! if(ProbType == 'STAT') t_steps=0
+      t_steps=0
       print*,'  •BUILDING GLOBAL MATRIX (K) AND VECTOR (F).....'
-      if(splits == 'N')then
-        ! print*,'completo'
-        do ii_ky = 1,tot_ky !First running of the code with tot_ky = 5
+      if_run_parallel: if(splits == 'N')then
+        loop_each_ky: do ii_ky = 1,tot_ky !First running of the code with tot_ky = 5
           if(TwoHalf == 'Y')then !if it is a 2.5D problem, these variable gonna be updating 
             ky_id = nodal_ky(ii_ky)
             k_y = WaveNumbers(ii_ky) !Value of wave number for current problem (used in reama)
@@ -115,13 +116,11 @@ program main_CDR3d
           allocate( store_Spec(S_ldSol,t_steps+1) )
           allocate( AK_LU(ldAKban,ntotv), u_sol(S_ldSol,1) ) 
           allocate( S_ipiv(max(1,min(S_m, S_n)) ) )
-          
           print*, ' '
           print*, '!================ MKL Solver ==================!'
           print*,'  •SETTING VARIABLES FOR MKL LIBRARY.....'
           AK_LU = A_K      !AK_band(ldab,*) contains the matrix A_K in band storage
           u_sol = Jsource  !u_sol gonna be rewrited by LAPACK avoiding lose Jsource
-          print*,'esto es u_sol en main',sum(Jsource)
           !---------- Solving System of Equations by INTEL MKL solver -----------!
           print*,'  •PERFORMING LU BAND DECOMPOSITION.....'
           call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
@@ -130,28 +129,43 @@ program main_CDR3d
           !---------- Computing nodal unknowns ux_i, uy_i and p_i ---------------!
           call dgbtrs(S_trans,S_n,lowban,upban,S_nrhs,AK_LU,ldAKban,S_ipiv,u_sol,S_ldSol,info )
           call MKLsolverResult('dgbtrs',info)
-          !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
-          call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,u_sol,grad_u_sol)
+          
+          !!---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
+          !call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,u_sol,grad_u_sol)
+          
+          if(TwoHalf == 'Y')then
+            do ii = 1, S_ldSol
+              store_Spec(ii,1) = u_sol(ii,1) 
+            end do
+            call storeSpectrum(ii_ky, store_Spec)
+          endif 
+          
           !---------- Print and write results -----------------------------------!
-          call GID_results(u_sol, grad_u_sol) 
-          do ii = 1, S_ldSol
-            store_Spec(ii,1) = u_sol(ii,1) 
-          end do
-          call storeSpectrum(ii_ky, store_Spec)
-
+          ! u_sol = log10(u_sol)
+          call GID_results(u_sol) 
           !---------- Memory Relase ---------------------------------------------!
-          DEALLOCATE( A_F, A_K, AK_LU, u_sol)
+          DEALLOCATE( A_F, A_K, AK_LU)
+          if(TwoHalf=='Y')DEALLOCATE( u_sol)
           DEALLOCATE( store_Spec, S_ipiv )
-        end do
-          deallocate( basfun, dN_dxi, dN_deta, BVs,  nofix, ifpre, presc)
-          deallocate(hes_xixi, hes_xieta, hes_etaeta) 
-        !End of 2D-problem computation for each wave number 
+          
+        end do loop_each_ky
+        deallocate(BVs,  nofix, ifpre, presc)
         !---------- Performing the Inverse Fourier Transform -----------------------------!
-        TwoHalf = 'N'
-        call invDFT 
-        !call Res_Matlab(u_sol)
+        if(TwoHalf=='Y')call invDFT(E_3D) 
         
-      endif
+      endif if_run_parallel
+      if(TwoHalf =='N')goto 10
+      !---------- Computing E=-∇u or -∂B/∂t=∇xE -----------------------------!
+      call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,E_3D,grad_u_sol)
+      deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+      deallocate( basfun, dN_dxi, dN_deta)
+      call spatialProfile_BubbleSort(E_3D)
+      TwoHalf = 'N'
+      File_Nodal_Vals = File_3DNodal_Vals
+      ! E_3D = log10(E_3D)
+      call GID_results(E_3D, grad_u_sol) 
+      !call Res_Matlab(u_sol)
+      DEALLOCATE( E_3D)
       
     case DEFAULT
       PRINT*, ' ' 
@@ -160,7 +174,10 @@ program main_CDR3d
       stop
     end select
     
-  write(*,*)
+  10 write(*,*)
+  ! u_sol = 10.0**(u_sol)
+  print*, 'Writing spatial profile at z=0'
+  call spatialProfile_BubbleSort(u_sol)
 
   call cpu_time(finish); call fdate(date)
   print*, ' '
