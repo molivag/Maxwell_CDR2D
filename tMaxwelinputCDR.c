@@ -5,15 +5,15 @@
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
  
 # > > > > > > > Model Parameters
-ProbType = STAT           !Problem type TIME=transient, other=static
+ProbType = TIME           !Problem type TIME=transient, other=static
 DimPr    = 2              !Dimension del problema
-ndofn    = 1              !Degrees of freedom
+ndofn    = 8              !Degrees of freedom
 totGp    = 3              !1,4,9 for Q, 1,3,7 for P
 exacSol  = 3              !0=None;   1=SinglrSol  ; 2=FullSpace; 3=Algebraic; 4=Double Line
 srcRHS   = 0              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
 BCsProb  = 0              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow 
 postpro  = 2              !Execution of post-processing routine 1=yes, 2=no 
-sigma    = 0.03333        !Conductivity of the medium
+sigma    = 1.0            !Conductivity of the medium
 operator = LAPL           !PDE being solved LAP=Laplacian; MAX=curl-curl
 
 # > > > > > > > Geometry
@@ -30,9 +30,9 @@ ktaum    = 1              !Tau matrix: 0, 1, 2
 patau    = 2.0            !Parameter to obtain tau
 n_val    = 0.0            !n parameter in exact solution, for simul=1
 helem    = 0.0            !Characteristic mesh size (maximum element size among the mesh)
-Cu       = 0.0            !Algorithmic constant
-ell      = 0.0            !Constante de longitud  
-1/mu=λ   = 0.0            !795774.71545   !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
+Cu       = 1000.0         !Algorithmic constant
+ell      = 2000.0         !Constante de longitud  
+1/mu=λ   = 795774.71545   !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
 
 # > > > > > > > Fourier Transform     
 TwoHalf  = N              !If it is dealing with a 2.5D modeling (Y) or not (N)
@@ -59,39 +59,74 @@ Profile  = xxxxxxxxxxxx
 
 # > > > > > > > Physical Properties
 #DIFMA_xx                  !Diffusion tensor
-1.0  , 0.0  , 0.0
-0.0  , 0.0 , 0.0
-0.0  , 0.0  , 0.0
+1.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 1.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 1.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 1.0
 #DIFMA_xz
-0.0  , 0.0  , 0.0
--0.0 , 0.0  , 0.0 
-0.0  , 0.0  , 0.0 
+1.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 1.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 1.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 1.0
 #DIFMA_zx
-0.0  , -0.0 , 0.0 
-0.0 , 0.0  , 0.0
-0.0  , 0.0  , 0.0
+1.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 1.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 1.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 1.0
 #DIFMA_zz
-1.0 , 0.0  , 0.0
-0.0  , 0.0  , 0.0
-0.0  , 0.0  , 0.0
-#COMAT_x                   !Convection tensor
-0.0  , 0.0 , 0.0
-0.0  , 0.0 , 0.0
-0.0  , 0.0 , 0.0
-#COMAT_z
-0.0 , 0.0  , 0.0
-0.0 , 0.0  , 0.0
-0.0 , 0.0  , 0.0
+1.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 1.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 1.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 0.0
+0.0 , 0.0  , 0.0 , 0.0  , 0.0  , 0.0 , 0.0  , 4.0
+#CONMAT_x                   !Convection tensor
+0.0 , 0.0 , 1.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+1.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+#CONMAT_z
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 1.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 1.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
 #REAMA                     !Reaction tensor
-0.0 , 0.0 , 0.0
-0.0 , 0.0 , 0.0
-0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
+0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0
 #FORCE                     !Force tensor
-0.0 , 0.0 , 0.0 
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 # > > > > > > > Source Configuration
 #Icurr
-0.025 , 0.0 , 0.0
+1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 #Nodal source Location
 nodalSrc = 1            !Number of nodes will contain the source
