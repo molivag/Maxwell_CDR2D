@@ -7,7 +7,9 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
-    subroutine ReadFile(NumRows, NumCols, condition, condition_value)
+    subroutine ReadFile(NumRows, NumCols, condition, BVs)
+      
+      implicit none
       
       integer :: i, j, stat1, stat2
       integer, intent(in)            :: NumRows, NumCols
@@ -15,7 +17,7 @@ module library
       character (len=9)              :: FileName1, FileName2
       character(len=180) :: msg
       integer, dimension(NumRows,NumCols-ndofn), intent (out) :: condition
-      double precision, dimension(NumRows,ndofn),intent (out) :: condition_value
+      double precision, dimension(NumRows,ndofn),intent (out) :: Bvs
       
       FileName1 ='ifpre.dat' 
       FileName2 ='BoVal.dat'
@@ -23,10 +25,11 @@ module library
       open(unit=10,file=fileplace//FileName1, status='old', action='read', iostat=stat1, iomsg=msg)
       open(unit=20,file=fileplace//FileName2, status='old', action='read', iostat=stat2, iomsg=msg)
       
+      !Este lee los nodos que estan preescritos o no
       read(10,*,iostat=stat1,iomsg=msg) ((condition(i,j), j=1,NumCols-ndofn), i=1,NumRows)
       if (stat1.ne.0) then
         print*, ' '
-        print*,'!============ STATUS READING BOUND VAL. ============!'
+        print*,'!============ STATUS READING IFPRE FILE. ============!'
         print "(A38,I2)", "- Status while reading ifPre file is: ", stat1
         print*, ' '
         print'(A8,1x,A180)','iomsg= ',msg
@@ -34,8 +37,11 @@ module library
         continue
       end if
       
-      read(20,*,iostat=stat2,iomsg=msg) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
+      !Este lee los valores de las condiciones de forntera
+      read(20,*,iostat=stat2,iomsg=msg) ((BVs(i,j), j=1,ndofn), i=1,NumRows)
       if (stat2.ne.0) then
+        print*, ' '
+        print*,'!============ STATUS READING BOVAL FILE. ============!'
         print "(A38,I2)", "- Status while reading BoVal file is: ", stat2
         print*, ' '
         print'(A8,1x,A180)','iomsg= ',msg
@@ -1047,16 +1053,16 @@ module library
       implicit none
       
       !integer, intent(in)      :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
-      integer, intent(in) :: condition( nBvs, nBVscol-ndofn)
-      double precision, intent(in) :: BVs( nBvs, ndofn)
-      integer             :: i, j
+      integer,          intent(in)  :: condition( nBvs, nBVscol-ndofn)
+      double precision, intent(in)  :: BVs( nBvs, ndofn)
+      integer                       :: i, j
       double precision, intent(out) :: presc(ndofn,nBVs)
-      integer, intent(out)          :: ifpre(ndofn,nBVs)
-      integer, intent(out)          :: nofix(nBVs)
+      integer,          intent(out) :: ifpre(ndofn,nBVs)
+      integer,          intent(out) :: nofix(nBVs)
       
       
       select case(ndofn)
-        case(1)
+        case(0)
           do i =1,ndofn
             do j=1,nBVs
               nofix(j)   = condition(j,1)
@@ -1065,7 +1071,7 @@ module library
             end do
           end do
           
-        case(2)
+        case(1)
           do i =1,ndofn
             do j=1,nBVs
               nofix(j)   = condition(j,1)
@@ -1083,8 +1089,22 @@ module library
             end do
           end do
           
+          !Esto puede ser un if en lugar de un selec case por que los casos 2 3 y 8 son lel mismo ciclo
+          
+          
+        case(8)
+          do i =1,ndofn
+            do j=1,nBVs
+              nofix(j)   = condition(j,1)
+              ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
+              presc(i,j) = Bvs(j,i)
+            end do
+          end do
+          
         case DEFAULT
-          write(*,*) 'Exceeded DoF'
+          write(*,*) 'In VinvulBvs Exceeded DoF'
+          print*, '>>>>>>>program stopped'
+          stop
         end select
     end subroutine VinculBVs
     !
