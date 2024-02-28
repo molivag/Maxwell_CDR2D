@@ -188,6 +188,8 @@ module inputInfo
           write(*,"(1(f10.3,1x))") Icurr(1)
         elseif(ndofn.eq.3)then
           write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
+        elseif(ndofn.eq.8)then
+          write(*,"(8(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3), Icurr(4), Icurr(5), Icurr(6), Icurr(7), Icurr(8)
         endif
       else
         write(*,'(A)') ' - Not geophysical source'
@@ -200,7 +202,7 @@ module inputInfo
         do j = 1,DimPr
           print"(A,2I1)", 'k_',i,j
           do k = 1,ndofn
-            print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
+            print"(8(f10.5,1x))",( difma(k,l,i,j), l=1,ndofn)
           end do
           !print*,' '
         end do
@@ -210,13 +212,13 @@ module inputInfo
       do k = 1, DimPr
         print"(A,2I1)",'A_',k
         do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
+          write(*, "(8(f10.5, 1x))")( conma(i,j,k) ,j=1, ndofn)
         end do
       end do
         print*,' '
       print*,'Reaction'
       do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
+        write(*,"(8(f10.5, 1x))" )( reama(i,j) ,j=1,ndofn)
       end do
       print*, ' '
       print*, 'External Forces'
@@ -224,8 +226,10 @@ module inputInfo
         write(*,"(3(f10.5,1x))") force(1)
       elseif(ndofn.eq.2)then
         write(*,"(2(f10.5,1x))") force(1), force(2)
-      else
+      elseif(ndofn.eq.3)then
         write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
+      else
+        write(*,"(8(f10.5,1x))") force(1), force(2), force(3), force(4), force(5), force(6), force(7), force(8)
       endif
       write(*,'(A)') 
       
