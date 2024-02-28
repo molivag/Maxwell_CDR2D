@@ -177,22 +177,133 @@ module param
         if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
         call checkStatus(3,stat,msg)
         
+      elseif(ndofn.eq.8)then        !3 degree of freedom
+        read(5,111,iostat=stat,iomsg=msg) &
+        difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1),difma(1,4,1,1),difma(1,5,1,1),difma(1,6,1,1),difma(1,7,1,1),difma(1,8,1,1),&
+        difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1),difma(2,4,1,1),difma(2,5,1,1),difma(2,6,1,1),difma(2,7,1,1),difma(2,8,1,1),&
+        difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1),difma(3,4,1,1),difma(3,5,1,1),difma(3,6,1,1),difma(3,7,1,1),difma(3,8,1,1),&
+        difma(4,1,1,1),difma(4,2,1,1),difma(4,3,1,1),difma(4,4,1,1),difma(4,5,1,1),difma(4,6,1,1),difma(4,7,1,1),difma(4,8,1,1),&
+        difma(5,1,1,1),difma(5,2,1,1),difma(5,3,1,1),difma(5,4,1,1),difma(5,5,1,1),difma(5,6,1,1),difma(5,7,1,1),difma(5,8,1,1),&
+        difma(6,1,1,1),difma(6,2,1,1),difma(6,3,1,1),difma(6,4,1,1),difma(6,5,1,1),difma(6,6,1,1),difma(6,7,1,1),difma(6,8,1,1),&
+        difma(7,1,1,1),difma(7,2,1,1),difma(7,3,1,1),difma(7,4,1,1),difma(7,5,1,1),difma(7,6,1,1),difma(7,7,1,1),difma(7,8,1,1),&
+        difma(8,1,1,1),difma(8,2,1,1),difma(8,3,1,1),difma(8,4,1,1),difma(8,5,1,1),difma(8,6,1,1),difma(8,7,1,1),difma(8,8,1,1)
+        if(stat.ne.0)then
+          print'(A17,I4)','iostat_DIFMA_xx= ',stat
+          call checkStatus(10,stat,msg)
+        end if
+        
+        read(5,111,iostat=stat,iomsg=msg) &
+        difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2),difma(1,4,1,2),difma(1,5,1,2),difma(1,6,1,2),difma(1,7,1,2),difma(1,8,1,2),&
+        difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2),difma(2,4,1,2),difma(2,5,1,2),difma(2,6,1,2),difma(2,7,1,2),difma(2,8,1,2),&
+        difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2),difma(3,4,1,2),difma(3,5,1,2),difma(3,6,1,2),difma(3,7,1,2),difma(3,8,1,2),&
+        difma(4,1,1,2),difma(4,2,1,2),difma(4,3,1,2),difma(4,4,1,2),difma(4,5,1,2),difma(4,6,1,2),difma(4,7,1,2),difma(4,8,1,2),&
+        difma(5,1,1,2),difma(5,2,1,2),difma(5,3,1,2),difma(5,4,1,2),difma(5,5,1,2),difma(5,6,1,2),difma(5,7,1,2),difma(5,8,1,2),&
+        difma(6,1,1,2),difma(6,2,1,2),difma(6,3,1,2),difma(6,4,1,2),difma(6,5,1,2),difma(6,6,1,2),difma(6,7,1,2),difma(6,8,1,2),&
+        difma(7,1,1,2),difma(7,2,1,2),difma(7,3,1,2),difma(7,4,1,2),difma(7,5,1,2),difma(7,6,1,2),difma(7,7,1,2),difma(7,8,1,2),&
+        difma(8,1,1,2),difma(8,2,1,2),difma(8,3,1,2),difma(8,4,1,2),difma(8,5,1,2),difma(8,6,1,2),difma(8,7,1,2),difma(8,8,1,2)
+        if(stat.ne.0)then
+          print'(A17,I4)','iostat_DIFMA_xz= ',stat
+          call checkStatus(10,stat,msg)
+        end if
+        
+        read(5,111,iostat=stat,iomsg=msg) &
+        difma(1,1,2,1),difma(1,2,2,1),difma(1,3,2,1),difma(1,4,2,1),difma(1,5,2,1),difma(1,6,2,1),difma(1,7,2,1),difma(1,8,2,1),&
+        difma(2,1,2,1),difma(2,2,2,1),difma(2,3,2,1),difma(2,4,2,1),difma(2,5,2,1),difma(2,6,2,1),difma(2,7,2,1),difma(2,8,2,1),&
+        difma(3,1,2,1),difma(3,2,2,1),difma(3,3,2,1),difma(3,4,2,1),difma(3,5,2,1),difma(3,6,2,1),difma(3,7,2,1),difma(3,8,2,1),&
+        difma(4,1,2,1),difma(4,2,2,1),difma(4,3,2,1),difma(4,4,2,1),difma(4,5,2,1),difma(4,6,2,1),difma(4,7,2,1),difma(4,8,2,1),&
+        difma(5,1,2,1),difma(5,2,2,1),difma(5,3,2,1),difma(5,4,2,1),difma(5,5,2,1),difma(5,6,2,1),difma(5,7,2,1),difma(5,8,2,1),&
+        difma(6,1,2,1),difma(6,2,2,1),difma(6,3,2,1),difma(6,4,2,1),difma(6,5,2,1),difma(6,6,2,1),difma(6,7,2,1),difma(6,8,2,1),&
+        difma(7,1,2,1),difma(7,2,2,1),difma(7,3,2,1),difma(7,4,2,1),difma(7,5,2,1),difma(7,6,2,1),difma(7,7,2,1),difma(7,8,2,1),&
+        difma(8,1,2,1),difma(8,2,2,1),difma(8,3,2,1),difma(8,4,2,1),difma(8,5,2,1),difma(8,6,2,1),difma(8,7,2,1),difma(8,8,2,1)
+        if(stat.ne.0)then
+          print'(A17,I4)','iostat_DIFMA_zx= ',stat
+          call checkStatus(10,stat,msg)
+        endif
+        
+        read(5,111,iostat=stat,iomsg=msg) &
+        difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2),difma(1,4,2,2),difma(1,5,2,2),difma(1,6,2,2),difma(1,7,2,2),difma(1,8,2,2),&
+        difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2),difma(2,4,2,2),difma(2,5,2,2),difma(2,6,2,2),difma(2,7,2,2),difma(2,8,2,2),&
+        difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2),difma(3,4,2,2),difma(3,5,2,2),difma(3,6,2,2),difma(3,7,2,2),difma(3,8,2,2),&
+        difma(4,1,2,2),difma(4,2,2,2),difma(4,3,2,2),difma(4,4,2,2),difma(4,5,2,2),difma(4,6,2,2),difma(4,7,2,2),difma(4,8,2,2),&
+        difma(5,1,2,2),difma(5,2,2,2),difma(5,3,2,2),difma(5,4,2,2),difma(5,5,2,2),difma(5,6,2,2),difma(5,7,2,2),difma(5,8,2,2),&
+        difma(6,1,2,2),difma(6,2,2,2),difma(6,3,2,2),difma(6,4,2,2),difma(6,5,2,2),difma(6,6,2,2),difma(6,7,2,2),difma(6,8,2,2),&
+        difma(7,1,2,2),difma(7,2,2,2),difma(7,3,2,2),difma(7,4,2,2),difma(7,5,2,2),difma(7,6,2,2),difma(7,7,2,2),difma(7,8,2,2),&
+        difma(8,1,2,2),difma(8,2,2,2),difma(8,3,2,2),difma(8,4,2,2),difma(8,5,2,2),difma(8,6,2,2),difma(8,7,2,2),difma(8,8,2,2)
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_zz= ',stat
+        call checkStatus(10,stat,msg)
+        
+        read(5,111,iostat=stat,iomsg=msg) & !reading CONMA for 3DoF
+        conma(1,1,1), conma(1,2,1), conma(1,3,1), conma(1,4,1), conma(1,5,1), conma(1,6,1), conma(1,7,1), conma(1,8,1),&
+        conma(2,1,1), conma(2,2,1), conma(2,3,1), conma(2,4,1), conma(2,3,1), conma(2,2,1), conma(2,3,1), conma(2,2,1),&
+        conma(3,1,1), conma(3,2,1), conma(3,3,1), conma(3,4,1), conma(3,3,1), conma(3,2,1), conma(3,3,1), conma(3,2,1),&
+        conma(4,1,1), conma(4,2,1), conma(4,3,1), conma(4,4,1), conma(4,3,1), conma(4,2,1), conma(4,3,1), conma(4,2,1),&
+        conma(5,1,1), conma(5,2,1), conma(5,3,1), conma(5,4,1), conma(5,3,1), conma(5,2,1), conma(5,3,1), conma(5,2,1),&
+        conma(6,1,1), conma(6,2,1), conma(6,3,1), conma(6,4,1), conma(6,3,1), conma(6,2,1), conma(6,3,1), conma(6,2,1),&
+        conma(7,1,1), conma(7,2,1), conma(7,3,1), conma(7,4,1), conma(7,3,1), conma(7,2,1), conma(7,3,1), conma(7,2,1),&
+        conma(8,1,1), conma(8,2,1), conma(8,3,1), conma(8,4,1), conma(8,3,1), conma(8,2,1), conma(8,3,1), conma(8,2,1)
+        if(stat.ne.0)print'(A14,I3)','iostat_CONMA_x= ',stat
+        call checkStatus(10,stat,msg)
+        
+        read(5,111,iostat=stat,iomsg=msg) & !reading REAMA for 3DoF
+        conma(1,1,2), conma(1,2,2), conma(1,3,2), conma(1,4,2), conma(1,5,2), conma(1,6,2), conma(1,7,2), conma(1,8,2),&
+        conma(2,1,2), conma(2,2,2), conma(2,3,2), conma(2,4,2), conma(2,3,2), conma(2,2,2), conma(2,3,2), conma(2,2,2),&
+        conma(3,1,2), conma(3,2,2), conma(3,3,2), conma(3,4,2), conma(3,3,2), conma(3,2,2), conma(3,3,2), conma(3,2,2),&
+        conma(4,1,2), conma(4,2,2), conma(4,3,2), conma(4,4,2), conma(4,3,2), conma(4,2,2), conma(4,3,2), conma(4,2,2),&
+        conma(5,1,2), conma(5,2,2), conma(5,3,2), conma(5,4,2), conma(5,3,2), conma(5,2,2), conma(5,3,2), conma(5,2,2),&
+        conma(6,1,2), conma(6,2,2), conma(6,3,2), conma(6,4,2), conma(6,3,2), conma(6,2,2), conma(6,3,2), conma(6,2,2),&
+        conma(7,1,2), conma(7,2,2), conma(7,3,2), conma(7,4,2), conma(7,3,2), conma(7,2,2), conma(7,3,2), conma(7,2,2),&
+        conma(8,1,2), conma(8,2,2), conma(8,3,2), conma(8,4,2), conma(8,3,2), conma(8,2,2), conma(8,3,2), conma(8,2,2)
+        if(stat.ne.0)then
+          print'(A14,I3)','iostat_CONMA_z= ',stat
+          call checkStatus(10,stat,msg)
+        endif
+        
+        read(5,111,iostat=stat,iomsg=msg) &
+        reama(1,1), reama(1,2), reama(1,3), reama(1,4), reama(1,5), reama(1,6), reama(1,7), reama(1,8), &
+        reama(2,1), reama(2,2), reama(2,3), reama(2,4), reama(2,5), reama(2,6), reama(2,7), reama(2,8), &
+        reama(3,1), reama(3,2), reama(3,3), reama(3,4), reama(3,5), reama(3,6), reama(3,7), reama(3,8), &
+        reama(4,1), reama(4,2), reama(4,3), reama(4,4), reama(4,5), reama(4,6), reama(4,7), reama(4,8), &
+        reama(5,1), reama(5,2), reama(5,3), reama(5,4), reama(5,5), reama(5,6), reama(5,7), reama(5,8), &
+        reama(6,1), reama(6,2), reama(6,3), reama(6,4), reama(6,5), reama(6,6), reama(6,7), reama(6,8), &
+        reama(7,1), reama(7,2), reama(7,3), reama(7,4), reama(7,5), reama(7,6), reama(7,7), reama(7,8), &
+        reama(8,1), reama(8,2), reama(8,3), reama(8,4), reama(8,5), reama(8,6), reama(8,7), reama(8,8)
+        if(stat.ne.0)then
+          print'(A14,I3)','iostat_REAMA= ',stat
+          call checkStatus(10,stat,msg)
+        endif
+        
+        read(5,112,iostat=stat,iomsg=msg) &
+        force(1), force(2), force(3), force(4), force(5), force(6), force(7), force(8)
+        if(stat.ne.0)then
+          print'(A14,I3)','iostat_force= ',stat
+          call checkStatus(10,stat,msg)
+        end if
+        
       end if
       
       if(ndofn.eq.1)then
         read(5,105,iostat=stat,iomsg=msg) Icurr(1)
         if(stat.ne.0)then
-          print'(A9,I3)','iostat= ',stat
+          print'(A14,I3)','iostat_Icurr= ',stat
           print'(A8,1x,A180)','iomsg = ',msg
         end if
       elseif(ndofn.eq.3)then
         read(5,107,iostat=stat,iomsg=msg) Icurr(1), Icurr(2), Icurr(3)
         if(stat.ne.0)then
-          print'(A9,I3)','iostat= ',stat
+          print'(A14,I3)','iostat_Icurr= ',stat
           print'(A8,1x,A180)','iomsg = ',msg
         end if
+      elseif(ndofn.eq.8)then
+        read(5,112,iostat=stat,iomsg=msg)&
+        Icurr(1), Icurr(2), Icurr(3), Icurr(4), Icurr(5), Icurr(6), Icurr(7), Icurr(8)
+        if(stat.ne.0)then
+          print'(A14,I3)','iostat_Icurr= ',stat
+          print'(A8,1x,A180)','iomsg = ',msg
+          print*,'Se detiene en la lectura de Icurr' 
+          stop
+        endif
       else
-        write(*,*) 'Source must be 1 or 3 DoF'
+        write(*,*) 'Source must be 1,3 or 8 DoF'
       endif
       print*,'acaba la lectura'
       
@@ -297,7 +408,7 @@ module param
       &          11x,A13,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),             2/,&  !stabi
       &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/,  2/,&  !Fourier Transform
-      &          11x,I1,/, 2(11x,e12.7,/), 2(11x,I5,/),                   2/,&  !time
+      &          11x,I1,/, 2(11x,e14.7,/), 2(11x,I5,/),                   2/,&  !time
       &          11x,A14,/, 5(11x,A12,/),1/ )                                   !output files
      
       101 format(1/,F12.5,2/)
@@ -311,6 +422,14 @@ module param
       109 format(2/,11x,I2)
       110 format(2/,11x,I2,/)
       !108 format(11x,I3,I3,/) 
+      111 format(1/,8(e15.5))   !for difma 8DoF
+      
+      112 format(1/,8(f15.5),2/) 
+      
+      
+      ! 103 format(1/,3(e15.5))
+      ! 107 format(1/,3(f15.5),2/) 
+      
       
     end subroutine inputData
     !
@@ -384,7 +503,7 @@ module param
       implicit none
       character(len=150) , intent(in)  :: msg
       integer, intent(in)              :: stat, id_reading
-      character(len=5)                 :: object
+      ! character(len=5)                 :: object
       
       select case(id_reading)
         case(0)
@@ -408,12 +527,12 @@ module param
           end if
         case(2)
           if(stat.ne.0)then
-            print'(A13,1x,A180)','In input file error while reading tensor properties= ',msg
+            print'(A13,1x,A)','In input file error while reading tensor properties= ',msg
             print*, ' >>>>> program stopped <<<<'
           end if
         case(3)
           if(stat.ne.0)then
-            print'(A13,1x,A180)','In input file error while reading tensor properties= ',msg
+            print'(A13,1x,A)','In input file error while reading tensor properties= ',msg
             print*, ' >>>>> program stopped <<<<'
             stop
           end if
@@ -422,7 +541,7 @@ module param
             print*, ' ' 
             print*, 'error in read mesh file first line, module geometry' 
             print'(A9,I3)','iostat= ',stat
-            print'(A8,1x,A180)','iomsg= ',msg
+            print'(A8,1x,A)','iomsg= ',msg
             print'(A55,A)', 'error >>>> Something wrong during reading of mesh file ', mesh_file
             print*, ' ' 
             stop
@@ -461,6 +580,19 @@ module param
             print*,'error while reading lnodes in geometry module iostat= ',stat
             print*, msg
           END IF
+        case(10)
+        if (stat.ne.0)then
+          print*, ' '
+          print "(A9,I2,A16,I1,A)", "- Status ", stat, " while reading ",ndofn," DoF in tensor properties"
+          ! print*, ' '
+          print'(A9,A)','- iomsg: ',msg
+          ! print*, ' >>>>> if status = 64 = Preconnected file comprises unformatted records'
+          ! print*, ' >>>>> mean there is a <tab> instead of <BS> in input file'
+          ! print*, ' >>>>> program stopped <<<<'
+          ! stop
+        else
+          continue
+        end if
         case(15)
           IF( stat /= 0 )then
             print*,'iostat= ',stat
