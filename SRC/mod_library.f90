@@ -100,7 +100,7 @@ module library
         end do
       end do
       !Una vez reacomodado, imprimir archivo con No  x-cor, value        
-      open(unit=10, file=path2//"3_direct_spatial_profile.dat", ACTION="write", STATUS="replace")
+      open(unit=10, file=path2//"xspatial_profile.dat", ACTION="write", STATUS="replace")
       ipoin = 0
       !Si el perfil se quisiera de determinada longitud aqui se deberia llamar SearchingNodes
       !para que, dada una coordenada (x,0) se busque el nodo mas cercano y con ese nodo hacer
@@ -581,7 +581,7 @@ module library
                   reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
                 endif
               else
-                print*,'!if it is NOT dealing with a 2.5D Problem'
+                ! print*,'!if it is NOT dealing with a 2.5D Problem'
                 reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               endif
               
@@ -1055,37 +1055,38 @@ module library
       integer, intent(out)          :: nofix(nBVs)
       
       
-      select case(ndofn)
-        case(1)
+      ! select case(ndofn)
+      !   case(1)
+      !     do i =1,ndofn
+      !       do j=1,nBVs
+      !         nofix(j)   = condition(j,1)
+      !         ifpre(i,j) = condition(j,2) !El llenado de ifpre sera por grado de libertad
+      !         presc(i,j) = Bvs(j,1)
+      !       end do
+      !     end do
+          
+        ! case(2)
+        !   do i =1,ndofn
+        !     do j=1,nBVs
+        !       nofix(j)   = condition(j,1)
+        !       ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
+        !       presc(i,j) = Bvs(j,i)
+        !     end do
+        !   end do
+         
+        ! case(3)
           do i =1,ndofn
             do j=1,nBVs
               nofix(j)   = condition(j,1)
-              ifpre(i,j) = condition(j,2) !El llenado de ifpre sera por grado de libertad
+              ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
               presc(i,j) = Bvs(j,1)
             end do
           end do
           
-        case(2)
-          do i =1,ndofn
-            do j=1,nBVs
-              nofix(j)   = condition(j,1)
-              ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
-              presc(i,j) = Bvs(j,i)
-            end do
-          end do
-         
-        case(3)
-          do i =1,ndofn
-            do j=1,nBVs
-              nofix(j)   = condition(j,1)
-              ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
-              presc(i,j) = Bvs(j,i)
-            end do
-          end do
-          
-        case DEFAULT
-          write(*,*) 'Exceeded DoF'
-        end select
+        ! case DEFAULT
+        !   write(*,*) 'Exceeded DoF'
+        ! end select
+        
     end subroutine VinculBVs
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1866,7 +1867,7 @@ module library
       !end do
      
       call fdate(date) 
-      open(unit=300, file=path2//profile_name, ACTION="write", STATUS="replace")
+      open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
       write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
       if(ProbType=='TIME')then
         write(300,"(A13, I0)") '%At the time ', t_steps-2 
