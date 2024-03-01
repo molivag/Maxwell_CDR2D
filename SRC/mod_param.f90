@@ -13,7 +13,6 @@ module param
   integer           :: nBVs, nBVscol, nband, t_steps, exacSol, BCsProb
   integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
-  integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
   integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
   real              :: hnatu, patau
   double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
@@ -48,7 +47,7 @@ module param
       double precision                              :: tsteps
       double precision, allocatable, dimension(:)   :: node_found_it
       integer         , allocatable, dimension(:,:) :: recLoc
-      integer                                       :: stat, ii, idime
+      integer                                       :: stat, ii, idime, i,j,k,l
       character(len=13), intent(out)                :: mesh_file
       
       
@@ -126,49 +125,59 @@ module param
       elseif(ndofn.eq.3)then        !3 degree of freedom
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,1), difma(1,2,1,1), difma(1,3,1,1), &
-        difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1), &
-        difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
+        difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1)
         if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xx= ',stat
+        read(5,133,iostat=stat,iomsg=msg) &
+        difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
+        if(stat.ne.0)print'(A30,I4)','Segundo Read iostat_DIFMA_xx= ',stat
         call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
-        difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2), &
+        difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2)
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xz= ',stat
+        read(5,133,iostat=stat,iomsg=msg) &
         difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xy= ',stat
+        if(stat.ne.0)print'(A30,I4)','Segundo Read iostat_DIFMA_xz= ',stat
         call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
-        difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1), &
+        difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1)
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_zx= ',stat
+        read(5,133,iostat=stat,iomsg=msg) &
         difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_yx= ',stat
+        if(stat.ne.0)print'(A30,I4)','Segundo Read iostat_DIFMA_zx= ',stat
         call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
-        difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2), &
+        difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2)
+        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_zz= ',stat
+        read(5,133,iostat=stat,iomsg=msg) &
         difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_yy= ',stat
+        if(stat.ne.0)print'(A17,I4)','Segundo iostat_DIFMA_zz= ',stat
         call checkStatus(3,stat,msg)
-        
         read(5,103,iostat=stat,iomsg=msg) & !reading CONMA for 3DoF
         conma(1,1,1), conma(1,2,1), conma(1,3,1), &
-        conma(2,1,1), conma(2,2,1), conma(2,3,1), &
+        conma(2,1,1), conma(2,2,1), conma(2,3,1)
+        read(5,133,iostat=stat,iomsg=msg) &
         conma(3,1,1), conma(3,2,1), conma(3,3,1)
         if(stat.ne.0)print'(A14,I3)','iostat_CONMA_x= ',stat
         call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) & !reading REAMA for 3DoF
         conma(1,1,2), conma(1,2,2), conma(1,3,2), &
-        conma(2,1,2), conma(2,2,2), conma(2,3,2), &
+        conma(2,1,2), conma(2,2,2), conma(2,3,2)
+        read(5,133,iostat=stat,iomsg=msg) &
         conma(3,1,2), conma(3,2,2), conma(3,3,2)
         if(stat.ne.0)print'(A14,I3)','iostat_CONMA_y= ',stat
         call checkStatus(3,stat,msg)
         
         read(5,103,iostat=stat,iomsg=msg) &
         reama(1,1), reama(1,2), reama(1,3), &
-        reama(2,1), reama(2,2), reama(2,3), &
+        reama(2,1), reama(2,2), reama(2,3)
+        read(5,133,iostat=stat,iomsg=msg) &
         reama(3,1), reama(3,2), reama(3,3)
         if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
         call checkStatus(3,stat,msg)
@@ -354,9 +363,9 @@ module param
         &            'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat',&
         &            'ky11.dat','ky12.dat','ky13.dat','ky14.dat'/)
 
-        File_3DNodal_Vals = "TransfVFinal"
+        File_3DNodal_Vals = "Final_3D_DC_"
                            ! 3D_Potential
-        shape_spec_file = "wavenumber_Voltage.dat"
+        shape_spec_file = "transformed_Voltage.dat"
         File_Nodal_Vals_ky = File_Nodal_Vals
       else
         tot_ky = 1
@@ -411,9 +420,18 @@ module param
       &          11x,I1,/, 2(11x,e14.7,/), 2(11x,I5,/),                   2/,&  !time
       &          11x,A14,/, 5(11x,A12,/),1/ )                                   !output files
      
-      101 format(1/,F12.5,2/)
+      !**Format for 1Dof tensors
+      101 format(1/,F12.5,7/)
+      !**Format for 2Dof tensors
       102 format(1/,e15.5, e15.5,/, e15.5,e15.5,/)
+      122 format(2(e15.5),5/)
+      !**Format for 3Dof tensors
       103 format(1/,3(e15.5))
+      133 format(3(e15.5),5/)
+      !**Format for 8Dof tensors
+      111 format(1/,8(e15.5)) 
+      112 format(1/,8(f15.5),2/) 
+      
       104 format(1(11x,I4))
       105 format(1/,F12.5,2/)
       106 format(1/,e15.5,e15.5,2/) 
@@ -422,9 +440,6 @@ module param
       109 format(2/,11x,I2)
       110 format(2/,11x,I2,/)
       !108 format(11x,I3,I3,/) 
-      111 format(1/,8(e15.5))   !for difma 8DoF
-      
-      112 format(1/,8(f15.5),2/) 
       
       
       ! 103 format(1/,3(e15.5))
