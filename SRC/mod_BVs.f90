@@ -21,7 +21,8 @@ module BoundVal
       character(len=*), parameter :: fileplace ="./"
       
       integer              :: ierror, a ,b, c, d, e, f,i 
-      double precision     :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle, ux, uy
+      double precision     :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle
+      double precision     :: ux, uy, ex, ey, ez, iex, iey, iez, p, ip 
       double precision     :: aa, cc
       integer, intent(out) :: nBVs, nBVscol
       
@@ -506,10 +507,70 @@ module BoundVal
             print*,'From BVS, case 3 and 4 are for 1 DoF'
             stop
         end select
-        
+      elseif(ndofn .eq. 8)then
+            print*,'Maxwel BVs for 2.5D'
+            ex  = 0.0 
+            ey  = 0.0 
+            ez  = 0.0 
+            iex = 0.0 
+            iey = 0.0 
+            iez = 0.0 
+            p   = 0.0 
+            ip  = 0.0 
+            do i = 1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then                      !Upper Right Corner
+                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  a = a+1
+                elseif(x.eq.xmin)then                  !Upper Left Corner
+                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  a = a+1
+               else                                    !Upper Border
+                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  a = a+1
+                end if
+                
+              else if(y.eq.ymin)then
+                if(x.eq.xmin)then                     !left bottom corner  
+                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  b = b+1
+                elseif(x.eq.xmax)then                 !right bottom corner
+                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  b = b+1
+                else                                  !Down Border
+                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  b = b+1
+                end if
+                
+              else if(x.eq.xmax)then                  !Right Boundary
+                write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                c = c+1
+              else if (x.eq.xmin)then                 !Left Boundary
+                write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
+                write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                d = d+1
+              end if
+              
+              nBVs = a+b+c+d
+            end do
+            nBVscol = 17 
        
+      else
+        print*,"- Degrees of Freedom exceeded while setting Boundary COnditions"
+        print*, ' ' 
+        print*, '>>>>> Program stopped' 
+        print*, ' ' 
+        stop
       end if
-      
       close(100)
       
       
@@ -518,7 +579,9 @@ module BoundVal
       
      
       10 format(I6,2x,3(1x,I2))
+      11 format(I6,2x,9(1x,I2))
       20 format(3(e15.7,2x))
+      21 format(9(e15.7,2x))
       30 format(f12.5)
       40 format(2(f12.5,2x))
       
