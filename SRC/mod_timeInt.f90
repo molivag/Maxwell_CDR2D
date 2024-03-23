@@ -159,18 +159,22 @@ module timeInt
       allocate( u_pre(S_ldSol, 1), u_fut(S_ldSol, 1) )
       allocate( S_ipiv(max(1,min(S_m, S_n)) ))  !size (min(m,n))
       allocate( Ex_field(t_steps+1))
-      allocate( store_Spec(S_ldSol,t_steps+1) )
       
       u_curr = 0.0; u_pre  = 0.0; u_fut  = 0.0
       Mu_pre = 0.0; RHS    = 0.0; LHS    = 0.0
-      time   = 0  ; nt = time_ini;  ttt    = 0.0
+      time   = 0  ; nt = time_ini;ttt    = 0.0
       !delta_t 1e-3!( time_fin - time_ini ) / (t_steps + 1.0)   !Step size
       
       call initialCondition(presc,ifpre, nofix, shapeTime, u_init)
       u_pre  = u_init                                   !u in present time 
-      do ii = 1, S_ldSol
-        store_Spec(ii,time+1) = u_pre(ii,1) 
-      end do
+      
+      !If it is dealing with a 2.5D problem
+      if(TwoHalf == 'Y')then
+        allocate( store_Spec(S_ldSol,t_steps+1) )
+        do ii = 1, S_ldSol
+          store_Spec(ii,time+1) = u_pre(ii,1) 
+        end do
+      endif
       !write(*,*) ' '
       call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
       call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
@@ -190,7 +194,7 @@ module timeInt
           endif
           print'(A34,I0,A3,E11.4)', " !-------> Time Integration for ky",i_WaveNum,"=",k_y
           !do while(ttt < time_fin)
-          do time = 1, t_steps
+          time_stepping: do time = 1, t_steps
             nt = nt + delta_t!,time_fin,delta_t
             !time = time+1
             
@@ -221,11 +225,14 @@ module timeInt
             !Jsource_pre = Jsource
             !ttt = ttt+delta_t
             u_pre = u_fut
-            do ii = 1, S_ldSol
-              store_Spec(ii,time+1) = u_pre(ii,1) 
-            end do
-          end do
-          call storeSpectrum(i_WaveNum, store_Spec)
+            if(TwoHalf == 'Y')then
+              do ii = 1, S_ldSol
+                store_Spec(ii,time+1) = u_pre(ii,1) 
+              end do
+              call storeSpectrum(i_WaveNum, store_Spec)
+            end if
+            
+          end do time_stepping
           DEALLOCATE( A_F, A_K, A_C)
           DEALLOCATE( LHS, u_pre, u_fut)
           
