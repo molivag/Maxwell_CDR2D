@@ -2,11 +2,15 @@ module param
   
   implicit none
 
-  character(len=20) :: shape_spec_file
-  character(len=14) :: testID
-  character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
-  character(len=12) :: File_3DNodal_Vals
-  character(len=8)  :: File_Nodal_Vals_ky
+  integer, parameter :: max_filename_length = 256
+  ! character(len=20) :: shape_spec_file
+  ! character(len=14) :: testID
+  ! character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
+  ! character(len=12) :: File_3DNodal_Vals
+  
+  character(len=:), allocatable  :: shape_spec_file, testID, File_Nodal_Vals, error_name, coord_name
+  character(len=:), allocatable  :: conec_name, profile_name, mesh_file, File_3DNodal_Vals, File_Nodal_Vals_ky
+  
   
   character(len=4)  :: ProbType, ElemType, initElemType, ky_id, oper
   character(len=2)  :: refiType, splits, TwoHalf, view
@@ -20,15 +24,15 @@ module param
   double precision  :: ky_min, ky_max, y_iFT,  k_y, sigma
   double precision, allocatable, dimension(:,:)     :: ngaus, weigp
 
-  double precision, allocatable, dimension(:,:)     :: coord !, coordRef
-  integer,          allocatable, dimension(:,:)     :: lnods !, lnodsRef
+  double precision, allocatable, dimension(:,:)     :: coord 
+  integer,          allocatable, dimension(:,:)     :: lnods
   double precision, allocatable, dimension(:,:,:,:) :: difma
   double precision, allocatable, dimension(:,:,:)   :: conma
   double precision, allocatable, dimension(:,:)     :: reama 
   double precision, allocatable, dimension(:)       :: force, Icurr, WaveNumbers !Force and Current vector (respectively)
-  character(len=8), allocatable, dimension(:) :: files_ky        
-  character(len=4), allocatable, dimension(:) :: nodal_ky
-  integer         , allocatable, dimension(:) :: receivers, srcLoc
+  character(len=8), allocatable, dimension(:)       :: files_ky        
+  character(len=4), allocatable, dimension(:)       :: nodal_ky
+  integer         , allocatable, dimension(:)       :: receivers, srcLoc, mesh_conductivity
 
   contains
     
@@ -45,12 +49,21 @@ module param
       character(len=19)                             :: name_inputFile
       character(len=5)                             :: obj
       character(len=180)                            :: msg
-      double precision                              :: tsteps
       double precision, allocatable, dimension(:)   :: node_found_it
       integer         , allocatable, dimension(:,:) :: recLoc
-      integer                                       :: stat, ii, idime, i,j,k,l
-      character(len=13), intent(out)                :: mesh_file
+      integer                                       :: stat, ii, idime, filename_length
+      character(len=:),allocatable, intent(out)     :: mesh_file
       
+      !Asignar memoria para el nombre del archivo
+      allocate(character(max_filename_length) :: shape_spec_file)
+      allocate(character(max_filename_length) :: testID)
+      allocate(character(max_filename_length) :: File_Nodal_Vals)
+      allocate(character(max_filename_length) :: error_name)
+      allocate(character(max_filename_length) :: conec_name)
+      allocate(character(max_filename_length) :: coord_name)
+      allocate(character(max_filename_length) :: profile_name)
+      allocate(character(max_filename_length) :: mesh_file)
+      allocate(character(max_filename_length) :: File_3DNodal_Vals)
       
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
@@ -58,7 +71,7 @@ module param
       ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro, sigma, oper,&
       mesh_file, view ,initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
-      TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, &
+      TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, shape_spec_file ,File_3DNodal_Vals, &
       theta, time_ini, time_fin, t_steps, Src_ON,&
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       call checkStatus(0,stat,msg)
@@ -269,14 +282,14 @@ module param
         endif
         
         read(5,111,iostat=stat,iomsg=msg) &
-        reama(1,1), reama(1,2), reama(1,3), reama(1,4), reama(1,5), reama(1,6), reama(1,7), reama(1,8), &
-        reama(2,1), reama(2,2), reama(2,3), reama(2,4), reama(2,5), reama(2,6), reama(2,7), reama(2,8), &
-        reama(3,1), reama(3,2), reama(3,3), reama(3,4), reama(3,5), reama(3,6), reama(3,7), reama(3,8), &
-        reama(4,1), reama(4,2), reama(4,3), reama(4,4), reama(4,5), reama(4,6), reama(4,7), reama(4,8), &
-        reama(5,1), reama(5,2), reama(5,3), reama(5,4), reama(5,5), reama(5,6), reama(5,7), reama(5,8), &
-        reama(6,1), reama(6,2), reama(6,3), reama(6,4), reama(6,5), reama(6,6), reama(6,7), reama(6,8), &
-        reama(7,1), reama(7,2), reama(7,3), reama(7,4), reama(7,5), reama(7,6), reama(7,7), reama(7,8), &
-        reama(8,1), reama(8,2), reama(8,3), reama(8,4), reama(8,5), reama(8,6), reama(8,7), reama(8,8)
+        reama(1,1),reama(1,2),reama(1,3),reama(1,4),reama(1,5),reama(1,6),reama(1,7),reama(1,8), &
+        reama(2,1),reama(2,2),reama(2,3),reama(2,4),reama(2,5),reama(2,6),reama(2,7),reama(2,8), &
+        reama(3,1),reama(3,2),reama(3,3),reama(3,4),reama(3,5),reama(3,6),reama(3,7),reama(3,8), &
+        reama(4,1),reama(4,2),reama(4,3),reama(4,4),reama(4,5),reama(4,6),reama(4,7),reama(4,8), &
+        reama(5,1),reama(5,2),reama(5,3),reama(5,4),reama(5,5),reama(5,6),reama(5,7),reama(5,8), &
+        reama(6,1),reama(6,2),reama(6,3),reama(6,4),reama(6,5),reama(6,6),reama(6,7),reama(6,8), &
+        reama(7,1),reama(7,2),reama(7,3),reama(7,4),reama(7,5),reama(7,6),reama(7,7),reama(7,8), &
+        reama(8,1),reama(8,2),reama(8,3),reama(8,4),reama(8,5),reama(8,6),reama(8,7),reama(8,8)
         if(stat.ne.0)then
           print'(A14,I3)','iostat_REAMA= ',stat
           call checkStatus(10,stat,msg)
@@ -315,7 +328,6 @@ module param
       else
         write(*,*) 'Source must be 1,3 or 8 DoF'
       endif
-      print*,'acaba la lectura'
       
       read(5,104,iostat=stat,iomsg=msg) nodalSrc
       allocate( srcLoc(nodalSrc) )
@@ -334,20 +346,31 @@ module param
         read(5,*,iostat=stat,iomsg=msg) (recLoc(idime,ii), idime =1,DimPr )
         call checkStatus(15,stat,msg)
       end do
+      close(5)
+      
+      File_3DNodal_Vals = trim(File_3DNodal_Vals )
+      shape_spec_file   = trim(shape_spec_file   )
+      File_Nodal_Vals   = trim(File_Nodal_Vals   )
+      profile_name      = trim(profile_name      )
+      error_name        = trim(error_name        )
+      conec_name        = trim(conec_name        )
+      coord_name        = trim(coord_name        )
+      mesh_file         = trim(mesh_file         )
+      testID            = trim(testID            )
+      
       allocate(receivers(nodalRec), node_found_it(nodalRec))
       !Searching the nearest node to the coordinate pair read
       call SearchingNodes(mesh_file, recLoc, node_found_it)
       !Store the nodes at receivers variable
       receivers = node_found_it
       
-      close(5)
-      
-      
       if(TwoHalf == 'Y')then 
         ! Asignar memoria para el vector
         allocate(WaveNumbers(tot_ky))
-        ! Generar el vector logarítmico
+        filename_length = len(File_Nodal_Vals)
+        allocate(character(filename_length) :: File_Nodal_Vals_ky)
         
+        ! Generar el vector logarítmico
         do ii = 1, tot_ky 
           WaveNumbers(ii) = 10.0**(log10(ky_min)+(log10(ky_max/ky_min)/real(tot_ky-1))*real(ii-1) )
         end do
@@ -364,9 +387,10 @@ module param
         &            'ky06.dat','ky07.dat','ky08.dat','ky09.dat','ky10.dat',&
         &            'ky11.dat','ky12.dat','ky13.dat','ky14.dat'/)
 
-        File_3DNodal_Vals = "Final_3D_DC_"
+        ! File_3DNodal_Vals = "Final_3D_DC_"
                            ! 3D_Potential
-        shape_spec_file = "transformed_Voltage.dat"
+        ! shape_spec_file = "transformed_Voltage.dat"
+        ! File_3DNodal_Vals
         File_Nodal_Vals_ky = File_Nodal_Vals
       else
         tot_ky = 1
@@ -414,12 +438,12 @@ module param
       
       !Initial elemental and global variables, it will changes if refination is selected.
       
-      100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,       2/,&  !model parameters
-      &          11x,A13,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
+      100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,       3/,&  !model parameters
+      &          11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),             2/,&  !stabi
-      &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/,  2/,&  !Fourier Transform
+      &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/, 2(/,11x,A,/), 2/,&  !Fourier Transform
       &          11x,I1,/, 2(11x,e14.7,/), 2(11x,I5,/),                   2/,&  !time
-      &          11x,A14,/, 5(11x,A12,/),1/ )                                   !output files
+      &          11x,A,/, 5(11x,A,/),1/ )                                   !output files
      
       !**Format for 1Dof tensors
       101 format(1/,F12.5,7/)
@@ -451,13 +475,13 @@ module param
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
-    !
     subroutine SearchingNodes(file_mesh, recLoc, node_found_it)
+    ! subroutine SearchingNodes(recLoc, node_found_it)
       implicit none
     
       character(len=*), parameter :: fileplace = "Msh/"
       integer         , parameter :: max_nodos = 10000
-      character(len=13)                 , intent(in) :: file_mesh
+      character(len=:), allocatable, intent(in) :: file_mesh
       integer, dimension(Dimpr,nodalRec), intent(in) :: recLoc
       character(len=180)              :: msg
       double precision                :: coord_x(max_nodos), coord_y(max_nodos)
@@ -489,7 +513,7 @@ module param
         ! write(*,*) "Ingrese la coordenada y:"
         ! read(*,*) y = recLoc(2, ireceiver)
         y = recLoc(2, ireceiver)
-        
+       
         ! Inicializar la distancia mínima
         distancia_minima = sqrt((x - coord_x(1))**2 + (y - coord_y(1))**2)
         nodo_mas_cercano = nodo(1)
@@ -502,8 +526,7 @@ module param
            end if
         end do
         node_found_it(ireceiver) = nodo_mas_cercano
-        ! write(*,125) "El nodo más cercano a (", x, " , ", y, ") es el nodo ", nodo_mas_cercano
-        write(*,125) "El nodo: ", nodo_mas_cercano, " es el más cercano a (", x, " , ", y, ")"
+        ! write(*,125) "El nodo: ", nodo_mas_cercano, " es el más cercano a (", x, " , ", y, ")"
       end do loop_receiver
       
       ! 125 format(A26,f10.1,A3,f3.1,A14,I0)
