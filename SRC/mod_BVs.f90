@@ -270,7 +270,7 @@ module BoundVal
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                else                                    !Upper Border
-                  write(200,10) i, 1, 1, 1
+                  write(200,10) i,  1, 0, 1  
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 end if
@@ -285,17 +285,17 @@ module BoundVal
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 else                                  !Down Border
-                  write(200,10) i, 1,  1, 1
+                  write(200,10) i, 1,  0, 1
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 end if
                 
               else if(x.eq.xmax)then                  !Right Boundary
-                write(200,10) i, 1,  1, 1
+                write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 c = c+1
               else if (x.eq.xmin)then                 !Left Boundary
-                write(200,10) i, 1,  1, 1
+                write(200,10) i, 0,  1, 1
                 write(300,20)   ux, uy, 0.0
                 d = d+1
               end if
