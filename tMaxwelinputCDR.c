@@ -5,9 +5,9 @@
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
  
 # > > > > > > > Model Parameters
-ProbType = TIME           !Problem type TIME=transient, other=static
+ProbType = STAT           !Problem type TIME=transient, other=static
 DimPr    = 2              !Dimension del problema
-ndofn    = 8              !Degrees of freedom
+ndofn    = 1              !Degrees of freedom
 totGp    = 3              !1,4,9 for Q, 1,3,7 for P
 exacSol  = 3              !0=None;   1=SinglrSol  ; 2=FullSpace; 3=Algebraic; 4=Double Line
 srcRHS   = 0              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
@@ -35,7 +35,7 @@ ell      = 2000.0         !Constante de longitud
 1/mu=λ   = 795774.71545   !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
 
 # > > > > > > > Fourier Transform     
-TwoHalf  = N              !If it is dealing with a 2.5D modeling (Y) or not (N)
+TwoHalf  = Y              !If it is dealing with a 2.5D modeling (Y) or not (N)
 ky_min   = 1.0e-3         !Smallest wave number
 ky_max   = 1.0e0          !Grater wave number
 tot_ky   = 14             !Total wave numbers

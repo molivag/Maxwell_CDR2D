@@ -14,6 +14,7 @@ module param
   integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
   integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
+  integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
   real              :: hnatu, patau
   double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
   double precision  :: ky_min, ky_max, y_iFT,  k_y, sigma

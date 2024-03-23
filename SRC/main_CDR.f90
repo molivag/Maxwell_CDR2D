@@ -56,7 +56,6 @@ program main_CDR3d
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
   call VinculBVs( condition,  BVs, nofix, ifpre, presc )
 
-  stop
 
   !====================== Hasta aqui iria la parte general de todas las simulaciones para cada ky
   !-------- Problem Type Definition ----------!
@@ -177,7 +176,7 @@ program main_CDR3d
   10 write(*,*)
   ! u_sol = 10.0**(u_sol)
   print*, 'Writing spatial profile at z=0'
-  call spatialProfile_BubbleSort(u_sol)
+  ! call spatialProfile_BubbleSort(u_sol)
 
   call cpu_time(finish); call fdate(date)
   print*, ' '
