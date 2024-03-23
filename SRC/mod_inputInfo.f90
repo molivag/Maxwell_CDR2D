@@ -169,7 +169,7 @@ module inputInfo
           print*, ' '
           write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           print*, ' '
-          write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+          write(*,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         else
           write(*,*)'              Begining                End' 
           write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
@@ -179,7 +179,7 @@ module inputInfo
           write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           !write(*,'(I6)') nodalSrc 
           print*, ' '
-          write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+          write(*,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
           !write(*,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         end if
         print*, ' '
@@ -349,7 +349,7 @@ module inputInfo
           write(100,'(A)') 
           write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           write(100,'(A)') 
-          write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+          write(100,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         else
           write(100,'(A)')'              Begining                End' 
           write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
@@ -359,7 +359,7 @@ module inputInfo
           write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           !write(100,'(I6)') nodalSrc 
           write(100,'(A)') 
-          write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+          write(100,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
           !write(100,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         end if
       else
