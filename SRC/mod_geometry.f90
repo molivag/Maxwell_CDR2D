@@ -20,18 +20,47 @@ use param
       ! subrutina que lee todos los parametros de entrada para la simulacion,             !
       ! la geometria, lista de nodos, coordenadas y parametros de estabilizacion          !
       !                                                                                   !
+      ! The MSH file format version 1 is Gmsh’s original native mesh file format,         !
+      ! now superseded by the format described in MSH file format.                        !
+      ! It is defined as follows:                                                         !
+      !                                                                                   !
+      !                                                                                   !
+      ! $ENDNOD                                                                           !
+      !    $ELM                                                                           !
+      !    number-of-elements                                                             !
+      !    elm-number elm-type reg-phys reg-elem number-of-nodes node-number-list         !
+      !    …                                                                              !
+      ! $ENDELM                                                                           !
+      !                                                                                   !
+      ! -- reg-phys                                                                       !
+      !         is the tag of the physical entity to which the element belongs;           !
+      !         reg-phys must be a positive integer, or zero. With this will be           !
+      !         easily identified what element belong to what latyer or surface           !
+      !                                                                                   !
+      !   --reg-elem                                                                      !
+      !         is the tag of the elementary entity to which the element belongs;         !
+      !         reg-elem must be a positive (non-zero) integer.                           !
+      !         2 mean: element belong to surface (surface identify as entity 2)          !
+      !                                                                                   !
+      !                                                                                   !
+      !                                                                                   !
+      !                                                                                   !
       ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+      
       implicit none
       
       character(len=*), parameter                   :: fileplace = "Msh/"
-      character(len=13), intent(in)                 :: file_mesh
+      character(len=:), allocatable, intent(in)     :: file_mesh
       character(len=180)                            :: msg
       double precision, allocatable, dimension(:,:) :: cord3D
       double precision                              :: coorw(DimPr,mxpow), tempo(DimPr, mxpow)
-      integer                         :: ielem, jpoin, idime, i,j, stat, dmy, gmsh_nne
-      integer                         :: lnodw(mxelw,mxpow), lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
-      integer                         :: npoiw,nelew,nnodw, npoif
-      integer                         :: initOrderElem
+      integer                              :: ielem, jpoin, idime, i,j, stat, dmy, gmsh_nne
+      integer                              :: lnod_add(mxelw,mxpow), tlnod(mxelw,mxpow)
+      integer                              :: lnodw(mxelw,mxpow), mesh_conduc(mxelw)
+      integer                              :: npoiw,nelew,nnodw, npoif
+      integer                              :: initOrderElem, reg_phys
+      ! integer, allocatable, dimension(:,:) :: chk_physical_region
+      integer, allocatable, dimension(:) :: chk_physical_region
       
       
       open(5, file=fileplace//file_mesh, status='old', action='read',IOSTAT=stat, IOMSG=msg)
@@ -56,7 +85,7 @@ use param
       allocate(cord3D(3,initNodes), coord(Dimpr,initNodes))
       coord = 0.0 
       if(view == 'xz')then
-        print*, 'plano xz'
+        ! print*, 'plano xz'
         do i=1,nnodes !number of total nodes
           read(5,*,iostat=stat,iomsg=msg) jpoin,(cord3D(idime,jpoin), idime =1,3 )
         end do
@@ -65,7 +94,7 @@ use param
           coord(2,j) = cord3D(3,j) !coordenada z
         enddo
       else
-        print*, 'plano xy'
+        ! print*, 'plano xy'
         do i=1,nnodes !number of total nodes
           read(5,*,iostat=stat,iomsg=msg) jpoin,(coord(idime,jpoin), idime =1,DimPr )
         end do
@@ -81,16 +110,21 @@ use param
       read(5,*) initElem 
       call checkStatus(8,stat,msg)
       nelem = initElem
-      allocate( lnods(initElem,initnne))
+      allocate( lnods(initElem,initnne), mesh_conductivity(nelem),  chk_physical_region(nelem) )
       lnods = 0.0
       !mshType  = 1                !Mesh builder 1=GID; 2=GMSH       
       do i=1,nelem
-        read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, dmy,dmy, gmsh_nne, (lnods(ielem,j), j =1,initnne)
+        read(5,*,iostat=stat,iomsg=msg) ielem, initOrderElem, reg_phys,dmy, gmsh_nne, (lnods(ielem,j), j =1,initnne)
         if(gmsh_nne.ne.initnne)then
           print*," error in Number of Nodes in the element, while reading lnodes in geometry module "
           stop
         endif
         call checkStatus(9,stat,msg)
+
+        chk_physical_region(i) = reg_phys
+        ! chk_physical_region(i,1) = ielem 
+        ! chk_physical_region(i,2) = reg_phys 
+
       end do
       read(5,*) !se salta todas las lineas entre nodes y elements y comienza a leer los elementos 
       !Aqui fallo al leer triangulos cuando debio decirme que los nne no coincidian o que los GP no coincidian
@@ -159,24 +193,23 @@ use param
         ntotv    = initntotv
         nne      = initnne
         
+        !Sino hay refinado entonces el reg_phys es el proveniente de gmsh directamente
+        mesh_conductivity = chk_physical_region
         goto 101
         
       elseif(refiType.eq.'PS'.or.refitype.eq.'CC')then
-        !
+        deallocate(mesh_conductivity)
+        
         !***  Undertakes the mesh change
-        !
         call AddNodes(refiType,npoiw,nnodw,coorw,lnod_add)
         !
         !***  Checks if there are repeated nodes and output of results
-        ! 
-        call SplitElem(refiType,lnod_add,nelew,lnodw) 
+        call SplitElem(refiType,chk_physical_region, lnod_add,nelew,lnodw, mesh_conduc) 
         !
         !***  Checks if there are repeated nodes and reallocate coord and lnods
-        ! 
-        call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif,tempo,tlnod)
+        call checkMesh(coorw,lnodw,nnodw,nelew,npoiw,mesh_conduc, npoif,tempo,tlnod)
         !
         !* Recounting of nodes and elements after the refination
-        !
         nnodes = npoif
         nelem  = nelew 
         nne    = nnodw
@@ -184,8 +217,28 @@ use param
         ntotv  = ndofn*nnodes
         
       end if
-     
+      
       101 continue
+      
+      open(135, file='./test_asign_mediumPS.dat', status='old', action='write',IOSTAT=stat, IOMSG=msg)
+      do i=1,nelem
+        if(i.lt.10)then
+          write(135,"(I2,2x,4(I5,1x))") i, (lnods(i,j), j=1,nne)
+        else
+          write(135,"(I0,2x,4(I5,1x))") i, (lnods(i,j), j=1,nne)
+        endif
+      end do
+      close(135)
+
+      open(115, file='./media_meshPS.dat', status='old', action='write',IOSTAT=stat, IOMSG=msg)
+      do i=1,nelem
+        if(i.lt.10)then
+          write(115,"(I2,2x,I5)") i, mesh_conductivity(i)
+        else
+          write(115,"(I0,2x,I5)") i, mesh_conductivity(i)
+        endif
+      end do
+      close(135)
       
       
     end subroutine readMesh
@@ -303,14 +356,16 @@ use param
     !
     !*************************************************************************     
     !
-    subroutine SplitElem(refiType,lnod_add,nelew,lnodw) 
+    subroutine SplitElem(refiType,chk_physical_region, lnod_add,nelew,lnodw, mesh_conduc) 
       
       implicit none 
       
       character(len=2), intent(in) :: refitype
-      integer         , intent(in), dimension(mxelw,mxnow) :: lnod_add !add nodes
-      integer                                               :: ielem
+      integer         , intent(in), dimension(mxelw,mxnow)  :: lnod_add !add nodes
+      integer, allocatable, dimension(:), intent(in)      :: chk_physical_region
+      integer                                               :: ielem, reg_phys
       integer         , intent(out), dimension(mxelw,mxnow) :: lnodw
+      integer         , intent(out), dimension(mxelw) :: mesh_conduc
       integer         , intent(out)                         ::  nelew 
       
       nelew=nelem
@@ -322,8 +377,11 @@ use param
             write(*,'(a)') '>>> Verify PS must be nne=3'
             stop
           else
+            !identifico que reg_phys es respecto del elemento en cuestion
+            reg_phys = chk_physical_region(ielem) 
+            
             continue
-            !Split of a 7-node ∆ element into six 3-nodes ∆ elements. 
+            !Split of a 7-node ∆ element into 6 ∆ elements of 3-nodes. 
             !  ^
             !  |        3
             !  |        o
@@ -338,22 +396,41 @@ use param
             !  +--------X-------->
             lnodw(ielem  ,1)=lnod_add(ielem,1)
             lnodw(ielem  ,2)=lnod_add(ielem,4)
-            lnodw(ielem  ,3)=lnod_add(ielem,7)
+            lnodw(ielem  ,3)=lnod_add(ielem,7)!1er elemento generado 
             lnodw(nelew+1,1)=lnod_add(ielem,1)
             lnodw(nelew+1,2)=lnod_add(ielem,7)
-            lnodw(nelew+1,3)=lnod_add(ielem,6)
+            lnodw(nelew+1,3)=lnod_add(ielem,6)!2º elemento generado
             lnodw(nelew+2,1)=lnod_add(ielem,7)
             lnodw(nelew+2,2)=lnod_add(ielem,3)
-            lnodw(nelew+2,3)=lnod_add(ielem,6)
+            lnodw(nelew+2,3)=lnod_add(ielem,6)!3er elemento generado 
             lnodw(nelew+3,1)=lnod_add(ielem,4)
             lnodw(nelew+3,2)=lnod_add(ielem,2)
-            lnodw(nelew+3,3)=lnod_add(ielem,7)
+            lnodw(nelew+3,3)=lnod_add(ielem,7)!4º elemento generado 
             lnodw(nelew+4,1)=lnod_add(ielem,2)
             lnodw(nelew+4,2)=lnod_add(ielem,5)
-            lnodw(nelew+4,3)=lnod_add(ielem,7)
+            lnodw(nelew+4,3)=lnod_add(ielem,7)!5º elemento generado 
             lnodw(nelew+5,1)=lnod_add(ielem,5)
             lnodw(nelew+5,2)=lnod_add(ielem,3)
-            lnodw(nelew+5,3)=lnod_add(ielem,7)
+            lnodw(nelew+5,3)=lnod_add(ielem,7)!6º elemento generado
+            
+            mesh_conduc(ielem  ) = reg_phys
+            mesh_conduc(ielem  ) = reg_phys
+            mesh_conduc(ielem  ) = reg_phys
+            mesh_conduc(nelew+1) = reg_phys
+            mesh_conduc(nelew+1) = reg_phys
+            mesh_conduc(nelew+1) = reg_phys
+            mesh_conduc(nelew+2) = reg_phys
+            mesh_conduc(nelew+2) = reg_phys
+            mesh_conduc(nelew+2) = reg_phys
+            mesh_conduc(nelew+3) = reg_phys
+            mesh_conduc(nelew+3) = reg_phys
+            mesh_conduc(nelew+3) = reg_phys
+            mesh_conduc(nelew+4) = reg_phys
+            mesh_conduc(nelew+4) = reg_phys
+            mesh_conduc(nelew+4) = reg_phys
+            mesh_conduc(nelew+5) = reg_phys
+            mesh_conduc(nelew+5) = reg_phys
+            mesh_conduc(nelew+5) = reg_phys
             nelew=nelew+5
             
             ElemType = initElemType
@@ -419,13 +496,13 @@ use param
     !
     !*************************************************************************     
     !
-    subroutine checkMesh(coorw,lnodw,nnodw,nelew,npoiw,npoif,tempo,tlnod)
+    subroutine checkMesh(coorw,lnodw,nnodw,nelew,npoiw, mesh_conduc, npoif,tempo,tlnod)
       
       !implicit     real*8 (a-h,o-z)
       
       implicit none !integer :: (i,j)
       
-      integer         , intent(in) :: lnodw(mxelw,mxnow)
+      integer         , intent(in) :: lnodw(mxelw,mxnow), mesh_conduc(mxelw)
       double precision, intent(in)  :: coorw(DimPr,mxpow)
       integer         , intent(in)  :: nnodw, nelew, npoiw
       integer                       :: ipoiw, ielew, inodw, idime, kpoiw, jpoiw, lpoiw(npoiw)
@@ -484,13 +561,18 @@ use param
       
       !* Setting the refinment mesh in previous coord and lnods (global)) variables 
       deallocate(coord, lnods)
-      allocate(coord(DimPr,npoif),lnods(nelew,nnodw))
+      allocate(coord(DimPr,npoif),lnods(nelew,nnodw), mesh_conductivity(nelew))
      
       do ielem=1,nelew
         do inode=1,nnodw
           lnods(ielem,inode)=tlnod(ielem,inode)
         end do
       end do
+      
+      do ielem=1,nelew
+        mesh_conductivity(ielem)=mesh_conduc(ielem)
+      end do
+      
       
       do ipoin=1,npoif
           do idime=1,DimPr
