@@ -7,9 +7,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
-    subroutine ReadFile(NumRows, NumCols, condition, BVs)
-      
-      implicit none
+    subroutine ReadFile(NumRows, NumCols, condition, condition_value)
       
       integer :: i, j, stat1, stat2
       integer, intent(in)            :: NumRows, NumCols
@@ -17,7 +15,7 @@ module library
       character (len=9)              :: FileName1, FileName2
       character(len=180) :: msg
       integer, dimension(NumRows,NumCols-ndofn), intent (out) :: condition
-      double precision, dimension(NumRows,ndofn),intent (out) :: Bvs
+      double precision, dimension(NumRows,ndofn),intent (out) :: condition_value
       
       FileName1 ='ifpre.dat' 
       FileName2 ='BoVal.dat'
@@ -25,11 +23,10 @@ module library
       open(unit=10,file=fileplace//FileName1, status='old', action='read', iostat=stat1, iomsg=msg)
       open(unit=20,file=fileplace//FileName2, status='old', action='read', iostat=stat2, iomsg=msg)
       
-      !Este lee los nodos que estan preescritos o no
       read(10,*,iostat=stat1,iomsg=msg) ((condition(i,j), j=1,NumCols-ndofn), i=1,NumRows)
       if (stat1.ne.0) then
         print*, ' '
-        print*,'!============ STATUS READING IFPRE FILE. ============!'
+        print*,'!============ STATUS READING BOUND VAL. ============!'
         print "(A38,I2)", "- Status while reading ifPre file is: ", stat1
         print*, ' '
         print'(A8,1x,A180)','iomsg= ',msg
@@ -37,11 +34,8 @@ module library
         continue
       end if
       
-      !Este lee los valores de las condiciones de forntera
-      read(20,*,iostat=stat2,iomsg=msg) ((BVs(i,j), j=1,ndofn), i=1,NumRows)
+      read(20,*,iostat=stat2,iomsg=msg) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
       if (stat2.ne.0) then
-        print*, ' '
-        print*,'!============ STATUS READING BOVAL FILE. ============!'
         print "(A38,I2)", "- Status while reading BoVal file is: ", stat2
         print*, ' '
         print'(A8,1x,A180)','iomsg= ',msg
@@ -590,10 +584,9 @@ module library
                 ! print*,'!if it is NOT dealing with a 2.5D Problem'
                 reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               endif
+              cpcty = sigma * (basis(inode) * basis(jnode) )
               
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
-              
-              cpcty = sigma * (basis(inode) * basis(jnode) )
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
@@ -1053,12 +1046,12 @@ module library
       implicit none
       
       !integer, intent(in)      :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
-      integer,          intent(in)  :: condition( nBvs, nBVscol-ndofn)
-      double precision, intent(in)  :: BVs( nBvs, ndofn)
-      integer                       :: i, j
+      integer, intent(in) :: condition( nBvs, nBVscol-ndofn)
+      double precision, intent(in) :: BVs( nBvs, ndofn)
+      integer             :: i, j
       double precision, intent(out) :: presc(ndofn,nBVs)
-      integer,          intent(out) :: ifpre(ndofn,nBVs)
-      integer,          intent(out) :: nofix(nBVs)
+      integer, intent(out)          :: ifpre(ndofn,nBVs)
+      integer, intent(out)          :: nofix(nBVs)
       
       
       ! select case(ndofn)
@@ -1160,26 +1153,32 @@ module library
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ
-      integer                                   :: igaus, ibase, ielem
+      integer                                   :: igaus, ibase, ielem, medium, iii, jjj
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
       
-      !duda: Fe se declaró como a(n) y en la rutina assembleF como a(n,1)
-      !      pero compila y ejecuta bien. ¿Poooor?
+      A_K = 0.0; A_F = 0.0; A_C = 0.0
       
-      A_K = 0.0
-      A_F = 0.0
-      A_C = 0.0
-      
-      do ielem = 1, nelem 
+      elements: do ielem = 1, nelem 
+       
+        medium = mesh_conductivity(ielem)
+        if(medium.eq.300)then
+          !Air Layer
+          sigma = 3.3333 !10D-5
+        elseif(medium.eq.100)then
+          !Subsurface layer
+          sigma = 10. !1.4285
+        endif
+        
         !gather
         Ke = 0.0    !Esto es amate
         Fe = 0.0    !Fe(nevab)
         Ce = 0.0    !elemental capacity matrix (not used in static case)
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !do-loop: compute element stiffness matrix Ke
-        do igaus = 1, TotGp
+        
+        gauss_points: do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
           call DerivativesXY(igaus,Jinv,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,dN_dxy,HesXY)
           dvol  = detJ *  weigp(igaus,1)
@@ -1202,22 +1201,28 @@ module library
             call Stabilization(hmaxi, dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           endif
           
-        end do
-        !stop
+          
+        end do gauss_points
+        
+        !write(*,'(A9,I0,A14,f15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !if(ielem.ge.178)pause(1)
+        !!stop
         
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
         
-      end do
-      
+      end do elements
+      deallocate(mesh_conductivity)
       !aaa = maxval(coord(1,:))*2**(-i_exp) 
       !if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
       
     end subroutine GlobalSystem
     
     !subroutine AssembleK(K, ke, node_id_map, ndDOF)
-
     !  implicit none
     !  real(8), dimension(2*n_nodes+n_pnodes, 2*n_nodes+n_pnodes),intent(in out)  :: K 
     !  !  Global Stiffnes matrix debe 
@@ -2047,7 +2052,7 @@ module library
       
       
       close(555)
-      write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.msh','written succesfully in Pos/'
+      write(*,"(A7,A,A28)") ' -File ',File_Nodal_Vals//'.post.msh','written succesfully in Pos/'
       
       
       open(unit=555, file= fileplace//File_Nodal_Vals//ext2, ACTION="write", STATUS="replace")
@@ -2113,7 +2118,7 @@ module library
               ii=ii+1
             end do
             write(555,"(A)") 'End Values'
-            write(*,"(A7,A21,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
+            write(*,"(A7,A,A28)") ' -File ',File_Nodal_Vals//'.post.res','written succesfully in Pos/'
           endif
       end select
 
@@ -2251,7 +2256,7 @@ module library
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A21,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ '
+        print"(A11,A,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ '
        
       elseif(activity == "res")then
        
@@ -2420,7 +2425,7 @@ module library
       !if(time == t_steps+1.and.activity.eq."profile") then
       if((time == t_steps).and.(activity.ne."profile")) then
         print*, ' '
-        print"(1x, A21,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
+        print"(1x, A,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
         print*, ' '
       endif
       
