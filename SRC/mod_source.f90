@@ -98,6 +98,7 @@ module sourceTerm
           EMsource(3) = force(3)
           
         case(2) !Maxwell algebraic solution
+          print*,'!Maxwell algebraic solution'
           !Source with NO DivDiv term
           
           !Derivatives in x-direction
@@ -191,64 +192,33 @@ module sourceTerm
       ! case(0)
       ! Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
       if(present(eTime).and.present(time))then
-        if(ndofn.eq.1)then !Fuente J o M para el problema escalar
           do inode=1,nodalSrc 
-          !!# # # # # # source: Time derivative of Density Current
-          !if(time.eq.1.and.inode.eq.1)then
-          !  print*,time
-          !  print*,'J type source'
-          !endif
-          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-          !!if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-
-          ! # # # # # # source: Magnetic Moment
-          !if(time.eq.1.and.inode.eq.1)then
-          !  ! print*,time
-          !  print*,'M type source'
-          !endif
-          !theta_loop= 90.0
-          !S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
-          !theta_loop=theta_loop*pi/180. ! theta=-30 deg
-          !Mr=Icurr(1)*S 
-          !Mx=Mr*sin(theta_loop)
-          !My=Mr*cos(theta_loop)
-          !Curr_x= Mx/S
-          !Curr_y= My/S
-          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
+            !# # # # # # source: Time derivative of Density Current
+            if(time.eq.1.and.inode.eq.1)then
+              print*,time
+              print*,'J type source'
+            endif
+            Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+            ! if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+            !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+            
+           
+          !  !# # # # # # source: Magnetic Moment
+          !  if(time.eq.1.and.inode.eq.1)then
+          !    ! print*,time
+          !    print*,'M type source'
+          !  endif
+          !  theta_loop= 90.0
+          !  S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
+          !  theta_loop=theta_loop*pi/180. ! theta=-30 deg
+          !  Mr=Icurr(1)*S 
+          !  Mx=Mr*sin(theta_loop)
+          !  My=Mr*cos(theta_loop)
+          !  Curr_x= Mx/S
+          !  Curr_y= My/S
+          !  Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
+          !  if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
           end do
-        else ! Fuente J o M para el caso de 2 o 3 grados de libertad
-          do inode=1,nodalSrc 
-          ! if(time.eq.1.and.inode.eq.1)then
-          !   print*,'∂J/∂t type source'
-          ! endif
-
-          ! # # # # # # source: Time derivative of Density Current
-          Jsource((srcLoc(inode)-1)*ndofn+1,1) = Icurr(1)*eTime
-          Jsource((srcLoc(inode)-1)*ndofn+2,1) = Icurr(2)*eTime
-          Jsource((srcLoc(inode)-1)*ndofn+3,1) = Icurr(3)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-
-          !! # # # # # # source: Magnetic Moment
-          ! print*,'M type source'
-          !theta_loop= 90.0
-          !S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
-          !S=1.
-          !theta_loop=theta_loop*pi/180. ! theta=-30 deg
-          !Mr=Icurr(1)*S 
-          !Mx=Mr*sin(theta_loop)
-          !My=Mr*cos(theta_loop)
-          !Curr_x= Mx/S
-          !Curr_y= My/S
-
-          !Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-          !Jsource((srcLoc(inode)-1)*ndofn+2,1) = (Curr_x+Curr_y)*eTime
-          !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
-
-          end do
-        end if
       else 
         if(BCsProb.eq.5)then
           continue
