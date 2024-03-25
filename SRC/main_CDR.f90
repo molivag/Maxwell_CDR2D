@@ -7,9 +7,9 @@ program main_CDR3d
   external :: fdate
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   character(len=19)                                 :: name_inputFile
-  character(len=13)                                 :: geometry_File
+  character(len=:), allocatable                     :: geometry_File
   double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc
-  double precision, allocatable,  dimension(:,:)     :: Jsource
+  double precision, allocatable,  dimension(:,:)    :: Jsource
   double precision, allocatable, dimension(:,:)     :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:)     :: hes_xixi, hes_xieta, hes_etaeta
   !double precision,              dimension(3,4) :: Hesxieta
@@ -46,6 +46,7 @@ program main_CDR3d
   !------- Computing half bandwidth  --------!
   call BandWidth
 
+
   !------- Setting Boundary Conditions ------!
   !Esta funcion crea el archivo BVs.dat
   call SetBoundVal( nBVs, nBVscol)
@@ -66,8 +67,8 @@ program main_CDR3d
       ! varPrimerSet = 10 -5 = 5
       ! varSeconSet = varPrimerSet+1 = 6
       if(splits == 'N')then
-        print*,'completo'
-        do ii_ky = 1,tot_ky-5 !First running of the code with tot_ky = 5
+        ! do ii_ky = 1,tot_ky-5 !First running of the code with tot_ky = 5
+        do ii_ky = 1,tot_ky 
         call TimeIntegration(ii_ky, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, nofix, ifpre, presc, Ex_field)
         end do
         !---------- Memory Relase -----------!
@@ -185,8 +186,8 @@ program main_CDR3d
     &CPU-Time =', finish,' ~',((finish-start)/60.0)/10.0,' minutes. Finished on: ', date
   ! primero entre 10 p[ara pasar de cientos de segundos a decenas de segundos y luego dividir esas decenas
   ! en segmentos de sesenta  segundos que serian un minuto, por eso de ambas divisiones
-  print*,' ', finish-start
-  print*,' ', ((finish-start)/10.0)/60
+  write(*,*) 'Computation finished. Run-time is ', finish-start, 'seconds.'
+  write(*,*) 'Esto es en minutos',  ((finish-start)/60.0)
 end program main_CDR3d
 
 
