@@ -147,6 +147,7 @@ module timeInt
       allocate( LHS(ldAKban,ntotv))
       ! allocate(lhs_BDF2(ldAKban,ntotv))
       
+      if(i_WaveNum.gt.1)allocate(mesh_conductivity(nelem))
       call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !allocate( RHS(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
       !----- Setting MKL-Solver Parammeters -----!
@@ -170,18 +171,20 @@ module timeInt
       
       !If it is dealing with a 2.5D problem
       if(TwoHalf == 'Y')then
+        deallocate(A_F)
         allocate( store_Spec(S_ldSol,t_steps+1) )
         do ii = 1, S_ldSol
           store_Spec(ii,time+1) = u_pre(ii,1) 
         end do
+        call storeSpectrum(i_WaveNum, store_Spec)
       endif
       !write(*,*) ' '
       call GID_PostProcess(1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
       call GID_PostProcess(1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
-      ! call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
+      call GID_PostProcess(1,u_pre, 'profile', time, nt, time_fin, Ex_field)
       ! call storeSpectrum('TIME',u_fut, time)
       write(*,*) ' '
-      if(i_WaveNum ==1)print*, 'Starting time integration. . . . .'
+      if(i_WaveNum ==1)print*, 'Starting time integration for all wavenumbers. . . . .'
       ! print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
      
       select case(theta)
@@ -201,7 +204,13 @@ module timeInt
             call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
             call currDensity(Jsource,time,shapeTime(time)) 
-            RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
+            if(oper == 'MAXW')then
+              if(TwoHalf=='Y'.or.TwoHalf=='N')then
+                RHS = (Mu_pre - delta_t*Jsource)
+              endif
+            else
+              RHS = (delta_t*A_F + Mu_pre)
+            endif
             ! RHS = ( Mu_pre - delta_t*Jsource )
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
             
@@ -233,7 +242,7 @@ module timeInt
             end if
             
           end do time_stepping
-          DEALLOCATE( A_F, A_K, A_C)
+          DEALLOCATE( A_K, A_C)
           DEALLOCATE( LHS, u_pre, u_fut)
           
         !-------- Crank- Nicholson Scheme 
