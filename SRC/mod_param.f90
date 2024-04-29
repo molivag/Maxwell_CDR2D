@@ -9,7 +9,8 @@ module param
   ! character(len=12) :: File_3DNodal_Vals
   
   character(len=:), allocatable  :: shape_spec_file, testID, File_Nodal_Vals, error_name, coord_name
-  character(len=:), allocatable  :: conec_name, profile_name, mesh_file, File_3DNodal_Vals, File_Nodal_Vals_ky
+  character(len=:), allocatable  :: conec_name, profile_name, mesh_file
+  character(len=:), allocatable  :: File_3DNodal_Vals, File_Nodal_Vals_ky
   
   
   character(len=4)  :: ProbType, ElemType, initElemType, ky_id, oper
@@ -18,7 +19,7 @@ module param
   integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
   integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
   integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
-  integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS!, srcLoc
+  integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS, initCond
   real              :: hnatu, patau
   double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
   double precision  :: ky_min, ky_max, y_iFT,  k_y, sigma
@@ -72,7 +73,7 @@ module param
       mesh_file, view ,initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
       TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, shape_spec_file ,File_3DNodal_Vals, &
-      theta, time_ini, time_fin, t_steps, Src_ON,&
+      theta, time_ini, time_fin, t_steps, Src_ON, signal, initCond, & 
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       call checkStatus(0,stat,msg)
       
@@ -172,6 +173,7 @@ module param
         difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
         if(stat.ne.0)print'(A17,I4)','Segundo iostat_DIFMA_zz= ',stat
         call checkStatus(3,stat,msg)
+        
         read(5,103,iostat=stat,iomsg=msg) & !reading CONMA for 3DoF
         conma(1,1,1), conma(1,2,1), conma(1,3,1), &
         conma(2,1,1), conma(2,2,1), conma(2,3,1)
@@ -200,7 +202,7 @@ module param
         if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
         call checkStatus(3,stat,msg)
         
-      elseif(ndofn.eq.8)then        !3 degree of freedom
+      elseif(ndofn.eq.8)then        !8 degree of freedom
         read(5,111,iostat=stat,iomsg=msg) &
         difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1),difma(1,4,1,1),difma(1,5,1,1),difma(1,6,1,1),difma(1,7,1,1),difma(1,8,1,1),&
         difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1),difma(2,4,1,1),difma(2,5,1,1),difma(2,6,1,1),difma(2,7,1,1),difma(2,8,1,1),&
@@ -335,7 +337,7 @@ module param
         read(5,*,iostat=stat,iomsg=msg) srcLoc(ii)
       end do
       
-      read(5,109,iostat=stat,iomsg=msg) signal
+      ! read(5,109,iostat=stat,iomsg=msg) signal
       read(5,109,iostat=stat,iomsg=msg) nodalRec
       allocate( recLoc(DimPr,nodalRec) )
       !Aqui deberia poner un if para verificar que los nodos tanto de la fuente como del receptor
@@ -402,6 +404,9 @@ module param
       !time_fin = 20*delta_t
       
       delta_t = (time_fin/ t_steps)
+      print*,signal
+      print*,initCond
+
       ! delta_t = (time_fin - time_ini)/t_steps
       
       !print*, 'delta_t', delta_t
@@ -438,12 +443,12 @@ module param
       
       !Initial elemental and global variables, it will changes if refination is selected.
       
-      100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,       3/,&  !model parameters
-      &          11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,  2/,&  !geometry
-      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),             2/,&  !stabi
+      100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,                    3/,&  !model parameters
+      &          11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,                 2/,&  !geometry
+      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),                          2/,&  !stabi
       &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/, 2(/,11x,A,/), 2/,&  !Fourier Transform
-      &          11x,I1,/, 2(11x,e14.7,/), 2(11x,I5,/),                   2/,&  !time
-      &          11x,A,/, 5(11x,A,/),1/ )                                   !output files
+      &          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                                2/,&  !time
+      &          11x,A,/, 5(11x,A,/),1/ )                                                    !output files
      
       !**Format for 1Dof tensors
       101 format(1/,F12.5,7/)
@@ -498,11 +503,21 @@ module param
       num_nodos = 0
       read(1,*)
       read(1,*) nnodes
-      do i = 1, nnodes 
-        read(1, *, iostat=stat, iomsg=msg) nodo(i), coord_x(i), dummy ,  coord_y(i)
-        num_nodos = i
-        call checkStatus(6,stat,msg)
-      end do
+      if(view.eq.'xy')then
+        do i = 1, nnodes 
+          read(1, *, iostat=stat, iomsg=msg) nodo(i), coord_x(i), coord_y(i), dummy  
+          num_nodos = i
+          call checkStatus(6,stat,msg)
+        end do
+      elseif(view.eq.'xz')then
+        do i = 1, nnodes 
+          read(1, *, iostat=stat, iomsg=msg) nodo(i), coord_x(i), dummy , coord_y(i)
+          num_nodos = i
+          call checkStatus(6,stat,msg)
+        end do
+
+
+      endif
       close(1)
     
       loop_receiver: do ireceiver =1, nodalRec
