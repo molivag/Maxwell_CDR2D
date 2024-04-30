@@ -10,7 +10,7 @@ module param
   
   character(len=:), allocatable  :: shape_spec_file, testID, File_Nodal_Vals, error_name, coord_name
   character(len=:), allocatable  :: conec_name, profile_name, mesh_file
-  character(len=:), allocatable  :: File_3DNodal_Vals, File_Nodal_Vals_ky
+  character(len=:), allocatable  :: File_3DNodal_Vals, File_Nodal_Vals_ky, PHYSICAL_PROBLEM
   
   
   character(len=4)  :: ProbType, ElemType, initElemType, ky_id, oper
@@ -27,13 +27,11 @@ module param
 
   double precision, allocatable, dimension(:,:)     :: coord 
   integer,          allocatable, dimension(:,:)     :: lnods
-  double precision, allocatable, dimension(:,:,:,:) :: difma
-  double precision, allocatable, dimension(:,:,:)   :: conma
-  double precision, allocatable, dimension(:,:)     :: reama 
-  double precision, allocatable, dimension(:)       :: force, Icurr, WaveNumbers !Force and Current vector (respectively)
+  double precision, allocatable, dimension(:)       :: Icurr, WaveNumbers !Force and Current vector (respectively)
   character(len=8), allocatable, dimension(:)       :: files_ky        
-  character(len=4), allocatable, dimension(:)       :: nodal_ky
-  integer         , allocatable, dimension(:)       :: receivers, srcLoc, mesh_conductivity
+  character(len=4), allocatable, dimension(:)       :: nodal_ky 
+  character(len=100), allocatable, dimension(:)     :: PHYSICAL_PROBLEM_OPTIONS 
+  integer  , allocatable, dimension(:)       :: receivers, srcLoc, mesh_conductivity
 
   contains
     
@@ -48,7 +46,7 @@ module param
       
       character(len=*), parameter                   :: fileplace = "./"
       character(len=19)                             :: name_inputFile
-      character(len=5)                             :: obj
+      ! character(len=5)                             :: obj
       character(len=180)                            :: msg
       double precision, allocatable, dimension(:)   :: node_found_it
       integer         , allocatable, dimension(:,:) :: recLoc
@@ -65,11 +63,30 @@ module param
       allocate(character(max_filename_length) :: profile_name)
       allocate(character(max_filename_length) :: mesh_file)
       allocate(character(max_filename_length) :: File_3DNodal_Vals)
+      allocate(character(max_filename_length) :: PHYSICAL_PROBLEM)
       
+      allocate( PHYSICAL_PROBLEM_OPTIONS(6) )
+      
+      Dimpr = 2
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
+      
+      !read(5, 100,iostat=stat,iomsg=msg) &
+      !ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro, sigma, oper,PHYSICAL_PROBLEM_OPTIONS(1),&
+      !PHYSICAL_PROBLEM_OPTIONS(2), PHYSICAL_PROBLEM_OPTIONS(3), PHYSICAL_PROBLEM_OPTIONS(4),&
+      !PHYSICAL_PROBLEM_OPTIONS(5), PHYSICAL_PROBLEM_OPTIONS(6),
+      !
+      !
       read(5, 100,iostat=stat,iomsg=msg) &
-      ProbType,DimPr,ndofn,totGp,exacSol, srcRHS, BCsProb, postpro, sigma, oper,&
+      ProbType,totGp,exacSol, srcRHS, BCsProb, postpro, sigma
+      do ii =1, 6
+        read(5, *,iostat=stat,iomsg=msg) PHYSICAL_PROBLEM_OPTIONS(ii)
+      end do
+      do ii =1, 6
+        print'(A)', PHYSICAL_PROBLEM_OPTIONS(ii)
+      end do
+      
+      read(5, 98,iostat=stat,iomsg=msg) &
       mesh_file, view ,initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
       TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, shape_spec_file ,File_3DNodal_Vals, &
@@ -77,234 +94,70 @@ module param
       testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
       call checkStatus(0,stat,msg)
       
-      allocate( difma(ndofn,ndofn,DimPr,DimPr) )
-      allocate( conma(ndofn,ndofn,DimPr) )
-      allocate( reama(ndofn,ndofn) )
-      allocate( force(ndofn) )
+      print*, view
+      print*, initnne
+      
+      ! Iterar sobre las cadenas de caracteres y procesarlas
+      do ii = 1, 6
+          ! Buscar el carácter '>'
+          if (index(PHYSICAL_PROBLEM_OPTIONS(ii), '>') /= 0) then
+              ! Extraer la cadena de caracteres después del '>'
+              PHYSICAL_PROBLEM = trim(adjustl(PHYSICAL_PROBLEM_OPTIONS(ii)(index(PHYSICAL_PROBLEM_OPTIONS(ii), '>')+1:)))
+          else
+              ! Código para el caso en que no se encuentre '>'
+          end if
+      end do
+      
+      select case (PHYSICAL_PROBLEM)
+        case ('Maxwell_In_Non_Convex_Domain')
+          ! Código para el primer problema
+          oper  = 'MAXW'
+          ndofn = 3
+          kstab = 6
+          
+        case ('Cavity_Driven_Flow')
+          ! Código para el segundo problema
+          oper  = 'LAPL'
+          ndofn = 3
+          kstab = 3
+          
+        case ('Direct_Current_Electrical_Resistivity_in_2.5-D')
+          ! Código para el tercer problema
+          oper  = 'LAPL'
+          ndofn = 1
+          kstab = 0
+          ProbType = 'STAT'
+          BCsProb = 0
+          
+          
+        case ('Electric_Field_Excited_By_A_Double_Line_Source')
+          ! Código para el tercer problema
+          oper  = 'LAPL'
+          ndofn = 1
+          kstab = 0
+          ProbType = 'TIME'
+          BCsProb = 0
+          
+        case ('Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution')
+          ! Código para el quinto problema
+          oper  = 'MAXW'
+          BCsProb = 2! Revisar pues este caso creo qu eno esta definido depende de si son 8 DoF 
+          ndofn = 3
+          srcRHS = 0
+          kstab = 6
+          
+        case ('Transient_Electromagnetic_in_2.5-D')
+          ! Código para el sexto problema
+          ProbType = 'TIME'
+          BCsProb = 2! Revisar pues este caso creo qu eno esta definido depende de si son 8 DoF 
+          oper    = 'MAXW'
+          ndofn   = 8
+          kstab   = 6
+          
+      end select
+      
+      
       allocate( Icurr(ndofn) )
-      
-      difma = 0.0;  conma = 0.0; reama = 0.0
-      force = 0.0;  Icurr = 0.0; WaveNumbers = 0.0
-      
-      if(ndofn.eq.1)then        !1 degree of freedom
-        obj = 'difma'
-        read(5,101,iostat=stat,iomsg=msg) difma(1,1,1,1), difma(1,1,1,2)
-        read(5,101,iostat=stat,iomsg=msg) difma(1,1,2,1), difma(1,1,2,2)
-        call checkStatus(1,stat,msg)
-        !reading CONMA 1 DoF
-        obj = 'conma'
-        read(5,101,iostat=stat,iomsg=msg) conma(1,1,1)
-        read(5,101,iostat=stat,iomsg=msg) conma(1,1,2)
-        call checkStatus(1,stat,msg)
-        !reading REAMA 1 DoF
-        obj = 'reama'
-        read(5,101,iostat=stat,iomsg=msg) reama(1,1)
-        call checkStatus(1,stat,msg)
-        !reading FORCE 1 DoF
-        obj = 'force'
-        read(5,105,iostat=stat,iomsg=msg) force(1)
-        call checkStatus(1,stat,msg)
-        
-      elseif(ndofn.eq.2) then      !2 degree of freedom
-        read(5,102,iostat=stat,iomsg=msg) & 
-        difma(1,1,1,1), difma(1,2,1,1),   & 
-        difma(2,1,1,1),difma(2,2,1,1)
-        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
-        call checkStatus(2,stat,msg)
-        
-        read(5,102,iostat=stat,iomsg=msg) & 
-        difma(1,1,1,2), difma(1,2,1,2),   &
-        difma(2,1,1,2),difma(2,2,1,2)
-        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
-        call checkStatus(2,stat,msg)
-        
-        read(5,102,iostat=stat,iomsg=msg) & 
-        difma(1,1,2,1), difma(1,2,2,1),   &
-        difma(2,1,2,1),difma(2,2,2,1)
-        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
-        call checkStatus(2,stat,msg)
-        
-        read(5,102,iostat=stat,iomsg=msg) & 
-        difma(1,1,2,2), difma(1,2,2,2),   &
-        difma(2,1,2,2),difma(2,2,2,2)
-        if(stat.ne.0) print'(A17,I4)','iostat_DIFMA_xx= ',stat
-        call checkStatus(2,stat,msg)
-        
-        read(5,102) conma(1,1,1), conma(1,2,1), conma(2,1,1), conma(2,2,1)
-        read(5,102) conma(1,1,2), conma(1,2,2), conma(2,1,2), conma(2,2,2)
-        
-        read(5,102) reama(1,1), reama(1,2), reama(2,1), reama(2,2)
-        
-        read(5,106) force(1), force(2)
-        
-      elseif(ndofn.eq.3)then        !3 degree of freedom
-        read(5,103,iostat=stat,iomsg=msg) &
-        difma(1,1,1,1), difma(1,2,1,1), difma(1,3,1,1), &
-        difma(2,1,1,1), difma(2,2,1,1), difma(2,3,1,1)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xx= ',stat
-        read(5,133,iostat=stat,iomsg=msg) &
-        difma(3,1,1,1), difma(3,2,1,1), difma(3,3,1,1)
-        if(stat.ne.0)print'(A30,I4)','Segundo Read iostat_DIFMA_xx= ',stat
-        call checkStatus(3,stat,msg)
-        
-        read(5,103,iostat=stat,iomsg=msg) &
-        difma(1,1,1,2), difma(1,2,1,2), difma(1,3,1,2), &
-        difma(2,1,1,2), difma(2,2,1,2), difma(2,3,1,2)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_xz= ',stat
-        read(5,133,iostat=stat,iomsg=msg) &
-        difma(3,1,1,2), difma(3,2,1,2), difma(3,3,1,2)
-        if(stat.ne.0)print'(A30,I4)','Segundo Read iostat_DIFMA_xz= ',stat
-        call checkStatus(3,stat,msg)
-        
-        read(5,103,iostat=stat,iomsg=msg) &
-        difma(1,1,2,1), difma(1,2,2,1), difma(1,3,2,1), &
-        difma(2,1,2,1), difma(2,2,2,1), difma(2,3,2,1)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_zx= ',stat
-        read(5,133,iostat=stat,iomsg=msg) &
-        difma(3,1,2,1), difma(3,2,2,1), difma(3,3,2,1)
-        if(stat.ne.0)print'(A30,I4)','Segundo Read iostat_DIFMA_zx= ',stat
-        call checkStatus(3,stat,msg)
-        
-        read(5,103,iostat=stat,iomsg=msg) &
-        difma(1,1,2,2), difma(1,2,2,2), difma(1,3,2,2), &
-        difma(2,1,2,2), difma(2,2,2,2), difma(2,3,2,2)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_zz= ',stat
-        read(5,133,iostat=stat,iomsg=msg) &
-        difma(3,1,2,2), difma(3,2,2,2), difma(3,3,2,2)
-        if(stat.ne.0)print'(A17,I4)','Segundo iostat_DIFMA_zz= ',stat
-        call checkStatus(3,stat,msg)
-        
-        read(5,103,iostat=stat,iomsg=msg) & !reading CONMA for 3DoF
-        conma(1,1,1), conma(1,2,1), conma(1,3,1), &
-        conma(2,1,1), conma(2,2,1), conma(2,3,1)
-        read(5,133,iostat=stat,iomsg=msg) &
-        conma(3,1,1), conma(3,2,1), conma(3,3,1)
-        if(stat.ne.0)print'(A14,I3)','iostat_CONMA_x= ',stat
-        call checkStatus(3,stat,msg)
-        
-        read(5,103,iostat=stat,iomsg=msg) & !reading REAMA for 3DoF
-        conma(1,1,2), conma(1,2,2), conma(1,3,2), &
-        conma(2,1,2), conma(2,2,2), conma(2,3,2)
-        read(5,133,iostat=stat,iomsg=msg) &
-        conma(3,1,2), conma(3,2,2), conma(3,3,2)
-        if(stat.ne.0)print'(A14,I3)','iostat_CONMA_y= ',stat
-        call checkStatus(3,stat,msg)
-        
-        read(5,103,iostat=stat,iomsg=msg) &
-        reama(1,1), reama(1,2), reama(1,3), &
-        reama(2,1), reama(2,2), reama(2,3)
-        read(5,133,iostat=stat,iomsg=msg) &
-        reama(3,1), reama(3,2), reama(3,3)
-        if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
-        call checkStatus(3,stat,msg)
-        
-       read(5,107,iostat=stat,iomsg=msg) force(1), force(2), force(3)
-        if(stat.ne.0)print'(A14,I3)','iostat_REAMA= ',stat
-        call checkStatus(3,stat,msg)
-        
-      elseif(ndofn.eq.8)then        !8 degree of freedom
-        read(5,111,iostat=stat,iomsg=msg) &
-        difma(1,1,1,1),difma(1,2,1,1),difma(1,3,1,1),difma(1,4,1,1),difma(1,5,1,1),difma(1,6,1,1),difma(1,7,1,1),difma(1,8,1,1),&
-        difma(2,1,1,1),difma(2,2,1,1),difma(2,3,1,1),difma(2,4,1,1),difma(2,5,1,1),difma(2,6,1,1),difma(2,7,1,1),difma(2,8,1,1),&
-        difma(3,1,1,1),difma(3,2,1,1),difma(3,3,1,1),difma(3,4,1,1),difma(3,5,1,1),difma(3,6,1,1),difma(3,7,1,1),difma(3,8,1,1),&
-        difma(4,1,1,1),difma(4,2,1,1),difma(4,3,1,1),difma(4,4,1,1),difma(4,5,1,1),difma(4,6,1,1),difma(4,7,1,1),difma(4,8,1,1),&
-        difma(5,1,1,1),difma(5,2,1,1),difma(5,3,1,1),difma(5,4,1,1),difma(5,5,1,1),difma(5,6,1,1),difma(5,7,1,1),difma(5,8,1,1),&
-        difma(6,1,1,1),difma(6,2,1,1),difma(6,3,1,1),difma(6,4,1,1),difma(6,5,1,1),difma(6,6,1,1),difma(6,7,1,1),difma(6,8,1,1),&
-        difma(7,1,1,1),difma(7,2,1,1),difma(7,3,1,1),difma(7,4,1,1),difma(7,5,1,1),difma(7,6,1,1),difma(7,7,1,1),difma(7,8,1,1),&
-        difma(8,1,1,1),difma(8,2,1,1),difma(8,3,1,1),difma(8,4,1,1),difma(8,5,1,1),difma(8,6,1,1),difma(8,7,1,1),difma(8,8,1,1)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_xx= ',stat
-          call checkStatus(10,stat,msg)
-        end if
-        
-        read(5,111,iostat=stat,iomsg=msg) &
-        difma(1,1,1,2),difma(1,2,1,2),difma(1,3,1,2),difma(1,4,1,2),difma(1,5,1,2),difma(1,6,1,2),difma(1,7,1,2),difma(1,8,1,2),&
-        difma(2,1,1,2),difma(2,2,1,2),difma(2,3,1,2),difma(2,4,1,2),difma(2,5,1,2),difma(2,6,1,2),difma(2,7,1,2),difma(2,8,1,2),&
-        difma(3,1,1,2),difma(3,2,1,2),difma(3,3,1,2),difma(3,4,1,2),difma(3,5,1,2),difma(3,6,1,2),difma(3,7,1,2),difma(3,8,1,2),&
-        difma(4,1,1,2),difma(4,2,1,2),difma(4,3,1,2),difma(4,4,1,2),difma(4,5,1,2),difma(4,6,1,2),difma(4,7,1,2),difma(4,8,1,2),&
-        difma(5,1,1,2),difma(5,2,1,2),difma(5,3,1,2),difma(5,4,1,2),difma(5,5,1,2),difma(5,6,1,2),difma(5,7,1,2),difma(5,8,1,2),&
-        difma(6,1,1,2),difma(6,2,1,2),difma(6,3,1,2),difma(6,4,1,2),difma(6,5,1,2),difma(6,6,1,2),difma(6,7,1,2),difma(6,8,1,2),&
-        difma(7,1,1,2),difma(7,2,1,2),difma(7,3,1,2),difma(7,4,1,2),difma(7,5,1,2),difma(7,6,1,2),difma(7,7,1,2),difma(7,8,1,2),&
-        difma(8,1,1,2),difma(8,2,1,2),difma(8,3,1,2),difma(8,4,1,2),difma(8,5,1,2),difma(8,6,1,2),difma(8,7,1,2),difma(8,8,1,2)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_xz= ',stat
-          call checkStatus(10,stat,msg)
-        end if
-        
-        read(5,111,iostat=stat,iomsg=msg) &
-        difma(1,1,2,1),difma(1,2,2,1),difma(1,3,2,1),difma(1,4,2,1),difma(1,5,2,1),difma(1,6,2,1),difma(1,7,2,1),difma(1,8,2,1),&
-        difma(2,1,2,1),difma(2,2,2,1),difma(2,3,2,1),difma(2,4,2,1),difma(2,5,2,1),difma(2,6,2,1),difma(2,7,2,1),difma(2,8,2,1),&
-        difma(3,1,2,1),difma(3,2,2,1),difma(3,3,2,1),difma(3,4,2,1),difma(3,5,2,1),difma(3,6,2,1),difma(3,7,2,1),difma(3,8,2,1),&
-        difma(4,1,2,1),difma(4,2,2,1),difma(4,3,2,1),difma(4,4,2,1),difma(4,5,2,1),difma(4,6,2,1),difma(4,7,2,1),difma(4,8,2,1),&
-        difma(5,1,2,1),difma(5,2,2,1),difma(5,3,2,1),difma(5,4,2,1),difma(5,5,2,1),difma(5,6,2,1),difma(5,7,2,1),difma(5,8,2,1),&
-        difma(6,1,2,1),difma(6,2,2,1),difma(6,3,2,1),difma(6,4,2,1),difma(6,5,2,1),difma(6,6,2,1),difma(6,7,2,1),difma(6,8,2,1),&
-        difma(7,1,2,1),difma(7,2,2,1),difma(7,3,2,1),difma(7,4,2,1),difma(7,5,2,1),difma(7,6,2,1),difma(7,7,2,1),difma(7,8,2,1),&
-        difma(8,1,2,1),difma(8,2,2,1),difma(8,3,2,1),difma(8,4,2,1),difma(8,5,2,1),difma(8,6,2,1),difma(8,7,2,1),difma(8,8,2,1)
-        if(stat.ne.0)then
-          print'(A17,I4)','iostat_DIFMA_zx= ',stat
-          call checkStatus(10,stat,msg)
-        endif
-        
-        read(5,111,iostat=stat,iomsg=msg) &
-        difma(1,1,2,2),difma(1,2,2,2),difma(1,3,2,2),difma(1,4,2,2),difma(1,5,2,2),difma(1,6,2,2),difma(1,7,2,2),difma(1,8,2,2),&
-        difma(2,1,2,2),difma(2,2,2,2),difma(2,3,2,2),difma(2,4,2,2),difma(2,5,2,2),difma(2,6,2,2),difma(2,7,2,2),difma(2,8,2,2),&
-        difma(3,1,2,2),difma(3,2,2,2),difma(3,3,2,2),difma(3,4,2,2),difma(3,5,2,2),difma(3,6,2,2),difma(3,7,2,2),difma(3,8,2,2),&
-        difma(4,1,2,2),difma(4,2,2,2),difma(4,3,2,2),difma(4,4,2,2),difma(4,5,2,2),difma(4,6,2,2),difma(4,7,2,2),difma(4,8,2,2),&
-        difma(5,1,2,2),difma(5,2,2,2),difma(5,3,2,2),difma(5,4,2,2),difma(5,5,2,2),difma(5,6,2,2),difma(5,7,2,2),difma(5,8,2,2),&
-        difma(6,1,2,2),difma(6,2,2,2),difma(6,3,2,2),difma(6,4,2,2),difma(6,5,2,2),difma(6,6,2,2),difma(6,7,2,2),difma(6,8,2,2),&
-        difma(7,1,2,2),difma(7,2,2,2),difma(7,3,2,2),difma(7,4,2,2),difma(7,5,2,2),difma(7,6,2,2),difma(7,7,2,2),difma(7,8,2,2),&
-        difma(8,1,2,2),difma(8,2,2,2),difma(8,3,2,2),difma(8,4,2,2),difma(8,5,2,2),difma(8,6,2,2),difma(8,7,2,2),difma(8,8,2,2)
-        if(stat.ne.0)print'(A17,I4)','iostat_DIFMA_zz= ',stat
-        call checkStatus(10,stat,msg)
-        
-        read(5,111,iostat=stat,iomsg=msg) & !reading CONMA for 3DoF
-        conma(1,1,1), conma(1,2,1), conma(1,3,1), conma(1,4,1), conma(1,5,1), conma(1,6,1), conma(1,7,1), conma(1,8,1),&
-        conma(2,1,1), conma(2,2,1), conma(2,3,1), conma(2,4,1), conma(2,3,1), conma(2,2,1), conma(2,3,1), conma(2,2,1),&
-        conma(3,1,1), conma(3,2,1), conma(3,3,1), conma(3,4,1), conma(3,3,1), conma(3,2,1), conma(3,3,1), conma(3,2,1),&
-        conma(4,1,1), conma(4,2,1), conma(4,3,1), conma(4,4,1), conma(4,3,1), conma(4,2,1), conma(4,3,1), conma(4,2,1),&
-        conma(5,1,1), conma(5,2,1), conma(5,3,1), conma(5,4,1), conma(5,3,1), conma(5,2,1), conma(5,3,1), conma(5,2,1),&
-        conma(6,1,1), conma(6,2,1), conma(6,3,1), conma(6,4,1), conma(6,3,1), conma(6,2,1), conma(6,3,1), conma(6,2,1),&
-        conma(7,1,1), conma(7,2,1), conma(7,3,1), conma(7,4,1), conma(7,3,1), conma(7,2,1), conma(7,3,1), conma(7,2,1),&
-        conma(8,1,1), conma(8,2,1), conma(8,3,1), conma(8,4,1), conma(8,3,1), conma(8,2,1), conma(8,3,1), conma(8,2,1)
-        if(stat.ne.0)print'(A14,I3)','iostat_CONMA_x= ',stat
-        call checkStatus(10,stat,msg)
-        
-        read(5,111,iostat=stat,iomsg=msg) & !reading REAMA for 3DoF
-        conma(1,1,2), conma(1,2,2), conma(1,3,2), conma(1,4,2), conma(1,5,2), conma(1,6,2), conma(1,7,2), conma(1,8,2),&
-        conma(2,1,2), conma(2,2,2), conma(2,3,2), conma(2,4,2), conma(2,3,2), conma(2,2,2), conma(2,3,2), conma(2,2,2),&
-        conma(3,1,2), conma(3,2,2), conma(3,3,2), conma(3,4,2), conma(3,3,2), conma(3,2,2), conma(3,3,2), conma(3,2,2),&
-        conma(4,1,2), conma(4,2,2), conma(4,3,2), conma(4,4,2), conma(4,3,2), conma(4,2,2), conma(4,3,2), conma(4,2,2),&
-        conma(5,1,2), conma(5,2,2), conma(5,3,2), conma(5,4,2), conma(5,3,2), conma(5,2,2), conma(5,3,2), conma(5,2,2),&
-        conma(6,1,2), conma(6,2,2), conma(6,3,2), conma(6,4,2), conma(6,3,2), conma(6,2,2), conma(6,3,2), conma(6,2,2),&
-        conma(7,1,2), conma(7,2,2), conma(7,3,2), conma(7,4,2), conma(7,3,2), conma(7,2,2), conma(7,3,2), conma(7,2,2),&
-        conma(8,1,2), conma(8,2,2), conma(8,3,2), conma(8,4,2), conma(8,3,2), conma(8,2,2), conma(8,3,2), conma(8,2,2)
-        if(stat.ne.0)then
-          print'(A14,I3)','iostat_CONMA_z= ',stat
-          call checkStatus(10,stat,msg)
-        endif
-        
-        read(5,111,iostat=stat,iomsg=msg) &
-        reama(1,1),reama(1,2),reama(1,3),reama(1,4),reama(1,5),reama(1,6),reama(1,7),reama(1,8), &
-        reama(2,1),reama(2,2),reama(2,3),reama(2,4),reama(2,5),reama(2,6),reama(2,7),reama(2,8), &
-        reama(3,1),reama(3,2),reama(3,3),reama(3,4),reama(3,5),reama(3,6),reama(3,7),reama(3,8), &
-        reama(4,1),reama(4,2),reama(4,3),reama(4,4),reama(4,5),reama(4,6),reama(4,7),reama(4,8), &
-        reama(5,1),reama(5,2),reama(5,3),reama(5,4),reama(5,5),reama(5,6),reama(5,7),reama(5,8), &
-        reama(6,1),reama(6,2),reama(6,3),reama(6,4),reama(6,5),reama(6,6),reama(6,7),reama(6,8), &
-        reama(7,1),reama(7,2),reama(7,3),reama(7,4),reama(7,5),reama(7,6),reama(7,7),reama(7,8), &
-        reama(8,1),reama(8,2),reama(8,3),reama(8,4),reama(8,5),reama(8,6),reama(8,7),reama(8,8)
-        if(stat.ne.0)then
-          print'(A14,I3)','iostat_REAMA= ',stat
-          call checkStatus(10,stat,msg)
-        endif
-        
-        read(5,112,iostat=stat,iomsg=msg) &
-        force(1), force(2), force(3), force(4), force(5), force(6), force(7), force(8)
-        if(stat.ne.0)then
-          print'(A14,I3)','iostat_force= ',stat
-          call checkStatus(10,stat,msg)
-        end if
-        
-      end if
       
       if(ndofn.eq.1)then
         read(5,105,iostat=stat,iomsg=msg) Icurr(1)
@@ -406,7 +259,10 @@ module param
       delta_t = (time_fin/ t_steps)
       print*,signal
       print*,initCond
-
+      
+      
+      
+      
       ! delta_t = (time_fin - time_ini)/t_steps
       
       !print*, 'delta_t', delta_t
@@ -443,12 +299,20 @@ module param
       
       !Initial elemental and global variables, it will changes if refination is selected.
       
-      100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,                    3/,&  !model parameters
-      &          11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,                 2/,&  !geometry
+      !100 format(7/ ,11x, A4,/, 7(11x,I5,/), 11x,F15.7,/, 11x,A4,/,                    3/,&  !model parameters
+      !&          11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,                 2/,&  !geometry
+      !&          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),                          2/,&  !stabi
+      !&          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/, 2(/,11x,A,/), 2/,&  !Fourier Transform
+      !&          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                                2/,&  !time
+      !&
+      !
+      !
+      100 format(7/ ,11x, A4,/, 5(11x,I5,/), 11x,F15.7,/,  3/)                             !model parameters
+      98 format(6/,11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,             2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),                          2/,&  !stabi
       &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/, 2(/,11x,A,/), 2/,&  !Fourier Transform
       &          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                                2/,&  !time
-      &          11x,A,/, 5(11x,A,/),1/ )                                                    !output files
+      &          11x,A,/, 5(11x,A,/),                                                  1/ )  !output files
      
       !**Format for 1Dof tensors
       101 format(1/,F12.5,7/)
