@@ -3,7 +3,7 @@ FC = ifort
 # FC = ifx
 SRCDIR = SRC
 OBJDIR = OBJ
-OBJS = $(addprefix $(OBJDIR)/, mod_param.o mod_geometry.o mod_inputInfo.o mod_biunit.o mod_BVs.o mod_source.o mod_library.o mod_exacSol.o mod_timeInt.o)
+OBJS = $(addprefix $(OBJDIR)/, mod_param.o mod_tensors.o mod_geometry.o mod_inputInfo.o mod_biunit.o mod_BVs.o mod_source.o mod_library.o mod_exacSol.o mod_timeInt.o)
 
 
 #	Para eliminar mensaje para actualizar compilador de ifort a ifx
