@@ -1,5 +1,6 @@
 module sourceTerm
  use param 
+ use tensor_inputs 
  use geometry
  !use library, only: WaveNumbers pasar wavenumber a mod_param pues se usa en varios lados
  ! use library, only: WaveNumbers
@@ -161,13 +162,14 @@ module sourceTerm
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine currDensity(Jsource,time,eTime)
+    subroutine currDensity(i_WaveNum, Jsource,time,eTime)
       
       implicit none
       
       double precision, parameter   :: pi = 4*atan(1.d0)
       double precision, intent(in), optional :: eTime
       integer         , intent(in), optional :: time
+      integer         , intent(in)           :: i_WaveNum
       integer                       :: tw, inode, ii
       double precision              :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S, mu
       
@@ -194,8 +196,7 @@ module sourceTerm
       if(present(eTime).and.present(time))then
           do inode=1,nodalSrc 
             !# # # # # # source: Time derivative of Density Current
-            if(time.eq.1.and.inode.eq.1)then
-              print*,time
+            if(time.eq.1.and.inode.eq.1.and.(i_WaveNum==0).and.(i_WaveNum==1))then
               print*,'J type source'
             endif
             Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
