@@ -1,5 +1,6 @@
 module inputInfo
   use param
+  use tensor_inputs 
   use geometry
 
   contains
@@ -10,12 +11,13 @@ module inputInfo
       external :: fdate
       
       character(len=*), parameter :: fileplace = "Info/"
+      character(len=:), allocatable, intent(in)     :: geometry_File
       character(len=19)           :: name_inputFile
       character(len=5)            :: file_name 
       character(len=24)           :: date
       character(len=4)            :: aaaa, cccc
       character(len=9)            :: Prob_Type
-      character(len=12)           :: bbbb, geometry_File
+      character(len=12)           :: bbbb
       character(len=16)           :: dddd, OrderElemType
       !double precision            :: delta_t
       integer :: i,j, k, l
@@ -61,7 +63,7 @@ module inputInfo
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
       write(*,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(*,"(A30,2x,a13  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(*,"(A30,2x,A  ,3X,A1 )")   ' - Mesh File                : ', geometry_File,''
       write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
