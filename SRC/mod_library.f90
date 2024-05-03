@@ -2159,49 +2159,52 @@ module library
       open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
       write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
       if(ProbType=='TIME')then
-        if(TwoHalf .eq. 'Y')then
-          !Caso transitorio y 2.5D solo para un receptor
-          write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
-          write(300,"(A18,6(A13,A5))") '%No            ky ',' ','ex_Re',' ','ey_Re',' ','ez_Re',&
-          &                                                 ' ','ex_Im',' ','ey_Im',' ','ez_Im'
-          ky_loop_time: do ll = 1,tot_ky
-            ky = WaveNumbers(ll)
-            ex_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-7) !(ndofn-1) = 3-1=2
-            ey_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-6) !(ndofn-1) = 3-1=2
-            ez_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-5) !(ndofn-1) = 3-1=2
-            ex_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-3) !(ndofn-1) = 3-1=2
-            ey_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-2) !(ndofn-1) = 3-1=2
-            ez_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-1) !(ndofn-1) = 3-1=2
-            write(300,904) ll, ky, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
-          end do ky_loop_time
-        else 
-          !problema transitorio pero no 2.5D entonces...
-          write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
-          write(300,"(A)") '%No            ky               e-field'
-          ky_loop_static: do ll = 1,tot_ky
-            ky = WaveNumbers(ll)
-            ! Ex_hat = (ndofn-1) = 3-1=2
-            ! Ey_hat = (ndofn-2) = 3-2=1
-            ! Ez_hat = (ndofn-3) = 3-3=0
-            ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
-            write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
-              &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
-              &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
-            !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
-          end do ky_loop_static
-        endif
-      else
-        !This is for a static and scalar problem
-        if(ProbType=='STAT')t_steps=3 
+        ! if(TwoHalf .eq. 'Y')then
+        !Caso transitorio y 2.5D solo para un receptor
+        write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
+        write(300,"(A18,6(A13,A5))") '%No            ky ',' ','ex_Re',' ','ey_Re',' ','ez_Re',&
+        &                                                 ' ','ex_Im',' ','ey_Im',' ','ez_Im'
+        ky_loop_time: do ll = 1,tot_ky
+          ky = WaveNumbers(ll)
+          ex_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-7) !(ndofn-1) = 3-1=2
+          ey_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-6) !(ndofn-1) = 3-1=2
+          ez_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-5) !(ndofn-1) = 3-1=2
+          ex_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-3) !(ndofn-1) = 3-1=2
+          ey_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-2) !(ndofn-1) = 3-1=2
+          ez_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-1) !(ndofn-1) = 3-1=2
+          
+          write(300,904) ll, ky, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
+        end do ky_loop_time
+        
+        !! else 
+        !  !problema transitorio pero no 2.5D entonces...
+        !  write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
+        !  write(300,"(A)") '%No            ky               e-field'
+        !  ky_loop_static: do ll = 1,tot_ky
+        !    ky = WaveNumbers(ll)
+        !    ! Ex_hat = (ndofn-1) = 3-1=2
+        !    ! Ey_hat = (ndofn-2) = 3-2=1
+        !    ! Ez_hat = (ndofn-3) = 3-3=0
+        !    ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
+        !    write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
+        !      &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
+        !      &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
+        !    !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
+        !  end do ky_loop_static
+        !! endif
+        !
+      elseif(ProbType=='STAT')then
+        t_steps=1 !porque en el caso de resistividad es solo 1 tiempo, el tiempo 0
+        !This is for a static and scalar problem (resistivity in 2.5D)
         write(300,"(A)") '% No           ky                    Êx'
         write(300,"(A12, I0)") '%Receivers: ', nodalRec
         write(300,903) (coord(1,receivers(jj)), jj=1,nodalRec) 
         ky_loop2: do ll = 1,tot_ky
           ky = WaveNumbers(ll)
-          write(300,906) ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)), jj=1,nodalRec)
-          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
+          write(300,906) ky, (E_hat_ky(ll,t_steps,ndofn*receivers(jj)), jj=1,nodalRec)
         end do ky_loop2
-        if(ProbType=='STAT')t_steps=0
+        t_steps=0 !Este if es para que las siguientes lineas en caso statico sigan funcionando
+        
       endif
       close(300)
      
@@ -2255,7 +2258,7 @@ module library
       E_3D = 0.0
       i_WaveNum = 0
       if(ProbType == 'TIME')then
-        !Este N es para que en la rutina GID_PostProcess, se deje de concatenar el nombre del archivo con ky_id y Se
+        !Este N es para que en la siguiente llamada a la rutina GID_PostProcess, se deje de concatenar el nombre del archivo con ky_id y Se
         !escriba un nuevo archivo tras la transformada inversa, este nombre de archivo se designa en el input file. 
         File_Nodal_Vals = File_3DNodal_Vals
         TwoHalf = 'N'           
