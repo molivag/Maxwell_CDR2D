@@ -1,5 +1,6 @@
 module library
   use param
+  use tensor_inputs 
   use geometry
   use biunit
 
@@ -55,7 +56,7 @@ module library
       
       implicit none
       
-      character(len=*), parameter                      :: path2 = "Pos/Plots/"
+      character(len=*), parameter                      :: path2 = "Res/Plots/Spatial"
       double precision, dimension(ntotv,1), intent(in) :: solution(:,:) 
       double precision, dimension(1, ntotv)            :: Sol_T
       double precision, allocatable, dimension(:,:)    :: x_profile, temp
@@ -80,6 +81,7 @@ module library
       xpoin = 0 
       !comienza el llenado de la matriz recien formada guardando numero de nodo y su coordenada
       do ipoin = 1,nnodes
+      !Aqui tendria que ir un (xcor(1,ipon)>=UNA_VARIABLE_QUE_RECOJA_DE_DONDE_A_DONDE_QUIERO_EL_PERFIL)then
         if((ycor(1,ipoin).eq.0) .and. (xcor(1,ipoin)>=0))then
           xpoin = xpoin+1 !Contador que va recorriendo las filas para x_profile
           x_profile(1,xpoin) = real(ipoin)
@@ -534,14 +536,14 @@ module library
       
       implicit none
       
-      double precision, intent(in) :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
-      double precision, intent(in) :: dvol, hmaxi
-      integer :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
-      double precision ::  diff, convec, reac, cpcty, coef
+      double precision, intent(in)     :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
+      double precision, intent(in)     :: dvol, hmaxi
+      double precision                 :: diff, convec, reac, cpcty, coef
+      integer                          :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
       
       ievab=0
-      do inode=1,nne
+      nodes: do inode=1,nne
         reac = 0.0
         do idofn=1,ndofn
           ievab=ievab+1
@@ -554,7 +556,7 @@ module library
                 z_difma_loop: do j=1,2   
                   !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
                   !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-                  call param_stab(idofn, jdofn, i, j, hmaxi, coef) !conductivity tensor
+                  call param_stab('Diff', idofn, jdofn, i, j, hmaxi, coef)
                   ! print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
                   diff = diff + dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
                   !print"(A8, e12.5)",'diff ', diff
@@ -565,12 +567,14 @@ module library
               convec=0.0
               conma_loop: do i=1,2
                 !print*,conma(idofn,jdofn,i)
+                call param_stab('Conv', idofn, jdofn, i, j, hmaxi, coef)
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do conma_loop
               
               !LO IDEAL ES QUE NO SE EVALUE EL MISMO IF EN CADA GRADO DE LIBERATD SINO QUE SE
               !HAGAN VARIOS GALERKIN PARA EVITAR LA MAYOR CANTIDAD DE EVALUACIONES IF POSIBLES
-              if(TwoHalf =='Y')then
+              
+              twoHalfProblem:if(TwoHalf =='Y')then
                 ! print*,'!if it is dealing with a 2.5D Problem'
                 if(oper == 'LAPL')then
                   ! print*,'Entra a Laplacian'
@@ -578,28 +582,32 @@ module library
                   ! print*,sigma
                   reac = basis(inode) * k_y**2 *sigma* reama(idofn,jdofn) * basis(jnode)
                 elseif(oper == 'MAXW')then
+                  call param_stab('Reac', idofn, jdofn, i, j, hmaxi, coef)
                   reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
                 endif
               else
                 ! print*,'!if it is NOT dealing with a 2.5D Problem'
                 reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
-              endif
+              endif twoHalfProblem
+              
               cpcty = sigma * (basis(inode) * basis(jnode) )
               
+              !elemental (local) Mass (conductivity) and Stiffnes (diffusivity) matrix
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
             end do
           end do
+          ! elemental (local) rhs vector
           Fe(ievab) = Fe(ievab) + basis(inode) * EMsource(idofn) * dvol
           !Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
-      end do
+      end do nodes
       
     end subroutine Galerkin
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine param_stab(idofn, jdofn, i, j, elem_size_h, coeff)       
+    subroutine param_stab(matrix, idofn, jdofn, i, j, elem_size_h, coeff)       
       !***********************************************************!
       !                                                           !
       ! Subroutine which check the dofn, x and y position in the  !
@@ -617,101 +625,362 @@ module library
       
       implicit none
       
-      integer, intent(in) :: idofn, jdofn, i, j
-      double precision, intent(in) :: elem_size_h
-      double precision, intent(out) :: coeff
+      integer         , intent(in)           :: idofn, jdofn, i, j
+      character(len=4), intent(in)           :: matrix
+      double precision, intent(in)           :: elem_size_h
+      double precision                       :: alfa, beta, gama, iota, psi, chi
+      double precision, intent(out)          :: coeff
       
       
       !print*, 'getting into param_stab'
+      coeff= 0.0 
+      alfa = (ell**2 / lambda)
+      beta = Cu*lambda*(elem_size_h**2/ell**2)
+      gama = k_y*(lambda + beta)
+      iota = lambda * k_y**2
+      psi  = beta * k_y**2 
+      chi  = alfa * k_y**2
+     
+      select case(oper)
+        case('LAPL')
+          if((idofn == jdofn).and.(i == j))then
+              ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+              ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+              !Aqui tengo que poner un identificador o LGO QUE dependiendo
+              !el problema, ponga una propiedad fisica u otra
+              if(kstab == 0 .and. oper=='LAPL')then
+                !if((kstab == 3 .or.kstab==0) .and. oper=='LAPL')then  **Este if es mas general**
+                !print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
+                coeff = sigma
+              elseif(kstab == 3 .and. oper=='LAPL')then
+                coeff = lambda
+              else
+                print*, 'No diferential opperator defined for param_stab in LIBRARY module'
+              endif
+             
+          end if
+        
+        case('MAXW')
+          if(TwoHalf.eq.'N')then
+            if(matrix == 'Diff')then
+              if(kstab.eq.6)then !coefficients for MVAF 
+                ! print*,'!coefficients for MVAF'
+                !print*,'stabi',kstab
+                if(idofn.eq.1)then
+                  if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
+                    if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+                      coeff = Cu*lambda*(elem_size_h**2/ell**2)
+                      !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+                      !print'(A2,e12.5)','Su', coeff
+                    end if
+                   
+                    if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+                      coeff = lambda
+                      !print'(A2,e12.5)','λ ', coeff
+                    endif
+                    
+                  elseif(jdofn==2)then                           !difma(1,2,1,2)
+                    if(i==1 .and. j==2)then
+                      coeff = Cu*lambda*(elem_size_h**2/ell**2)
+                      !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+                      !print'(A2,e12.5)','Su', coeff
+                    end if
+                    
+                    if(i==2.and.j==1)then                        !difma(1,2,2,1)
+                      coeff = lambda
+                      !print'(A3,e12.5)','λ ', coeff
+                    end if
+                  end if
+                  
+                elseif(idofn==2)then
+                  if(jdofn.eq.1)then
+                    if(i==1 .and. j==2)then                      !difma(2,1,1,2)
+                      coeff = lambda
+                      !print'(A3,e12.5)', 'λ ', coeff
+                    end if
+                    
+                    if(i==2 .and. j==1)then                      !difma(2,1,2,1)
+                      coeff = Cu*lambda*(elem_size_h**2/ell**2)
+                      !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+                      !print'(A2,e12.5)','Su', coeff
+                    endif
+                   
+                  elseif(jdofn==2)then
+                    if(i==1 .and. j==1)then
+                      coeff = lambda
+                      !print'(A3,e12.5)','λ ', coeff
+                    end if
+                    
+                    if(i==2.and.j==2)then                        !difma(2,2,2,2)
+                      coeff = Cu*lambda*(elem_size_h**2/ell**2)
+                      !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+                      !print'(A2,e12.5)','Su', coeff
+                    end if
+                  end if
+                  
+                elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
+                  if( i==j )then
+                    coeff = ell**2/lambda
+                      !print'(A2,e12.5)','Sp', coeff
+                  endif
+                  
+                else
+                  continue
+                end if
+                !close(10)
+              endif
+            endif
+           
+          elseif(TwoHalf.eq.'Y')then
+            ! print*,'!INICIO  coefieicnete DIFMA caso 2.5D parte Real e Imaginario'
+            select case(matrix)
+              case('Diff')
+                
+                DIFMA:if(idofn.eq.1 .and. jdofn.eq.1)then
+                  !en la diagonal principal de difma xx y zz
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(1,1,1,1)
+                    coeff = beta
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(1,1,2,2)
+                    coeff = lambda
+                  endif
+                elseif( (idofn.eq.2) .and. (jdofn.eq.2) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(2,2,1,1)
+                    coeff = lambda
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(2,2,2,2)
+                    coeff = lambda
+                  endif
+                elseif( (idofn.eq.3) .and. (jdofn.eq.3) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(3,3,1,1)
+                    coeff = lambda
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(3,3,2,2)
+                    coeff = beta
+                  endif
+                elseif( (idofn.eq.4) .and. (jdofn.eq.4) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(4,4,1,1)
+                    coeff = alfa
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(4,4,2,2)
+                    coeff = alfa
+                  endif
+                elseif( (idofn.eq.5) .and. (jdofn.eq.5) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(5,5,1,1)
+                    coeff = beta
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(5,5,2,2)
+                    coeff = lambda
+                  endif
+                elseif( (idofn.eq.6) .and. (jdofn.eq.6) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(6,6,1,1)
+                    coeff = lambda
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(6,6,2,2)
+                    coeff = lambda
+                  endif
+                elseif( (idofn.eq.7) .and. (jdofn.eq.7) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(7,7,1,1)
+                    coeff = lambda
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(7,7,2,2)
+                    coeff = beta
+                  endif
+                elseif( (idofn.eq.8) .and. (jdofn.eq.8) )then
+                  if( (i.eq.1).and.(j.eq.1) )then                   !difma(8,8,1,1)
+                    coeff = alfa
+                  elseif( (i.eq.2).and.(j.eq.2) )then               !difma(8,8,2,2)
+                    coeff = alfa
+                  endif
+                !Grados de libertad en kxz y kzx externos a la diagonal principal 
+                elseif( (idofn.eq.1) .and. (jdofn.eq.3) ) then
+                  if( (i.eq.1).and.(j.eq.2) )then                   !difma(1,3,1,2)
+                    coeff = beta 
+                  elseif( (i.eq.2).and.(j.eq.1) )then               !difma(1,3,2,1)
+                    coeff = lambda
+                  endif
+                elseif( (idofn.eq.3) .and. (jdofn.eq.1) ) then      
+                  if( (i.eq.1).and.(j.eq.2) )then                   !difma(3,1,1,2)
+                    coeff = lambda
+                  elseif( (i.eq.2).and.(j.eq.1) )then               !difma(3,1,2,1)
+                    coeff = beta
+                  endif
+                elseif( (idofn.eq.5) .and. (jdofn.eq.7) ) then      
+                  if( (i.eq.1).and.(j.eq.2) )then                   !difma(5,7,1,2)
+                    coeff =  beta
+                  elseif( (i.eq.2).and.(j.eq.1) )then               !difma(5,7,2,1)
+                    coeff = lambda
+                  endif
+                elseif( (idofn.eq.7) .and. (jdofn.eq.5) ) then      
+                  if( (i.eq.1).and.(j.eq.2) )then                   !difma(7,5,1,2)
+                    coeff = lambda
+                  elseif( (i.eq.2).and.(j.eq.1) )then               !difma(7,5,2,1)
+                    coeff = beta 
+                  endif
+                endif DIFMA
+                
+              case('Conv')
+                
+                !x-direction (A1)
+                Ax:if((idofn.eq.1) .and. (jdofn.eq.6))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta) !gamma
+                  endif
+                elseif((idofn.eq.2) .and. (jdofn.eq.5))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta)
+                  endif
+                elseif((idofn.eq.5) .and. (jdofn.eq.2))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta)
+                  endif
+                elseif((idofn.eq.6) .and. (jdofn.eq.1))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta)
+                  endif
+                end if Ax
+                
+                !z-direction (A1)
+                Az:if(idofn.eq.2 .and. (jdofn.eq.7))then
+                  if(i==1)then 
+                    coeff = k_y*(lambda + beta)
+                  endif
+                elseif((idofn.eq.3) .and. (jdofn.eq.6))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta)
+                  endif
+                elseif((idofn.eq.6) .and. (jdofn.eq.3))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta)
+                  endif
+                elseif((idofn.eq.7) .and. (jdofn.eq.2))then
+                  if(i==1)then
+                    coeff = k_y*(lambda + beta)
+                  endif
+                end if Az
+                
+              case('Reac')
+                
+                if((idofn==1).and.(jdofn==1))then
+                  coeff = lambda * k_y**2 !iota
+                elseif((idofn==2).and.(jdofn==2))then
+                  coeff = beta * k_y**2 !psi
+                elseif((idofn==2).and.(jdofn==8))then
+                  coeff = k_y
+                elseif((idofn==3).and.(jdofn==3))then
+                  coeff = lambda * k_y**2 !iota
+                elseif((idofn==4).and.(jdofn==4))then
+                  coeff = (ell**2 / lambda) * k_y**2 !chi 
+                elseif((idofn==4).and.(jdofn==6))then
+                  coeff = k_y
+                elseif((idofn==5).and.(jdofn==5))then
+                  coeff = lambda * k_y**2 !iota
+                elseif((idofn==6).and.(jdofn==4))then
+                  coeff = k_y
+                elseif((idofn==6).and.(jdofn==6))then
+                  coeff = beta * k_y**2 !psi
+                elseif((idofn==7).and.(jdofn==7))then
+                  coeff = lambda * k_y**2 !iota
+                elseif((idofn==8).and.(jdofn==2))then
+                  coeff = k_y
+                elseif((idofn==8).and.(jdofn==8))then
+                  coeff = (ell**2 / lambda) * k_y**2 !chi 
+                endif
+                
+              case('DEFAULT')
+            end select
+          else
+            write(*,'(A)') 'in param_stab no coefficient defined, program being stopped'
+            stop
+          endif 
+          
+        case DEFAULT
+          print*, 'Case default in param_stab, program have been stopped'
+          stop
+      end select
       
-      coeff = 0.0 
+      
+      
       !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
       !print'(A9,F10.5)', 'elem_size_h^2: ', elem_size_h**2
-      if(kstab.eq.6)then !coefficients for MVAF 
-        ! print*,'!coefficients for MVAF'
-        !print*,'stabi',kstab
-        if(idofn.eq.1)then
-          if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
-            if(i==1 .and. j==1)then                      !difma(1,1,1,1)
-              coeff = Cu*lambda*(elem_size_h**2/ell**2)
-              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-              !print'(A2,e12.5)','Su', coeff
-            end if
+      !if(kstab.eq.6)then !coefficients for MVAF 
+      !  ! print*,'!coefficients for MVAF'
+      !  !print*,'stabi',kstab
+      !  if(idofn.eq.1)then
+      !    if(jdofn.eq.1)then                      !difma(idofn,jdofn,i,j)
+      !      if(i==1 .and. j==1)then                      !difma(1,1,1,1)
+      !        coeff = Cu*lambda*(elem_size_h**2/ell**2)
+      !        !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+      !        !print'(A2,e12.5)','Su', coeff
+      !      end if
            
-            if(i==2 .and. j==2)then                      !difma(1,1,2,2)
-              coeff = lambda
-              !print'(A2,e12.5)','λ ', coeff
-            endif
+      !      if(i==2 .and. j==2)then                      !difma(1,1,2,2)
+      !        coeff = lambda
+      !        !print'(A2,e12.5)','λ ', coeff
+      !      endif
             
-          elseif(jdofn==2)then                           !difma(1,2,1,2)
-            if(i==1 .and. j==2)then
-              coeff = Cu*lambda*(elem_size_h**2/ell**2)
-              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-              !print'(A2,e12.5)','Su', coeff
-            end if
+      !    elseif(jdofn==2)then                           !difma(1,2,1,2)
+      !      if(i==1 .and. j==2)then
+      !        coeff = Cu*lambda*(elem_size_h**2/ell**2)
+      !        !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+      !        !print'(A2,e12.5)','Su', coeff
+      !      end if
             
-            if(i==2.and.j==1)then                        !difma(1,2,2,1)
-              coeff = lambda
-              !print'(A3,e12.5)','λ ', coeff
-            end if
-          end if
+      !      if(i==2.and.j==1)then                        !difma(1,2,2,1)
+      !        coeff = lambda
+      !        !print'(A3,e12.5)','λ ', coeff
+      !      end if
+      !    end if
           
-        elseif(idofn==2)then
-          if(jdofn.eq.1)then
-            if(i==1 .and. j==2)then                      !difma(2,1,1,2)
-              coeff = lambda
-              !print'(A3,e12.5)', 'λ ', coeff
-            end if
+      !  elseif(idofn==2)then
+      !    if(jdofn.eq.1)then
+      !      if(i==1 .and. j==2)then                      !difma(2,1,1,2)
+      !        coeff = lambda
+      !        !print'(A3,e12.5)', 'λ ', coeff
+      !      end if
             
-            if(i==2 .and. j==1)then                      !difma(2,1,2,1)
-              coeff = Cu*lambda*(elem_size_h**2/ell**2)
-              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-              !print'(A2,e12.5)','Su', coeff
-            endif
+      !      if(i==2 .and. j==1)then                      !difma(2,1,2,1)
+      !        coeff = Cu*lambda*(elem_size_h**2/ell**2)
+      !        !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+      !        !print'(A2,e12.5)','Su', coeff
+      !      endif
            
-          elseif(jdofn==2)then
-            if(i==1 .and. j==1)then
-              coeff = lambda
-              !print'(A3,e12.5)','λ ', coeff
-            end if
+      !    elseif(jdofn==2)then
+      !      if(i==1 .and. j==1)then
+      !        coeff = lambda
+      !        !print'(A3,e12.5)','λ ', coeff
+      !      end if
             
-            if(i==2.and.j==2)then                        !difma(2,2,2,2)
-              coeff = Cu*lambda*(elem_size_h**2/ell**2)
-              !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
-              !print'(A2,e12.5)','Su', coeff
-            end if
-          end if
+      !      if(i==2.and.j==2)then                        !difma(2,2,2,2)
+      !        coeff = Cu*lambda*(elem_size_h**2/ell**2)
+      !        !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
+      !        !print'(A2,e12.5)','Su', coeff
+      !      end if
+      !    end if
           
-        elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
-          if( i==j )then
-            coeff = ell**2/lambda
-              !print'(A2,e12.5)','Sp', coeff
-          endif
+      !  elseif(idofn==3 .and. jdofn==3)then              !difma(3,3,1,1) or difma(3,3,2,2)
+      !    if( i==j )then
+      !      coeff = ell**2/lambda
+      !        !print'(A2,e12.5)','Sp', coeff
+      !    endif
           
-        else
-          continue
-        end if
-        !close(10)
-      else
-        if((idofn == jdofn).and.(i == j))then
-            ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
-            ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-            !Aqui tengo que poner un identificador o LGO QUE dependiendo
-            !el problema, ponga una propiedad fisica u otra
-            if(kstab == 0 .and. oper=='LAPL')then
-              !if((kstab == 3 .or.kstab==0) .and. oper=='LAPL')then  **Este if es mas general**
-              !print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
-              coeff = sigma
-            elseif(kstab == 3 .and. oper=='LAPL')then
-              coeff = sigma
-            elseIF(kstab == 0 .and. oper=='MAXW')then
-              coeff = lambda
-            else
-              print*, 'No diferential opperator defined for param_stab in LIBRARY module'
-            endif
+      !  else
+      !    continue
+      !  end if
+      !  !close(10)
+      !else
+      !  if((idofn == jdofn).and.(i == j))then
+      !      ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+      !      ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+      !      !Aqui tengo que poner un identificador o LGO QUE dependiendo
+      !      !el problema, ponga una propiedad fisica u otra
+      !      if(kstab == 0 .and. oper=='LAPL')then
+      !        !if((kstab == 3 .or.kstab==0) .and. oper=='LAPL')then  **Este if es mas general**
+      !        !print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
+      !        coeff = sigma
+      !      elseif(kstab == 3 .and. oper=='LAPL')then
+      !        coeff = sigma
+      !      elseIF(kstab == 0 .and. oper=='MAXW')then
+      !        coeff = lambda
+      !      else
+      !        print*, 'No diferential opperator defined for param_stab in LIBRARY module'
+      !      endif
            
-        end if
-      end if
+      !  end if
+      !end if
       
     end subroutine param_stab
     !
@@ -787,7 +1056,7 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            call param_stab(jdofn, idofn, k, l, hmaxi, cte1) 
+            call param_stab('Diff',jdofn, idofn, k, l, hmaxi, cte1) 
             prod2=prod2+cte1*difma(jdofn,idofn,k,l)*workm(k,l)
             !prod2=prod2+difma(jdofn,idofn,k,l)*workm(k,l)
           end do
@@ -804,7 +1073,7 @@ module library
         prod2=0.0
         do k=1,2
           do l=1,2
-            call param_stab(idofn, jdofn, k, l, hmaxi, cte2) 
+            call param_stab('Diff',idofn, jdofn, k, l, hmaxi, cte2) 
             prod2=prod2+cte2*difma(idofn,jdofn,k,l)*workm(k,l)
             !prod2=prod2+difma(idofn,jdofn,k,l)*workm(k,l)
           end do
@@ -862,19 +1131,19 @@ module library
         do j=1,ndofn
           chadi(i,j)=0.0
           do k=1,ndofn
-            call param_stab(i, k, 1, 1, hmaxi, cte1)
-            call param_stab(k, j, 1, 1, hmaxi, cte2)
-            call param_stab(i, k, 1, 2, hmaxi, cte3)
-            call param_stab(k, j, 1, 2, hmaxi, cte4)
-            call param_stab(i, k, 2, 1, hmaxi, cte5)
-            call param_stab(k, j, 2, 1, hmaxi, cte6)
+            call param_stab('Diff', i, k, 1, 1, hmaxi, cte1)
+            call param_stab('Diff', k, j, 1, 1, hmaxi, cte2)
+            call param_stab('Diff', i, k, 1, 2, hmaxi, cte3)
+            call param_stab('Diff', k, j, 1, 2, hmaxi, cte4)
+            call param_stab('Diff', i, k, 2, 1, hmaxi, cte5)
+            call param_stab('Diff', k, j, 2, 1, hmaxi, cte6)
             
-            call param_stab(i, k, 2, 2, hmaxi, cte7)
-            call param_stab(k, j, 2, 2, hmaxi, cte8)
+            call param_stab('Diff', i, k, 2, 2, hmaxi, cte7)
+            call param_stab('Diff', k, j, 2, 2, hmaxi, cte8)
             
             chadi(i,j) = chadi(i,j) + cte1*difma(i,k,1,1) * cte2*difma(k,j,1,1) + &
               &cte3*difma(i,k,1,2)*cte4*difma(k,j,1,2)*2.0 + &
-              &cte5*difma(i,k,2,1)*cte5*difma(k,j,2,1)*2.0 + &
+              &cte5*difma(i,k,2,1)*cte6*difma(k,j,2,1)*2.0 + &
               &cte7*difma(i,k,2,2)*cte8*difma(k,j,2,2)
           end do
         end do
@@ -943,7 +1212,7 @@ module library
         tauma(ndofn,ndofn) = 0.0
        
       else if(ktaum.eq.3) then
-        call param_stab(1,1,1,1, hmaxi, cte)
+        call param_stab('Diff', 1,1,1,1, hmaxi, cte)
         a = 1.0/(patau*cte*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         !a = 1.0/(patau*difma(1,1,1,1) /(hmaxi*hmaxi) + reama(1,1))
         tauma(1,1) = a
@@ -997,7 +1266,7 @@ module library
             prod3=0.0
             do k=1,2
               do l=1,2
-                call param_stab(jdofn, idofn, k, l, hmaxi, cte) 
+                call param_stab('Diff',jdofn, idofn, k, l, hmaxi, cte) 
                 prod3 = prod3 + cte*difma(jdofn,idofn,k,l)*workm(k,l)
                 !prod3 = prod3 + difma(jdofn,idofn,k,l)*workm(k,l)
               end do
@@ -1216,7 +1485,9 @@ module library
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
         
       end do elements
+      !Por que hago el dealocate? no me acuerdo,REVISAR
       deallocate(mesh_conductivity)
+
       !aaa = maxval(coord(1,:))*2**(-i_exp) 
       !if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
       
@@ -1747,7 +2018,7 @@ module library
       
       implicit none
       
-      character(len=*), parameter  :: path1 = "Pos/Plots/Spectrums/"
+      character(len=*), parameter  :: path1 = "Res/Plots/Spectrums/"
       character(len=8)                                :: id_file
       ! double precision, dimension(ntotv, 1),intent(in) :: u_pre
       double precision, dimension(ntotv, 1),intent(in) :: spectrum
@@ -1794,19 +2065,19 @@ module library
       implicit none
       
       external                                        :: fdate 
-      character(len=*), parameter                     :: path1 = "Pos/Plots/Spectrums/"
-      character(len=*), parameter                     :: path2 = "Pos/Plots/"
+      character(len=*), parameter                     :: path1 = "Res/Plots/Spectrums/"
+      character(len=*), parameter                     :: path2 = "Res/Plots/"
       double precision, parameter                     :: pi = 4*atan(1.d0)
       !Hacer una rutina que contenga los casos posibles de cantidad de numeros de onda a emplear
       !Que sean 10, 15, 20 
       character(len=8)                                :: id_file
       character(len=24)                               :: date
       character(len=180)                              :: msg
-      double precision                                :: ky, delta_ky, dt, dky
+      double precision                                :: ky, delta_ky, dt, dky, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
       double precision, allocatable, dimension(:,:)   :: E_xyzt
       double precision, dimension(t_steps+1)          :: dummy
       double precision, allocatable, dimension(:,:,:) :: E_hat_ky
-      integer                                         :: nt,ii,jj,kk,ll,stat,iwn,totv,idDoF
+      integer                                         :: nt,ii,jj,kk,ll,stat,iwn,totv,idDoF, time_analized, i_WaveNum
       double precision, allocatable, dimension(:,:), intent(out)  :: E_3D
       
       ! Declara la función sleep de C
@@ -1817,7 +2088,9 @@ module library
         end subroutine usleep
       end interface
       print*, ' ' 
-      print'(A)', " !=============== Performing the Inverse Fourier Transform =============! "
+      print*, ' ' 
+      print*, ' ' 
+      print'(A)', " !=============== Performing the Inverse Fourier Transform ================! "
       ! Pausa durante 1 segundo (1,000,000 microsegundos)
       call usleep(1000000)
       
@@ -1878,21 +2151,45 @@ module library
       !end do
      
       call fdate(date) 
+      
+      !For the spectrum profile, we define a spatial point (a single receiver location) and a specific time an then it
+      ! plot all the wavenumbers
+      time_analized = t_steps-2
+      
       open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
       write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
       if(ProbType=='TIME')then
-        write(300,"(A13, I0)") '%At the time ', t_steps-2 
-        ky_loop1: do ll = 1,tot_ky
-          ky = WaveNumbers(ll)
-          ! Ex_hat = (ndofn-1) = 3-1=2
-          ! Ey_hat = (ndofn-2) = 3-2=1
-          ! Ez_hat = (ndofn-3) = 3-3=0
-          ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
-          write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
-            &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
-            &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
-          !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
-        end do ky_loop1
+        if(TwoHalf .eq. 'Y')then
+          !Caso transitorio y 2.5D solo para un receptor
+          write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
+          write(300,"(A18,6(A13,A5))") '%No            ky ',' ','ex_Re',' ','ey_Re',' ','ez_Re',&
+          &                                                 ' ','ex_Im',' ','ey_Im',' ','ez_Im'
+          ky_loop_time: do ll = 1,tot_ky
+            ky = WaveNumbers(ll)
+            ex_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-7) !(ndofn-1) = 3-1=2
+            ey_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-6) !(ndofn-1) = 3-1=2
+            ez_Re = E_hat_ky(ll,time_analized,ndofn*receivers(1)-5) !(ndofn-1) = 3-1=2
+            ex_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-3) !(ndofn-1) = 3-1=2
+            ey_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-2) !(ndofn-1) = 3-1=2
+            ez_Im = E_hat_ky(ll,time_analized,ndofn*receivers(1)-1) !(ndofn-1) = 3-1=2
+            write(300,904) ll, ky, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
+          end do ky_loop_time
+        else 
+          !problema transitorio pero no 2.5D entonces...
+          write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
+          write(300,"(A)") '%No            ky               e-field'
+          ky_loop_static: do ll = 1,tot_ky
+            ky = WaveNumbers(ll)
+            ! Ex_hat = (ndofn-1) = 3-1=2
+            ! Ey_hat = (ndofn-2) = 3-2=1
+            ! Ez_hat = (ndofn-3) = 3-3=0
+            ! write(300,904) ll, ky, Ex_hat, Ey_hat, Ez_hat 
+            write(300,904) ll, ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-2), jj=1,nodalRec),&
+              &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-1), jj=1,nodalRec),&
+              &(E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)-0), jj=1,nodalRec)
+            !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
+          end do ky_loop_static
+        endif
       else
         !This is for a static and scalar problem
         if(ProbType=='STAT')t_steps=3 
@@ -1901,7 +2198,7 @@ module library
         write(300,903) (coord(1,receivers(jj)), jj=1,nodalRec) 
         ky_loop2: do ll = 1,tot_ky
           ky = WaveNumbers(ll)
-          write(300,904) ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)), jj=1,nodalRec)
+          write(300,906) ky, (E_hat_ky(ll,t_steps-2,ndofn*receivers(jj)), jj=1,nodalRec)
           !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(jj)+1)), jj=1,nodalRec)
         end do ky_loop2
         if(ProbType=='STAT')t_steps=0
@@ -1916,9 +2213,14 @@ module library
       !                           2π  /___
       !                               ky=0
       !
+      
       print*,'Esto es t_steps antes de comenzar la TDF', t_steps
       delta_ky = (ky_max-ky_min)/ tot_ky
       E_xyzt = 0.0
+      
+      !Aqui debe ir la implementacion de la transformada de Fourier como una interpolacion
+      !o como parte real e imaginaria 
+
       time_loop: do ii =1,t_steps+1     !Para el caso STATIC este ciclo va de 1 a 1
         nodes_loop: do jj =1,nnodes     !Ciclo sobre los nodos de la malla
           totv = jj*ndofn
@@ -1943,24 +2245,37 @@ module library
       !   print'(99(E11.3))', (E_xyzt(jj,ii), ii = 1,t_steps+1)
       ! end do
       ! print*,' '
+      ! if(oper.eq.'MAXW')then
+
       
+      
+      
+      
+      !Impresion del archivo final del campo tridimensional sobre medio bidimensional
       E_3D = 0.0
+      i_WaveNum = 0
       if(ProbType == 'TIME')then
-        dt = time_ini
+        !Este N es para que en la rutina GID_PostProcess, se deje de concatenar el nombre del archivo con ky_id y Se
+        !escriba un nuevo archivo tras la transformada inversa, este nombre de archivo se designa en el input file. 
+        File_Nodal_Vals = File_3DNodal_Vals
+        TwoHalf = 'N'           
+        dt      = time_ini
         time_loop2: do ii =1,t_steps+1  
           dt = dt + delta_t!,time_fin,delta_t
           nodes_loop2: do jj =1,nnodes
             totv = jj*ndofn
             DoF_loop2: do kk = idDoF,0,-1
               E_3D(totv-kk,1) = E_xyzt(totv-kk,ii)
-              end do DoF_loop2
+            end do DoF_loop2
           end do nodes_loop2
-          call GID_PostProcess(1, E_3D, 'res', ii-1, dt, time_fin, dummy)
+          call GID_PostProcess(i_WaveNum, 1, E_3D, 'res', ii-1, dt, time_fin, dummy)
         end do time_loop2
-        call GID_PostProcess(1, E_3D, 'msh', 0, dt, time_fin, dummy)
+        call GID_PostProcess(i_WaveNum, 1, E_3D, 'msh', 0, dt, time_fin, dummy)
       else
+        !Sino es un problema dinamico, entonces la impresion del archivo final se realiza en main y de aqui scale
+        !el nuevo vector de (ntotv,1)
         nodes_loop3: do jj =1,nnodes
-        totv = jj*ndofn
+          totv = jj*ndofn
           DoF_loop3: do kk = idDoF,0,-1
             E_3D(totv-kk,1) = E_xyzt(totv-kk,1)
           end do DoF_loop3
@@ -1987,8 +2302,9 @@ module library
       !    write(*,'(I5,2x,5(F7.3,1x))') k, f_t(k), reall(k), imagi(k), fhat(k)
       !  end do
       902 format(5(E18.6))
-      903 format(99f12.5)    !format to print the profile file
-      904 format(99(e18.6))    !format to print the profile file
+      903 format(99f12.5)                     !format to print the profile file
+      904 format(I0,3x,99(e18.6))             !format to print the profile file in transient problems
+      906 format(99(e18.6))                   !format to print the profile file
       ! 904 format(I5,2x,e15.6,5x,99(e17.6))    !format to print the profile file
     end subroutine invDFT
     !
@@ -2182,7 +2498,7 @@ module library
     !- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- - -!- -
     ! Agregamos las rutinas de tiempo del commit 625fbee: May2 2022
     
-    subroutine GID_PostProcess(id,solution, activity, time, timeStep, time_final, Ex_field)
+    subroutine GID_PostProcess(i_WaveNum, id,solution, activity, time, timeStep, time_final, Ex_field)
       
       ! use E0field
       
@@ -2190,19 +2506,21 @@ module library
       external                                             :: fdate 
       
       character(len=*), parameter  :: fileplace = "Pos/"
-      character(len=*), parameter  :: fileplace2 = "Res/FEM_TEM/"
+      character(len=*), parameter  :: fileplace2 = "Res/Plots/Time/"
       character(len=*), parameter  :: fileplace3 = "Exact_Sol_TEM/2D_DoubleLine_WholeSpace/"
       character(len=24)                                :: date
       double precision, dimension(ntotv, 1),intent(in) :: solution
       character(*)                         ,intent(in) :: activity
-      integer                              ,intent(in) :: time
+      integer                              ,intent(in) :: time, i_WaveNum
       double precision                     ,intent(in) :: timeStep, time_final
       character(len=10)                                :: ext1, ext2
       character(len=4)                                 :: ext3
       character(len=15)                                :: Elem_Type
       double precision, dimension(1, ntotv)            :: Sol_T
-      double precision                                 :: Ez_r(ntotv), tEz
       double precision, dimension(1,nnodes)            :: xcor, ycor
+      double precision                                 :: Ez_r(ntotv), tEz
+      double precision                                 :: ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
+      double precision                                 :: P_Re, P_Im
       integer                                          :: ipoin, ii, ielem, inode, time2,id, RESconma
       double precision, dimension(t_steps+1), intent(out) :: Ex_field
       double precision :: x_profile
@@ -2256,7 +2574,9 @@ module library
         end do
         write(100,"(A)") 'End Elements'
         close(100)
-        print"(A11,A,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ '
+        if(i_WaveNum==0 .or. i_WaveNum==1)then
+          print"(A11,A,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ '
+        endif
        
       elseif(activity == "res")then
        
@@ -2323,7 +2643,6 @@ module library
               write(200,"(A)") 'ComponentNames "" '
               write(200,"(A)") 'Values'
               write(200,*) '#',   'No    ','     P '
-              !  se escribe el res para el caso escalar de un grado de libertad
               write(200,914)
               ii=1
               do ipoin = 3, nnodes*3,3
@@ -2332,84 +2651,157 @@ module library
               end do
               write(200,"(A)") 'End Values'
             end if
+          case(8)
+              !Real and Imaginary part for the 2.5-D model problem
+              write(200,"(A45, I0, A)") 'Result {Electric Field//Real} "Transient EM" ', time, ' Vector OnNodes '
+              write(200,"(A)") 'ComponentNames "Ex_Re" "Ey_Re" "Ez_Re" '
+              write(200,"(A)") 'Values'
+              write(200,"(A4,4(A13,A5))") '#No  ', ' ', 'ex_Re', ' ', 'ey_Re', ' ', 'ez_Re'
+              do ipoin = 1, nnodes
+                ex_Re = Sol_T(1, ndofn*ipoin-7)
+                ey_Re = Sol_T(1, ndofn*ipoin-6)
+                ez_Re = Sol_T(1, ndofn*ipoin-5)
+                write(200,920) ipoin, ex_Re, ey_Re, ez_Re
+              end do
+              write(200,"(A)") 'End Values'
+              write(200,"(A50, I0, A)") 'Result {Electric Field//Imaginary} "Transient EM" ', time, ' Vector OnNodes '
+              write(200,"(A)") 'ComponentNames "Ex_Im" "Ey_Im" "Ez_Im" '
+              write(200,"(A)") 'Values'
+              write(200,"(A4,4(A13,A5))") '#No  ', ' ', 'ex_Im', ' ', 'ey_Im', ' ', 'ez_Im'
+              do ipoin = 1, nnodes
+                ex_Im = Sol_T(1, ndofn*ipoin-3)
+                ey_Im = Sol_T(1, ndofn*ipoin-2)
+                ez_Im = Sol_T(1, ndofn*ipoin-1)
+                write(200,920) ipoin, ex_Im, ey_Im, ez_Im
+              end do
+              write(200,"(A)") 'End Values'
+              write(200,"(A41, I0, A)") 'Result {Multiplier//Real} "Transient EM" ', time, ' Scalar OnNodes'
+              write(200,"(A)") ""
+              write(200,"(A)") 'Values'
+              write(200,"(A5,3(A13,A4))") '#No  ',' ', 'P_Re'
+              ! ii=1
+              do ipoin = 1, nnodes
+                P_Re  = Sol_T(1, ndofn*ipoin-4)
+                write(200,921) ipoin, P_Re
+                ! ii=ii+1
+              end do
+              write(200,"(A)") 'End Values'
+              write(200,"(A46, I0, A)") 'Result {Multiplier//Imaginary} "Transient EM" ', time, ' Scalar OnNodes'
+              write(200,"(A)") ""
+              write(200,"(A)") 'Values'
+              write(200,"(A5,3(A13,A4))")  '#No  ',' ', 'P_Im'
+              ! ii=1
+              do ipoin = 1, nnodes
+                P_Im  = Sol_T(1, ndofn*ipoin-0)
+                write(200,921) ipoin, P_Im
+                ! ii=ii+1
+              end do
+              write(200,"(A)") 'End Values'
         end select
         
+        ! if(time.eq.5 )then
+        !   print*,'time ',time
+        !   open(unit=3,file=fileplace//"to_check2.dat",ACTION="write",STATUS="replace")
+        !   do ipoin = 1, nnodes
+        !     write(3,"(I0, 5x, E15.5,2x)") ipoin, Sol_T(1, ipoin)
+        !     if(mod(ipoin,8).eq.0)write(3,"(A11,I0,A11)") '----------- ',(ipoin/ndofn),' ----------------'
+        !   end do
+        !   stop
+        ! endif
         
         
       elseif(activity == "profile")then
-        Ex_field = 0.0 
-        if(time == 0)then
-          call fdate(date) 
-          open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
-          write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
-          write(300,"(A)") ' '
-          write(300,"(A)") '% - - - - - - - Component ex'
-          if(time == 0) write(300,"(A)") '% time     timeStep        receiver1'
+        
+        if(TwoHalf.eq.'Y' .and. ky_id.eq.'_k03')then
+          ex_Re = Sol_T(1,(ndofn*receivers(1))-7)
+          ey_Re = Sol_T(1,(ndofn*receivers(1))-6)
+          ez_Re = Sol_T(1,(ndofn*receivers(1))-5)
+          P_Re  = Sol_T(1,(ndofn*receivers(1))-4)
+          ex_Im = Sol_T(1,(ndofn*receivers(1))-3)
+          ey_Im = Sol_T(1,(ndofn*receivers(1))-2)
+          ez_Im = Sol_T(1,(ndofn*receivers(1))-1)
+          P_Im  = Sol_T(1,(ndofn*receivers(1))-0)
+          
+          Ex_field = 0.0 
+          if(time == 0)then
+            call fdate(date) 
+            open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
+            write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
+            write(300,"(A)") ' '
+            write(300,"(A, A)") '% - - - - - - - In wavenumber' , ky_id
+            if(time == 0)then
+              write(300,"(A17,6(A12,A5))") '% nt    TimeStep ',' ','ex_Re',' ',&
+                &'ey_Re',' ','ez_Re',' ','ex_Im',' ','ey_Im',' ','ez_Im'
+            endif
+          else
+            continue
+          endif
+          open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+          write(300,904) time, timeStep, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
         else
-          continue
+          Ex_field = 0.0 
+          if(time == 0)then
+            call fdate(date) 
+            open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
+            write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
+            write(300,"(A)") ' '
+            write(300,"(A)") '% - - - - - - - Component ex'
+            if(time == 0) write(300,"(A)") '% time     timeStep        E-field,', ky_id
+          else
+            continue
+          endif
+          open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+          
+          ! Aquii haria falta las lineas para el perfil en tiempo de la parte real e imaginaria como en la impresion
+          ! de resultados
+          ! print*,'the receiver is on node', ndofn*receivers(1) 
+          write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin))), ipoin=1,nodalRec)
         endif
-        open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+          
+       elseif(activity == "spatial")then
+         !id_poin = 113
+         !open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
+         !do ipoin =1,nnodes
+         !  if(ycor(1,ipoin).eq.0.0)then
+         !    id_poin = id_poin+1
+         !    write(10,906) ipoin, xcor(1,ipoin)
+         !  else
+         !    continue
+         !  endif
+         !end do
+         !close(10)
+         !if(time == 1)then
+         !  open(unit=6, file=fileplace3//"test_for_commit.dat", STATUS="replace", ACTION="write")
+         !else
+         !  open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
+         !endif
+         
+         !open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
+         !!allocate(efile_profile(id))
+         
+         !tEz = timeStep 
+         !call Efield_WholeSpace(time, tEz, Ez_r)
+         
+         !write(6,'(A7,I0,A,e10.3,A)') ' #t',time,'=',timeStep
+         !write(6,'(A)') "index xcor FEM Exact"
+         !if(ndofn.eq.1)then
+         !  do ii = 1,id_poin                !id_poin viene del modulo E0field como variable global 
+         !    read(5,*) ipoin, x_profile
+         !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin), Ez_r(ndofn*ipoin)
+         !  end do
+         !else
+         !  do ii = 1,id_poin
+         !    read(5,*) ipoin, x_profile
+         !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2), Ez_r(ndofn*ipoin)
+         !  end do
+         !endif
+         !write(6,*)' '
+         !write(6,*)' '
+         !close(5)
+         !  close(6)
         
-        write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin))), ipoin=1,nodalRec)
-        !Ex_fieldi(time) = (Sol_T(1,(ndofn*receivers(ipoin)+1)), ipoin=1,nodalRec)
-        !Creo que aqui en lugar del +1 debio ser -2 para que el grado de libertad del receptor
-        !corresponda a la componente x
-
-        !if( time == t_steps+1 ) then
-        !  write(300,"(A)") ' '
-        !  write(300,"(A)") '% - - - - - - - Component ey'
-        !  if(time == 0) write(300,"(A)") '% time       timeStep          receiver1'
-        !  timeStep2 = 0.0
-        !  do time2 = 1, t_steps+1
-        !    timeStep2 = timeStep2 + delta_t
-        !    write(300,904) time2, timeStep2, (Sol_T(1,(ndofn*receivers(ipoin)+2)), ipoin=1,nodalRec)
-        !  end do
-        !endif
         
-      elseif(activity == "spatial")then
-        !id_poin = 113
-        !open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
-        !do ipoin =1,nnodes
-        !  if(ycor(1,ipoin).eq.0.0)then
-        !    id_poin = id_poin+1
-        !    write(10,906) ipoin, xcor(1,ipoin)
-        !  else
-        !    continue
-        !  endif
-        !end do
-        !close(10)
-
-
-
-        !if(time == 1)then
-        !  open(unit=6, file=fileplace3//"test_for_commit.dat", STATUS="replace", ACTION="write")
-        !else
-        !  open(unit=6, file=fileplace3//"test_for_commit.dat", ACTION="write", STATUS="old", position="append")
-        !endif
-        
-        !open(unit=5, file= fileplace3//"Id_spatial_profile.dat", status='old', action='read')
-        !!allocate(efile_profile(id))
-        
-        !tEz = timeStep 
-        !call Efield_WholeSpace(time, tEz, Ez_r)
-        
-        !write(6,'(A7,I0,A,e10.3,A)') ' #t',time,'=',timeStep
-        !write(6,'(A)') "index xcor FEM Exact"
-        !if(ndofn.eq.1)then
-        !  do ii = 1,id_poin                !id_poin viene del modulo E0field como variable global 
-        !    read(5,*) ipoin, x_profile
-        !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin), Ez_r(ndofn*ipoin)
-        !  end do
-        !else
-        !  do ii = 1,id_poin
-        !    read(5,*) ipoin, x_profile
-        !    write(6,918) ipoin, x_profile, Sol_T(1, ndofn*ipoin-2), Ez_r(ndofn*ipoin)
-        !  end do
-        !endif
-        !write(6,*)' '
-        !write(6,*)' '
-        !close(5)
-       !close(6)
+            ! *** Como cambio las lineas anteriores por call spatialProfile_BubbleSort ***
         
       else
         write(*,"(A)") ' < < Error > > Postprocess activity must be "msh", "res" or "profile" non ', activity
@@ -2426,7 +2818,7 @@ module library
       if((time == t_steps).and.(activity.ne."profile")) then
         print*, ' '
         print"(1x, A,A30)", File_Nodal_Vals//'.post.res', 'written succesfully in Pos/ '
-        print*, ' '
+        ! print*, ' '
       endif
       
       !if(simul.eq.6.and.ndofn.1)then
@@ -2436,16 +2828,18 @@ module library
       !else
       !  write(*,'A')
       !
-      
       900 format(A15, A13, A1, A13)
       902 format(A4,1x,A8,1X,A9,1X,I1,1X,A8,1X,A13,A6,1X,I1)
-      904 format(I5,2x,e15.6,2x,99(e15.6))    !format to print the profile file
-      906 format(I7,3(f15.5,3x)) !format for msh
+      904 format(I0,2x,e15.6,3x,99(e17.6))    !format to print the time profile file
+      906 format(I7,3(f15.5,3x))              !format for msh
       908 format(9(2x,I7) )
       914 format('#',3x,'No',     9x, 'Dof')
-      916 format(I7,2x,E12.5)  !format for scalar case
-      918 format(I7,3x,5(E14.6,3x)) !format for res velocity
-      919 format(I7,3(3x,E15.5)) !format for res velocity
+      916 format(I7,2x,E12.5)                 !format for scalar case
+      918 format(I7,3x,5(E14.6,3x))           !format for res velocity
+      919 format(I7,3(3x,E15.5))              !format for res velocity
+
+      920 format(I7,3(3x,E15.5))              !format for Re-Im Electric Field
+      921 format(I7,1(2x,E12.5))              !format for Re-Im Lagrange Multiplier
       
     end subroutine GID_PostProcess
     !
@@ -2492,26 +2886,29 @@ module library
       
       
       if((time==floor(t_steps*check1*0.01)))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check1), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check1), '%'
       elseif(time==floor(t_steps*check2*0.01))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check2), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check2), '%'
       elseif(time==floor(t_steps*check3*0.01))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check3), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check3), '%'
       elseif(time==floor(t_steps*check4*0.01))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check4), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check4), '%'
       ! elseif(time==floor(t_steps*check5))then
         ! print*, ' -Completed5',check5, '%'
       elseif(time==floor(t_steps*check6*0.01))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check6), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check6), '%'
       ! elseif(time==floor(t_steps*check7))then
         ! print*, ' -Completed',check7, '%'
       elseif(time==floor(t_steps*check8*0.01))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check8), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check8), '%'
       elseif(time==floor(t_steps*check9*0.01))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check9), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check9), '%'
       elseif((time==floor(t_steps*check10*0.01)))then
-        print'(A12,i0,1x,A)', ' -Completed ',int(check10), '%'
+        print'(A20,i0,1x,A)', '         -Completed ',int(check10), '%'
       endif
+      
+      if(time.eq.t_steps) print'(A)', ' ---- Ending ---- '
+      
     end subroutine infoTime
     
     
