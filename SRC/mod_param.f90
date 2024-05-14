@@ -3,13 +3,16 @@ module param
   implicit none
 
   integer, parameter :: max_filename_length = 256
+  double precision   :: viscocity = 0.5
+  double precision   :: lambda = 1.0/1.256637061D-6 
+  integer, parameter :: DimPr = 2
   ! character(len=20) :: shape_spec_file
   ! character(len=14) :: testID
-  ! character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, profile_name, mesh_file
+  ! character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, time_profile_name, mesh_file
   ! character(len=12) :: File_3DNodal_Vals
   
   character(len=:), allocatable  :: shape_spec_file, testID, File_Nodal_Vals, error_name, coord_name
-  character(len=:), allocatable  :: conec_name, profile_name, mesh_file
+  character(len=:), allocatable  :: conec_name, time_profile_name, mesh_file, spatial_profile_name,spectrum_FileNames
   character(len=:), allocatable  :: File_3DNodal_Vals, File_Nodal_Vals_ky, PHYSICAL_PROBLEM
   
   
@@ -17,21 +20,21 @@ module param
   character(len=2)  :: refiType, splits, TwoHalf, view
   integer           :: nBVs, nBVscol, nband, t_steps, exacSol, BCsProb
   integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
-  integer           :: DimPr, initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, Src_ON
+  integer           :: initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, twindow
   integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
   integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS, initCond
   real              :: hnatu, patau
-  double precision  :: Cu,lambda, ell, helem, n_val, time_ini, time_fin, delta_t
+  double precision  :: Cu, ell, helem, n_val, time_ini, time_fin, delta_t
   double precision  :: ky_min, ky_max, y_iFT,  k_y, sigma
-  double precision, allocatable, dimension(:,:)     :: ngaus, weigp
+  double precision  , allocatable, dimension(:,:)     :: ngaus, weigp
 
-  double precision, allocatable, dimension(:,:)     :: coord 
-  integer,          allocatable, dimension(:,:)     :: lnods
-  double precision, allocatable, dimension(:)       :: Icurr, WaveNumbers !Force and Current vector (respectively)
-  character(len=8), allocatable, dimension(:)       :: files_ky        
-  character(len=4), allocatable, dimension(:)       :: nodal_ky 
-  character(len=100), allocatable, dimension(:)     :: PHYSICAL_PROBLEM_OPTIONS 
-  integer  , allocatable, dimension(:)       :: receivers, srcLoc, mesh_conductivity
+  double precision  , allocatable, dimension(:,:)     :: coord 
+  integer           , allocatable, dimension(:,:)     :: lnods
+  double precision  , allocatable, dimension(:)       :: Icurr, WaveNumbers !Force and Current vector (respectively)
+  character(len=8)  , allocatable, dimension(:)       :: files_ky        
+  character(len=4)  , allocatable, dimension(:)       :: nodal_ky 
+  character(len=99) , allocatable, dimension(:)       :: PHYSICAL_PROBLEM_OPTIONS 
+  integer           , allocatable, dimension(:)       :: receivers, srcLoc, mesh_conductivity
 
   contains
     
@@ -55,19 +58,21 @@ module param
       
       !Asignar memoria para el nombre del archivo
       allocate(character(max_filename_length) :: shape_spec_file)
+      allocate(character(max_filename_length) :: spectrum_FileNames)
       allocate(character(max_filename_length) :: testID)
       allocate(character(max_filename_length) :: File_Nodal_Vals)
       allocate(character(max_filename_length) :: error_name)
       allocate(character(max_filename_length) :: conec_name)
       allocate(character(max_filename_length) :: coord_name)
-      allocate(character(max_filename_length) :: profile_name)
+      allocate(character(max_filename_length) :: time_profile_name)
+      allocate(character(max_filename_length) :: spatial_profile_name)
       allocate(character(max_filename_length) :: mesh_file)
       allocate(character(max_filename_length) :: File_3DNodal_Vals)
       allocate(character(max_filename_length) :: PHYSICAL_PROBLEM)
       
       allocate( PHYSICAL_PROBLEM_OPTIONS(6) )
       
-      Dimpr = 2
+      ! DimPr = 2
       open(5, file=fileplace//name_inputFile, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       
       
@@ -88,14 +93,13 @@ module param
       
       read(5, 98,iostat=stat,iomsg=msg) &
       mesh_file, view ,initnne, i_exp, hnatu, refiType,&
-      kstab, ktaum, patau, n_val, helem, Cu, ell, lambda,&
-      TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, shape_spec_file ,File_3DNodal_Vals, &
-      theta, time_ini, time_fin, t_steps, Src_ON, signal, initCond, & 
-      testID, File_Nodal_Vals, error_name, coord_name, conec_name, profile_name
+      kstab, ktaum, patau, n_val, helem, Cu, ell, &
+      ky_min, ky_max, tot_ky, splits, y_iFT, shape_spec_file ,File_3DNodal_Vals, &
+      ! TwoHalf, ky_min, ky_max, tot_ky, splits, y_iFT, shape_spec_file ,File_3DNodal_Vals, &
+      theta, time_ini, time_fin, t_steps, twindow, signal, initCond, & 
+      testID, File_Nodal_Vals, error_name, coord_name, conec_name,&
+      time_profile_name, spatial_profile_name
       call checkStatus(0,stat,msg)
-      
-      print*, view
-      print*, initnne
       
       ! Iterar sobre las cadenas de caracteres y procesarlas
       do ii = 1, 6
@@ -112,35 +116,47 @@ module param
         case ('Maxwell_In_Non_Convex_Domain')
           ! Código para el primer problema
           oper  = 'MAXW'
+          TwoHalf = 'N'
           ndofn = 3
           kstab = 6
           
         case ('Cavity_Driven_Flow')
           ! Código para el segundo problema
           oper  = 'LAPL'
+          mesh_file = 'Stokes_Flow.msh'
+          TwoHalf = 'N'
+          BCsProb = 5
           ndofn = 3
-          kstab = 3
+          kstab = 3     !0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
           
         case ('Direct_Current_Electrical_Resistivity_in_2.5-D')
           ! Código para el tercer problema
           oper  = 'LAPL'
+          mesh_file = 'resistivity_half_space.msh'
+          TwoHalf = 'Y'
           ndofn = 1
+          BCsProb = 6
           kstab = 0
           ProbType = 'STAT'
-          BCsProb = 0
+          spectrum_FileNames = 'DC_Spectrum'
           
           
         case ('Electric_Field_Excited_By_A_Double_Line_Source')
           ! Código para el tercer problema
           oper  = 'LAPL'
+          mesh_file = 'Double_Line_2_EM.msh'
+          ! nodalSrc = 2
+          ! srcLoc = (/116, 119 /)
+          TwoHalf = 'N'
           ndofn = 1
+          BCsProb = 7
           kstab = 0
           ProbType = 'TIME'
-          BCsProb = 0
           
         case ('Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution')
           ! Código para el quinto problema
           oper  = 'MAXW'
+          TwoHalf = 'N'
           BCsProb = 2! Revisar pues este caso creo qu eno esta definido depende de si son 8 DoF 
           ndofn = 3
           srcRHS = 0
@@ -149,10 +165,13 @@ module param
         case ('Transient_Electromagnetic_in_2.5-D')
           ! Código para el sexto problema
           ProbType = 'TIME'
+          TwoHalf = 'Y'
           BCsProb = 2! Revisar pues este caso creo qu eno esta definido depende de si son 8 DoF 
           oper    = 'MAXW'
           ndofn   = 8
           kstab   = 6
+          spectrum_FileNames = 'TEM_Spectrum'
+          
           
       end select
       
@@ -203,15 +222,17 @@ module param
       end do
       close(5)
       
-      File_3DNodal_Vals = trim(File_3DNodal_Vals )
-      shape_spec_file   = trim(shape_spec_file   )
-      File_Nodal_Vals   = trim(File_Nodal_Vals   )
-      profile_name      = trim(profile_name      )
-      error_name        = trim(error_name        )
-      conec_name        = trim(conec_name        )
-      coord_name        = trim(coord_name        )
-      mesh_file         = trim(mesh_file         )
-      testID            = trim(testID            )
+      File_3DNodal_Vals    = trim(File_3DNodal_Vals )
+      spectrum_FileNames   = trim(spectrum_FileNames)
+      shape_spec_file      = trim(shape_spec_file   )
+      File_Nodal_Vals      = trim(File_Nodal_Vals   )
+      time_profile_name    = trim(time_profile_name )
+      spatial_profile_name = trim(spatial_profile_name )
+      error_name           = trim(error_name        )
+      conec_name           = trim(conec_name        )
+      coord_name           = trim(coord_name        )
+      mesh_file            = trim(mesh_file         )
+      testID               = trim(testID            )
       
       allocate(receivers(nodalRec), node_found_it(nodalRec))
       !Searching the nearest node to the coordinate pair read
@@ -307,12 +328,12 @@ module param
       !&
       !
       !
-      100 format(7/ ,11x, A4,/, 5(11x,I5,/), 11x,F15.7,/,  3/)                             !model parameters
-      98 format(6/,11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,             2/,&  !geometry
-      &          2(11x,I5,/), 3(11x,F10.5,/), 3(11x,F15.5,/),                          2/,&  !stabi
-      &          11x,A,/, 2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,/, 2(/,11x,A,/), 2/,&  !Fourier Transform
-      &          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                                2/,&  !time
-      &          11x,A,/, 5(11x,A,/),                                                  1/ )  !output files
+      100 format(7/ ,11x, A4,/, 5(11x,I5,/), 11x,F15.7,/,                           3/)   !model parameters
+      98 format(6/,11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
+      &          2(11x,I5,/), 3(11x,F10.5,/), 2(11x,F15.5,/),                       2/,&  !stabi
+      &          2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,2/, 2(11x,A,/),        2/,&  !Fourier Transform
+      &          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                             2/,&  !time
+      &          11x,A,/, 6(11x,A,/),                                               1/ )  !output files
      
       !**Format for 1Dof tensors
       101 format(1/,F12.5,7/)
@@ -351,7 +372,7 @@ module param
       character(len=*), parameter :: fileplace = "Msh/"
       integer         , parameter :: max_nodos = 10000
       character(len=:), allocatable, intent(in) :: file_mesh
-      integer, dimension(Dimpr,nodalRec), intent(in) :: recLoc
+      integer, dimension(DimPr,nodalRec), intent(in) :: recLoc
       character(len=180)              :: msg
       double precision                :: coord_x(max_nodos), coord_y(max_nodos)
       double precision                :: x, dummy, y
