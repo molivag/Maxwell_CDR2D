@@ -22,7 +22,7 @@ module BoundVal
       
       integer              :: ierror, a ,b, c, d, e, f,i 
       double precision     :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle
-      double precision     :: ux, uy, ex, ey, ez, iex, iey, iez, p, ip 
+      double precision     :: ux, uy, exRe, eyRe, ezRe, exIm, eyIm, ezIm, pRe, pIm 
       double precision     :: aa, cc
       integer, intent(out) :: nBVs, nBVscol
       
@@ -40,7 +40,6 @@ module BoundVal
       if(TwoHalf == 'Y')then
         xmiddle =  (abs(xmax)-abs(xmin))/2.0
         ymiddle =  ((ymax)-(ymin))/2.0
-        print*,ymiddle
       else
         xmiddle =  (abs(xmax)-abs(xmin))/2.0
         ymiddle =  (abs(ymax)-abs(ymin))/2.0
@@ -56,50 +55,99 @@ module BoundVal
       write(*,'(A9,f7.2)') ' - yhlf = ', real(ymiddle)
       
       
-      
       if(ndofn.eq.1) then
         print*, 'scalar Boundary Conditions ', ndofn 
-        do i =1, nnodes
-          x=coord(1,i)
-          y=coord(2,i)
-          ux = 0.00001 
-          if(y.eq.ymax) then
-            if(x.eq.xmax)then                   !right top corner 
-              write(200,10) i, 0
-              write(300,30) ux 
-            elseif(x.eq.xmin)then               !left top corner 
-              write(200,10) i, 0
-              write(300,30) ux 
-            else
-              write(200,10) i, 0                !Top boundary
-              write(300,30) ux 
-            end if
-            a = a+1
-          else if (y.eq.ymin)then
-            if(x.eq.xmin)then                   !left bottom corner  
-              write(200,10) i, 1
-              write(300,30) ux
-            elseif(x.eq.xmax)then               !right bottom corner
-              write(200,10) i, 1
-              write(300,30) ux
-            else
-              write(200,10) i, 1                !bottom boundary
-              write(300,30) ux
-            end if
-            b = b+1
-          else if(x.eq.xmax)then                !right boundary
-              write(200,10) i, 1
-              write(300,30) ux
-            c = c+1
-          else if (x.eq.xmin)then               !left boundary
-              write(200,10) i, 1
-              write(300,30) ux
-            d = d+1
-           
-          end if
-          nBVs = a+b+c+d
-         
-        end do
+        select case(BCsProb)
+          case(6)
+            print*, '!Resistivity'
+              
+            do i =1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then                   !right top corner 
+                  write(200,10) i, 0
+                  write(300,30) ux 
+                elseif(x.eq.xmin)then               !left top corner 
+                  write(200,10) i, 0
+                  write(300,30) ux 
+                else
+                  write(200,10) i, 0                !Top boundary
+                  write(300,30) ux 
+                end if
+                a = a+1
+              else if (y.eq.ymin)then
+                if(x.eq.xmin)then                   !left bottom corner  
+                  write(200,10) i, 1
+                  write(300,30) ux
+                elseif(x.eq.xmax)then               !right bottom corner
+                  write(200,10) i, 1
+                  write(300,30) ux
+                else
+                  write(200,10) i, 1                !bottom boundary
+                  write(300,30) ux
+                end if
+                b = b+1
+              else if(x.eq.xmax)then                !right boundary
+                  write(200,10) i, 1
+                  write(300,30) ux
+                c = c+1
+              else if (x.eq.xmin)then               !left boundary
+                  write(200,10) i, 1
+                  write(300,30) ux
+                d = d+1
+               
+              end if
+              nBVs = a+b+c+d
+             
+            end do
+            
+          case(7)
+            print*, ' !Double Line Source'
+            do i =1, nnodes
+              x=coord(1,i)
+              y=coord(2,i)
+              ux = 0.0 
+              if(y.eq.ymax) then
+                if(x.eq.xmax)then                   !right top corner 
+                  write(200,10) i, 1
+                  write(300,30) ux 
+                elseif(x.eq.xmin)then               !left top corner 
+                  write(200,10) i, 1
+                  write(300,30) ux 
+                else
+                  write(200,10) i, 1                !Top boundary
+                  write(300,30) ux 
+                end if
+                a = a+1
+              else if (y.eq.ymin)then
+                if(x.eq.xmin)then                   !left bottom corner  
+                  write(200,10) i, 1
+                  write(300,30) ux
+                elseif(x.eq.xmax)then               !right bottom corner
+                  write(200,10) i, 1
+                  write(300,30) ux
+                else
+                  write(200,10) i, 1                !bottom boundary
+                  write(300,30) ux
+                end if
+                b = b+1
+              else if(x.eq.xmax)then                !right boundary
+                  write(200,10) i, 1
+                  write(300,30) ux
+                c = c+1
+              else if (x.eq.xmin)then               !left boundary
+                  write(200,10) i, 1
+                  write(300,30) ux
+                d = d+1
+               
+              end if
+              nBVs = a+b+c+d
+             
+            end do
+            
+        endselect
         nBVscol = 3
         
         
@@ -437,32 +485,32 @@ module BoundVal
             nBVscol = 7 
             
           case(5)       !Cavitty Driven Flow/Stokes
-            !print*,'Cavitty Driven Flow Boundary Conditions'
+            print*,'Cavitty Driven Flow Boundary Conditions'
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
               ux = 0.0 
               uy = 0.0 
               if(y.eq.ymax) then
-                if(x.eq.xmax)then                          !Upper Right Corner
+                if(x.eq.xmax)then                    !Upper Right Corner
                   ux = 1.0
                   write(200,10) i, 1, 1, 0
                   write(300,20)   ux, uy, 0.0
                   a = a+1
-                elseif(x.eq.xmin)then                      !Upper Left Corner
+                elseif(x.eq.xmin)then                !Upper Left Corner
                   ux = 1.0
                   write(200,10) i, 1, 1, 0
                   write(300,20)   ux, uy, 0.0
                   a = a+1
-                elseif(x.eq.xmiddle)then                   !Upper middle top preasure condition
-                  !print*,'centro', xmiddle
+                elseif(x.eq.xmiddle)then             !Upper middle top preasure condition
+                  print*,'centro', xmiddle
                   ux = 1.0
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 else
                   ux = 1.0
-                  write(200,10) i, 1, 1, 0                 !Upper Boundary 
+                  write(200,10) i, 1, 1, 0           !Upper Boundary 
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 end if
@@ -470,7 +518,7 @@ module BoundVal
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then
                   ux = 0.0
-                  write(200,10) i, 1, 1, 0                 !Down Left Corner
+                  write(200,10) i, 1, 1, 0            !Down Left Corner
                   write(300,20)   ux, uy, 0.0
                   b = b+1
                 elseif(x.eq.xmax)then
@@ -509,54 +557,55 @@ module BoundVal
         end select
       elseif(ndofn .eq. 8)then
             print*,'Maxwel BVs for 2.5D'
-            ex  = 0.0 
-            ey  = 0.0 
-            ez  = 0.0 
-            iex = 0.0 
-            iey = 0.0 
-            iez = 0.0 
-            p   = 0.0 
-            ip  = 0.0 
+            exRe = 0.0 
+            eyRe = 0.0 
+            ezRe = 0.0 
+            exIm = 0.0 
+            eyIm = 0.0 
+            ezIm = 0.0 
+            pRe  = 0.0 
+            pIm  = 0.0 
+            
             do i = 1, nnodes
               x=coord(1,i)
               y=coord(2,i)
               if(y.eq.ymax) then
                 if(x.eq.xmax)then                      !Upper Right Corner
-                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  write(200,11) i, 1,    1,    1,    1,   1,    1,    1,     1
+                  write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                   a = a+1
                 elseif(x.eq.xmin)then                  !Upper Left Corner
-                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  write(200,11) i,  1,    1,    1,    1,  1,    1,    1,    1
+                  write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                   a = a+1
                else                                    !Upper Border
-                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  write(200,11) i, 1,    0,    0,    1,   1,    0,    0,    1
+                  write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm  
                   a = a+1
                 end if
                 
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then                     !left bottom corner  
-                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  write(200,11) i,  1,    1,    1,    1,    1,    1,   1,   1
+                  write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                   b = b+1
                 elseif(x.eq.xmax)then                 !right bottom corner
-                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  write(200,11) i,  1,    1,    1,    1,    1,    1,   1,   1
+                  write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm
                   b = b+1
                 else                                  !Down Border
-                  write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                  write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                  write(200,11) i, 1,    0,    0,    1,   1,    0,    0,    1   
+                  write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                   b = b+1
                 end if
                 
               else if(x.eq.xmax)then                  !Right Boundary
-                write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                write(200,11) i, 0,    0,    1,    1,   0,    0,    1,    1   
+                write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                 c = c+1
               else if (x.eq.xmin)then                 !Left Boundary
-                write(200,11) i, 1,  1,  1,  1,   1,   1,  1, 1
-                write(300,21)   ex, ey, ez, iex, iey, iez, p, ip 
+                write(200,11) i, 0,    0,    1,    1,   0,    0,    1,    1   
+                write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                 d = d+1
               end if
               
@@ -571,7 +620,8 @@ module BoundVal
         print*, ' ' 
         stop
       end if
-      close(100)
+      close(200)
+      close(300)
       
       
       !print*, 'Num. of Boundary nodes', nBVS 
