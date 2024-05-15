@@ -56,13 +56,15 @@ module library
       
       implicit none
       
-      character(len=*), parameter                      :: path2 = "Res/Plots/Spatial"
+      character(len=*), parameter                      :: path2 = "Res/Plots/Spatial/"
+      character(len=4)                                 :: ext3
       double precision, dimension(ntotv,1), intent(in) :: solution(:,:) 
       double precision, dimension(1, ntotv)            :: Sol_T
       double precision, allocatable, dimension(:,:)    :: x_profile, temp
       double precision, dimension(1,nnodes)            :: xcor, ycor
       integer                                          :: id_poin, ipoin, jpoin, ii, xpoin
       
+      ext3 = ".dat"
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       
@@ -102,12 +104,20 @@ module library
         end do
       end do
       !Una vez reacomodado, imprimir archivo con No  x-cor, value        
-      open(unit=10, file=path2//"xspatial_profile.dat", ACTION="write", STATUS="replace")
+      open(unit=10, file=path2//spatial_profile_name//ext3, ACTION="write", STATUS="replace")
       ipoin = 0
       !Si el perfil se quisiera de determinada longitud aqui se deberia llamar SearchingNodes
       !para que, dada una coordenada (x,0) se busque el nodo mas cercano y con ese nodo hacer
       !algo como:
       !id_poin = int(x_profile(nodo_encontrado)) con esto id_poin llegara hasta la distancia deseada
+      if(ProbType.eq.'TIME'.and.TwoHalf.eq.'N')then
+        write(10,*)' ' 
+        write(10,'(A,I0,A,e12.5)')' # E-field vs distance at time step No.',t_steps,' = ',time_fin
+        write(300,"(A21, f5.1,A,f5.1)") '%Receiver Position:  ',&
+        & coord(1,receivers(nodalRec)),',',coord(2,receivers(nodalRec))
+        write(10,*)'  No           x-coor              value' 
+        write(10,*)' ' 
+      endif
       do ii = 1,id_poin 
         ipoin = int(x_profile(1,ii))
         write(10,100) ipoin, x_profile(2,ii), Sol_T(1, ndofn*ipoin)!, Ez_r(ndofn*ipoin)
@@ -116,7 +126,7 @@ module library
       !El siguiente write es por si se quisiera la solucion en determinados receptores
       !write(10,902) coord(1,ndofn*receivers(jj)), E_3D(ndofn*receivers(jj),1)
       
-      100 format(I0,1x, f20.12, E20.8)
+      100 format(I7,1x, f20.12, E20.8)
       
     end subroutine spatialProfile_BubbleSort
     !
@@ -566,9 +576,11 @@ module library
               end do x_difma_loop
               convec=0.0
               conma_loop: do i=1,2
+                ! write(*,"(A6,I2,A,I2,A,I2,A,e12.5)") 'conma(',idofn,',',jdofn,',',i,') = ',conma(idofn,jdofn,i)
                 !print*,conma(idofn,jdofn,i)
                 call param_stab('Conv', idofn, jdofn, i, j, hmaxi, coef)
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
+                ! convec = convec + basis(inode) * coef *  conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do conma_loop
               
               !LO IDEAL ES QUE NO SE EVALUE EL MISMO IF EN CADA GRADO DE LIBERATD SINO QUE SE
@@ -583,7 +595,7 @@ module library
                   reac = basis(inode) * k_y**2 *sigma* reama(idofn,jdofn) * basis(jnode)
                 elseif(oper == 'MAXW')then
                   call param_stab('Reac', idofn, jdofn, i, j, hmaxi, coef)
-                  reac = basis(inode) * lambda*k_y**2 * reama(idofn,jdofn) * basis(jnode)
+                  reac = basis(inode) * lambda*k_y**2 * coef * reama(idofn,jdofn) * basis(jnode)
                 endif
               else
                 ! print*,'!if it is NOT dealing with a 2.5D Problem'
@@ -643,26 +655,30 @@ module library
      
       select case(oper)
         case('LAPL')
-          if((idofn == jdofn).and.(i == j))then
-              ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
-              ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
-              !Aqui tengo que poner un identificador o LGO QUE dependiendo
-              !el problema, ponga una propiedad fisica u otra
-              if(kstab == 0 .and. oper=='LAPL')then
-                !if((kstab == 3 .or.kstab==0) .and. oper=='LAPL')then  **Este if es mas general**
-                !print*,'!The coeficients for Laplacian operator or 2nd derivatives respect to itslefs'
-                coeff = sigma
-              elseif(kstab == 3 .and. oper=='LAPL')then
+          !no estoy seguroi que estos if asi, sea lo mismo que hacer primero el if de ndofn
+          ! y luego dentro el if de ij, creo que si
+          if((idofn == jdofn).and.(i == j))then 
+            ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
+            ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+            !Aqui tengo que poner un identificador o LGO QUE dependiendo
+            !el problema, ponga una propiedad fisica u otra
+            if(kstab == 3 .or.kstab==0 )then
+              !* * * * * Direct_Current_Electrical_Resistivity_in_2.5-D * * * * *
+              if((PHYSICAL_PROBLEM.eq."Electric_Field_Excited_By_A_Double_Line_Source"))then
                 coeff = lambda
-              else
-                print*, 'No diferential opperator defined for param_stab in LIBRARY module'
+              elseif(PHYSICAL_PROBLEM.eq."Direct_Current_Electrical_Resistivity_in_2.5-D")then
+                coeff = sigma
+              elseif(PHYSICAL_PROBLEM.eq."Cavity_Driven_Flow")then
+                coeff = viscocity
               endif
-             
+            else
+              print*, 'No diferential opperator defined for param_stab in LIBRARY module'
+            endif
           end if
-        
+          
         case('MAXW')
           if(TwoHalf.eq.'N')then
-            if(matrix == 'Diff')then
+            for_difma:if(matrix == 'Diff')then
               if(kstab.eq.6)then !coefficients for MVAF 
                 ! print*,'!coefficients for MVAF'
                 !print*,'stabi',kstab
@@ -729,7 +745,7 @@ module library
                 end if
                 !close(10)
               endif
-            endif
+            endif for_difma
            
           elseif(TwoHalf.eq.'Y')then
             ! print*,'!INICIO  coefieicnete DIFMA caso 2.5D parte Real e Imaginario'
@@ -1408,21 +1424,21 @@ module library
       
       implicit none
       
-      double precision, dimension(nne,TotGp), intent(in) :: N, dN_dxi, dN_deta
-      double precision, dimension(nne,TotGp), intent(in) :: hes_xixi, hes_xieta, hes_etaeta
-      ! double precision,                       intent(in) :: k_y
-      double precision, dimension(ndofn)        :: EMsource
-      double precision, dimension(nne)          :: basis, xi_cor, yi_cor
-      double precision, dimension(DimPr,nne)    :: dN_dxy
-      double precision, dimension(3,nne)        :: HesXY
-      double precision, dimension(DimPr, dimPr) :: Jaco, Jinv
-      double precision, dimension(nevab, nevab) :: Ke, Ce
-      double precision, dimension(nevab)        :: Fe
-      double precision, dimension(3,3)          :: tauma
-      double precision, dimension(nne,DimPr)    :: element_nodes
-      integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ
-      integer                                   :: igaus, ibase, ielem, medium, iii, jjj
+      double precision, dimension(nne,TotGp),        intent(in)   :: N, dN_dxi, dN_deta
+      double precision, dimension(nne,TotGp),        intent(in)   :: hes_xixi, hes_xieta, hes_etaeta
+      ! double precision,                     intent(in)          :: k_y
+      double precision, dimension(ndofn)                          :: EMsource
+      double precision, dimension(nne)                            :: basis, xi_cor, yi_cor
+      double precision, dimension(DimPr,nne)                      :: dN_dxy
+      double precision, dimension(3,nne)                          :: HesXY
+      double precision, dimension(DimPr, dimPr)                   :: Jaco, Jinv
+      double precision, dimension(nevab, nevab)                   :: Ke, Ce
+      double precision, dimension(nevab)                          :: Fe
+      double precision, dimension(3,3)                            :: tauma
+      double precision, dimension(nne,DimPr)                      :: element_nodes
+      double precision                                            :: dvol, hmaxi, detJ
+      integer         , dimension(nne)                            :: nodeIDmap
+      integer                                                     :: igaus, ibase, ielem, medium, iii, jjj
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
       
       allocate(A_K(ldAKban,ntotv), A_C(ldAKban,ntotv), A_F(ntotv, 1))
@@ -1430,22 +1446,19 @@ module library
       A_K = 0.0; A_F = 0.0; A_C = 0.0
       
       elements: do ielem = 1, nelem 
-       
+        ! pause(1)
+        !sigma no se declara pues esta en PARAM como global
         medium = mesh_conductivity(ielem)
         if(medium.eq.300)then
           !Air Layer
-          sigma = 3.3333 !10D-5
+          sigma = 0.00000003
         elseif(medium.eq.100)then
           !Subsurface layer
-          sigma = 10. !1.4285
+          sigma = 0.1
         endif
         
-        !gather
-        Ke = 0.0    !Esto es amate
-        Fe = 0.0    !Fe(nevab)
-        Ce = 0.0    !elemental capacity matrix (not used in static case)
+        Ke = 0.0; Fe = 0.0; Ce = 0.0   
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
-        !do-loop: compute element stiffness matrix Ke
         
         gauss_points: do igaus = 1, TotGp
           call Jacobian( element_nodes, dN_dxi, dN_deta, igaus ,Jaco, detJ, Jinv)
@@ -1469,24 +1482,101 @@ module library
             call TauMat(hmaxi,tauma)
             call Stabilization(hmaxi, dvol, basis, dN_dxy, HesXY, EMsource, tauma, Ke, Fe)
           endif
-          
-          
         end do gauss_points
         
-        !write(*,'(A9,I0,A14,f15.5)') 'elemento ', ielem, ' conductividad', sigma
+        
+        !if(ielem.eq.469 )then
+        !  write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !  do iii=1,nevab
+        !    write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !  end do
+        !elseif(ielem.eq.471 )then
+        !  write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !  do iii=1,nevab
+        !    write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !  end do
+        !elseif(ielem.eq.472 )then
+        !  write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !  do iii=1,nevab
+        !    write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !  end do
+        !elseif(ielem.eq.1039)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
         !do iii=1,nevab
         !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
         !end do
-        !if(ielem.ge.178)pause(1)
-        !!stop
-        
+        !elseif(ielem.eq.1040)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.1738)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.3398)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.473 )then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.475 )then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.476 )then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.1037)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.1038)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.3399)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.5628)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !elseif(ielem.eq.6228)then
+        !write(*,'(A9,I0,A14,e15.5)') 'elemento ', ielem, ' conductividad', sigma
+        !do iii=1,nevab
+        !  write(*,"(9(e13.5 ))" )( Ce(iii,jjj) ,jjj=1,nevab)
+        !end do
+        !endif
+        !
+        !
         call Assemb_Glob_Mat(nodeIDmap, Ce, A_C)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Mat(nodeIDmap, Ke, A_K)     !Assemble Global Conductivity Matrix K
         call Assemb_Glob_Vec(nodeIDmap, Fe, A_F)     !Assemble Global Source vector F
         
       end do elements
-      !Por que hago el dealocate? no me acuerdo,REVISAR
-      deallocate(mesh_conductivity)
+      !Por que hago el dealocate? no me acuerdo,REVISAR--->Ya me acorde, creo que es para reiniciar a cada wavenumber nuevo
+      !Pero la conductividad es constante entre uno y otro wavenumber, asi que 
+      !creo que no necesito liberrar tras cada wavenumber
+      print*,'No se libera memoria'
+      ! pause(1)
+      !En resistividad, Si libero memoria para ky1 entonces funciona pero creo que TEM no, revisar y en caso
+      !necesario, hacer un if basado en PHYSICAL_PROBLEM
+      ! deallocate(mesh_conductivity)
+      ! pause(1)
 
       !aaa = maxval(coord(1,:))*2**(-i_exp) 
       !if(aaa.ne.hmaxi) write(*,'(A)') '> > >Element size does not match'
@@ -2025,7 +2115,6 @@ module library
       !double precision, dimension(ntotv, t_steps+1)            :: spectrum
       integer                              ,intent(in) :: indexx
       integer                                          :: ii, jj
-      
       id_file = files_ky(indexx)
       
       ! do ii = 1, S_ldSol
@@ -2044,8 +2133,7 @@ module library
       !  Êx3  Êx3  Êx3
       !  Êy3  Êy3  Êy3
       !  Êz3  Êz3  Êz3
-     
-      open(unit=200, file=path1//'spectrumE_field_'//id_file, ACTION="write", STATUS="replace")
+      open(unit=200, file=path1//spectrum_FileNames//'_'//id_file, ACTION="write", STATUS="replace")
       write(200,"(A)") '#Transformed Voltage (total variables, time steps)'
       do ii = 1, ntotv
         write(200,917) (spectrum(ii,jj), jj = 1, t_steps+1)
@@ -2066,11 +2154,12 @@ module library
       
       external                                        :: fdate 
       character(len=*), parameter                     :: path1 = "Res/Plots/Spectrums/"
-      character(len=*), parameter                     :: path2 = "Res/Plots/"
+      character(len=*), parameter                     :: path2 = "Res/Plots/Spatial/"
       double precision, parameter                     :: pi = 4*atan(1.d0)
       !Hacer una rutina que contenga los casos posibles de cantidad de numeros de onda a emplear
       !Que sean 10, 15, 20 
       character(len=8)                                :: id_file
+      character(len=4)                                :: ext3
       character(len=24)                               :: date
       character(len=180)                              :: msg
       double precision                                :: ky, delta_ky, dt, dky, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
@@ -2094,6 +2183,7 @@ module library
       ! Pausa durante 1 segundo (1,000,000 microsegundos)
       call usleep(1000000)
       
+      ext3 = ".dat"
       !Solo si el numero de onda actual es igual al numero total de numeros de onda, se 
       !ejecutara el siguiente algoritmo que realiza la Transformada Inversa de Fourier 
       !en los siguiente pasos:
@@ -2126,7 +2216,7 @@ module library
       
       reading_2D_results: do iwn = 1,tot_ky
         id_file = files_ky(iwn)
-        open(5,file=path1//'spectrumE_field_'//id_file, status='old',action='read',IOSTAT=stat, IOMSG=msg)
+        open(5,file=path1//spectrum_FileNames//'_'//id_file, status='old',action='read',IOSTAT=stat, IOMSG=msg)
         IF ( stat /= 0 )then
           print'(53A,I0)', 'ioStat for OPPENING 2D electric field spectrum files ', stat
           print*, msg
@@ -2156,12 +2246,15 @@ module library
       ! plot all the wavenumbers
       time_analized = t_steps-2
       
-      open(unit=300, file=path2//shape_spec_file, ACTION="write", STATUS="replace")
-      write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Ê-field vs ky   ', date
+      open(unit=300, file=path2//shape_spec_file//ext3, ACTION="write", STATUS="replace")
+      write(300,"(A,1x,A)") '%2D-CDR-EM Simulation: Transformed E-field vs ky   ', date
       if(ProbType=='TIME')then
         ! if(TwoHalf .eq. 'Y')then
         !Caso transitorio y 2.5D solo para un receptor
-        write(300,"(A13, I0)") '%Analysis at time= ', time_analized 
+        write(300,"(A21, f5.1,A,f5.1)") '%Receiver Position:  ',&
+        & coord(1,receivers(nodalRec)),',',coord(2,receivers(nodalRec))
+      print'(f7.3,A,f7.3)', coord(1,15),',',coord(2,15)
+        write(300,"(A13, I0)") '%Analysis at time step no = ', time_analized
         write(300,"(A18,6(A13,A5))") '%No            ky ',' ','ex_Re',' ','ey_Re',' ','ez_Re',&
         &                                                 ' ','ex_Im',' ','ey_Im',' ','ez_Im'
         ky_loop_time: do ll = 1,tot_ky
@@ -2254,17 +2347,19 @@ module library
       
       
       
-      !Impresion del archivo final del campo tridimensional sobre medio bidimensional
+      !Impresion del archivo final en el dominio espacial (x,y,z) del campo tridimensional sobre medio bidimensional 
       E_3D = 0.0
       i_WaveNum = 0
       if(ProbType == 'TIME')then
-        !Este N es para que en la siguiente llamada a la rutina GID_PostProcess, se deje de concatenar el nombre del archivo con ky_id y Se
-        !escriba un nuevo archivo tras la transformada inversa, este nombre de archivo se designa en el input file. 
+        !Este N es para que en la siguiente llamada a la rutina GID_PostProcess, se deje de concatenar el nombre 
+        !del archivo con ky_id y se escriba un nuevo archivo tras la transformada inversa. 
+        !Este nombre de archivo se designa en el input file. 
+        
         File_Nodal_Vals = File_3DNodal_Vals
         TwoHalf = 'N'           
         dt      = time_ini
         time_loop2: do ii =1,t_steps+1  
-          dt = dt + delta_t!,time_fin,delta_t
+          dt = dt + delta_t !,time_fin,delta_t
           nodes_loop2: do jj =1,nnodes
             totv = jj*ndofn
             DoF_loop2: do kk = idDoF,0,-1
@@ -2279,7 +2374,7 @@ module library
         !el nuevo vector de (ntotv,1)
         nodes_loop3: do jj =1,nnodes
           totv = jj*ndofn
-          DoF_loop3: do kk = idDoF,0,-1
+          DoF_loop3: do kk = idDoF,0,- 1
             E_3D(totv-kk,1) = E_xyzt(totv-kk,1)
           end do DoF_loop3
         end do nodes_loop3
@@ -2525,7 +2620,7 @@ module library
       double precision                                 :: ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
       double precision                                 :: P_Re, P_Im
       integer                                          :: ipoin, ii, ielem, inode, time2,id, RESconma
-      double precision, dimension(t_steps+1), intent(out) :: Ex_field
+      double precision, dimension(:), intent(out) :: Ex_field
       double precision :: x_profile
       
       !double precision :: delta_t, timeStep2
@@ -2586,7 +2681,7 @@ module library
         if(time == 0)then
           open(unit=200, file= fileplace//File_Nodal_Vals//ext2, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
-          write(200,"(A)") '#2D Convection-Diffusion-Reaction'
+          write(200,"(A, I0)") '#2D Convection-Diffusion-Reaction - Total time steps: ', t_steps
         else
           continue
         endif
@@ -2595,7 +2690,7 @@ module library
         ! se escribe el res de las componentes de la velocidad
         select case(ndofn)
           case(1)
-            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Scalar OnNodes'
+            write(200,"(A21, E15.6, A)") 'Result "E" "E-field" ', timeStep,' Scalar OnNodes'
             write(200,"(A)") 'ComponentNames "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ex '
@@ -2609,7 +2704,7 @@ module library
             !read (unit=10, fmt=*, iostat=iostat) (mat(pcnt,i),i=1,m)
             write(200,"(A)") 'End Values'
           case(2)
-            write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+            write(200,"(A21, E15.6, A)") 'Result "E" "E-field" ', timeStep,' Vector OnNodes'
             write(200,"(A)") 'ComponentNames "u" "v" "--" "" '
             write(200,"(A)") 'Values'
             write(200,*) '#',   'No    ','             ex ','               ey '
@@ -2620,7 +2715,7 @@ module library
           case(3)
             RESconma = sum(sum(conma, DIM=1))
             if(RESconma == 0)then
-              write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+              write(200,"(A21, E15.6, A)") 'Result "E" "E-field" ', timeStep,' Vector OnNodes'
               write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
               write(200,"(A)") 'Values'
               write(200,*) '#No      ','             ex ','               ey','               ez'
@@ -2631,7 +2726,7 @@ module library
               write(200,"(A)") 'End Values'
               
             else
-              write(200,"(A21, I0, A)") 'Result "E" "E-field" ', time,' Vector OnNodes'
+              write(200,"(A21, E15.6, A)") 'Result "E" "E-field" ', timeStep,' Vector OnNodes'
               write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
               write(200,"(A)") 'Values'
               write(200,*) '#',   'No    ','             ex ','               ey'
@@ -2642,7 +2737,7 @@ module library
                 write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
               end do
               write(200,"(A)") 'End Values'
-              write(200,"(A24, I0, A)") 'Result "P" "Multiplier" ', time,' Scalar OnNodes'
+              write(200,"(A24, E15.6, A)") 'Result "P" "Multiplier" ', timeStep,' Scalar OnNodes'
               write(200,"(A)") 'ComponentNames "" '
               write(200,"(A)") 'Values'
               write(200,*) '#',   'No    ','     P '
@@ -2656,7 +2751,7 @@ module library
             end if
           case(8)
               !Real and Imaginary part for the 2.5-D model problem
-              write(200,"(A45, I0, A)") 'Result {Electric Field//Real} "Transient EM" ', time, ' Vector OnNodes '
+              write(200,"(A45, E15.6, A)") 'Result {Electric Field//Real} "Transient EM" ', timeStep, ' Vector OnNodes '
               write(200,"(A)") 'ComponentNames "Ex_Re" "Ey_Re" "Ez_Re" '
               write(200,"(A)") 'Values'
               write(200,"(A4,4(A13,A5))") '#No  ', ' ', 'ex_Re', ' ', 'ey_Re', ' ', 'ez_Re'
@@ -2667,7 +2762,7 @@ module library
                 write(200,920) ipoin, ex_Re, ey_Re, ez_Re
               end do
               write(200,"(A)") 'End Values'
-              write(200,"(A50, I0, A)") 'Result {Electric Field//Imaginary} "Transient EM" ', time, ' Vector OnNodes '
+              write(200,"(A50, E15.6, A)") 'Result {Electric Field//Imaginary} "Transient EM" ', timeStep, ' Vector OnNodes '
               write(200,"(A)") 'ComponentNames "Ex_Im" "Ey_Im" "Ez_Im" '
               write(200,"(A)") 'Values'
               write(200,"(A4,4(A13,A5))") '#No  ', ' ', 'ex_Im', ' ', 'ey_Im', ' ', 'ez_Im'
@@ -2678,7 +2773,7 @@ module library
                 write(200,920) ipoin, ex_Im, ey_Im, ez_Im
               end do
               write(200,"(A)") 'End Values'
-              write(200,"(A41, I0, A)") 'Result {Multiplier//Real} "Transient EM" ', time, ' Scalar OnNodes'
+              write(200,"(A41, E15.6, A)") 'Result {Multiplier//Real} "Transient EM" ', timeStep, ' Scalar OnNodes'
               write(200,"(A)") ""
               write(200,"(A)") 'Values'
               write(200,"(A5,3(A13,A4))") '#No  ',' ', 'P_Re'
@@ -2689,7 +2784,7 @@ module library
                 ! ii=ii+1
               end do
               write(200,"(A)") 'End Values'
-              write(200,"(A46, I0, A)") 'Result {Multiplier//Imaginary} "Transient EM" ', time, ' Scalar OnNodes'
+              write(200,"(A46, E15.6, A)") 'Result {Multiplier//Imaginary} "Transient EM" ', timeStep, ' Scalar OnNodes'
               write(200,"(A)") ""
               write(200,"(A)") 'Values'
               write(200,"(A5,3(A13,A4))")  '#No  ',' ', 'P_Im'
@@ -2713,54 +2808,65 @@ module library
         ! endif
         
         
-      elseif(activity == "profile")then
+      elseif(activity == "time_profile")then
         
-        if(TwoHalf.eq.'Y' .and. ky_id.eq.'_k03')then
-          ex_Re = Sol_T(1,(ndofn*receivers(1))-7)
-          ey_Re = Sol_T(1,(ndofn*receivers(1))-6)
-          ez_Re = Sol_T(1,(ndofn*receivers(1))-5)
-          P_Re  = Sol_T(1,(ndofn*receivers(1))-4)
-          ex_Im = Sol_T(1,(ndofn*receivers(1))-3)
-          ey_Im = Sol_T(1,(ndofn*receivers(1))-2)
-          ez_Im = Sol_T(1,(ndofn*receivers(1))-1)
-          P_Im  = Sol_T(1,(ndofn*receivers(1))-0)
-          
-          Ex_field = 0.0 
-          if(time == 0)then
-            call fdate(date) 
-            open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
-            write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
-            write(300,"(A)") ' '
-            write(300,"(A, A)") '% - - - - - - - In wavenumber' , ky_id
+        if((PHYSICAL_PROBLEM.eq."Electric_Field_Excited_By_A_Double_Line_Source").or.&
+        & (PHYSICAL_PROBLEM.eq."Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution").or.&
+        (PHYSICAL_PROBLEM.eq."Transient_Electromagnetic_in_2.5-D"))then
+         
+          if(TwoHalf.eq.'Y' .and. ky_id.eq.'_k03')then
+            ex_Re = Sol_T(1,(ndofn*receivers(1))-7)
+            ey_Re = Sol_T(1,(ndofn*receivers(1))-6)
+            ez_Re = Sol_T(1,(ndofn*receivers(1))-5)
+            P_Re  = Sol_T(1,(ndofn*receivers(1))-4)
+            ex_Im = Sol_T(1,(ndofn*receivers(1))-3)
+            ey_Im = Sol_T(1,(ndofn*receivers(1))-2)
+            ez_Im = Sol_T(1,(ndofn*receivers(1))-1)
+            P_Im  = Sol_T(1,(ndofn*receivers(1))-0)
+            
+            Ex_field = 0.0 
             if(time == 0)then
-              write(300,"(A17,6(A12,A5))") '% nt    TimeStep ',' ','ex_Re',' ',&
-                &'ey_Re',' ','ez_Re',' ','ex_Im',' ','ey_Im',' ','ez_Im'
+              call fdate(date) 
+              open(unit=300, file=fileplace2//time_profile_name//ext3, ACTION="write", STATUS="replace")
+              write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
+              write(300,"(A)") ' '
+              write(300,"(A, A)") '% - - - - - - - In wavenumber' , ky_id
+              if(time == 0)then
+                write(300,"(A17,6(A12,A5))") '% nt    TimeStep ',' ','ex_Re',' ',&
+                  &'ey_Re',' ','ez_Re',' ','ex_Im',' ','ey_Im',' ','ez_Im'
+              endif
+            else
+              continue
             endif
-          else
-            continue
+            open(unit=300,file=fileplace2//time_profile_name//ext3, ACTION="write",STATUS="old",position="append")
+            write(300,904) time, timeStep, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
+          elseif(TwoHalf.eq.'N')then
+            ky_id = ' '
+            Ex_field = 0.0 
+            if(time == 0)then
+              call fdate(date) 
+              open(unit=300, file=fileplace2//time_profile_name//ext3, ACTION="write", STATUS="replace")
+              write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time (no 2.5D)  ', date
+              write(300,"(A)") ' '
+              write(300,"(A)") '% - - - - - - - Component ex'
+              write(300,"(A21, f5.1,A,f5.1)") '%Receiver Position:  ',&
+              & coord(1,receivers(nodalRec)),',',coord(2,receivers(nodalRec))
+              write(300,"(A)") ' '
+              if(time == 0) write(300,"(A,A)") '% time     timeStep        E-field,', ky_id
+            else
+              continue
+            endif
+            open(unit=300,file=fileplace2//time_profile_name//ext3, ACTION="write",STATUS="old",position="append")
+            
+            ! Aquii haria falta las lineas para el perfil en tiempo de la parte real e imaginaria como en la impresion
+            ! de resultados
+            write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin)-2)), ipoin=1,nodalRec)
           endif
-          open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
-          write(300,904) time, timeStep, ex_Re, ey_Re, ez_Re, ex_Im, ey_Im, ez_Im
         else
-          Ex_field = 0.0 
-          if(time == 0)then
-            call fdate(date) 
-            open(unit=300, file=fileplace2//profile_name//ext3, ACTION="write", STATUS="replace")
-            write(300,"(A,1x,A)") '%2dCDREM simulation: E-field vs time   ', date
-            write(300,"(A)") ' '
-            write(300,"(A)") '% - - - - - - - Component ex'
-            if(time == 0) write(300,"(A)") '% time     timeStep        E-field,', ky_id
-          else
-            continue
-          endif
-          open(unit=300,file=fileplace2//profile_name//ext3, ACTION="write",STATUS="old",position="append")
+          continue
           
-          ! Aquii haria falta las lineas para el perfil en tiempo de la parte real e imaginaria como en la impresion
-          ! de resultados
-          ! print*,'the receiver is on node', ndofn*receivers(1) 
-          write(300,904) time, timeStep, (Sol_T(1,(ndofn*receivers(ipoin))), ipoin=1,nodalRec)
         endif
-          
+        
        elseif(activity == "spatial")then
          !id_poin = 113
          !open(unit=10, file= fileplace3//"Id_spatial_profile.dat", ACTION="write", STATUS="replace")
@@ -2855,7 +2961,7 @@ module library
       double precision    :: check1, check2, check3, check4, check5
       double precision    :: check6, check7, check8, check9, check10
       
-      check1=((t_steps/20)*100)/t_steps
+      check1=((t_steps/12)*100)/t_steps
       check2=((t_steps/8)*100)/t_steps
       check3=((t_steps/3)*100)/t_steps
       check4=((t_steps/2.2)*100)/t_steps
@@ -2940,13 +3046,23 @@ module library
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
       double precision                          :: dvol, hmaxi, detJ!, delta_t
-      integer                                   :: igaus, ibase, ielem
+      integer                                   :: igaus, ibase, ielem, medium
       double precision, allocatable, dimension(:,:), intent(out)  :: A_M
       
       allocate( A_M(ntotv, 1) )
       
       A_M = 0.0
+      !fALTA AGREGAR AQUI LA CONDUCTIVIDAD PARA QUE CONCUERDE CON gLOBALsYSTEM
       do ielem = 1, nelem 
+        
+        medium = mesh_conductivity(ielem)
+        if(medium.eq.300)then
+          !Air Layer
+          sigma = 0.00000003 
+        elseif(medium.eq.100)then
+          !Subsurface layer
+          sigma = 0.1 
+        endif
        
         Ke = 0.0; Ce = 0.0; Fe = 0.0; Mu_time = 0.0 
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
