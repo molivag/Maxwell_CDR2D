@@ -45,7 +45,7 @@ module timeInt
       double precision, parameter                                      :: pi = 4*atan(1.d0)
       ! double precision, intent(in)          :: tEz             !correspond to nt 
       ! integer         , intent(in)          :: time            !correspond to time 
-      double precision                                                 :: sigma, S, x1,y1,x2,y2,x,y
+      double precision                                                 :: S, x1,y1,x2,y2,x,y
       double precision                                                 :: Curr_x,Curr_y, angle_loop
       double precision                                                 :: facto, theta2, rho1, rho2, exp1, exp2
       double precision                                                 :: Ez_r_x, Ez_r_y
@@ -58,7 +58,6 @@ module timeInt
       
       
       t0 = time_ini !este es el tiempo inicial dado en input file
-      ! t = 0
       
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
@@ -70,6 +69,7 @@ module timeInt
             print*, '- No initial Condition defined, source term gonna be used'
           endif
           continue
+          E0 = 0.0
           
         case(1) !Double Line:  eq. (17) of paper by Zhang & Liu (2021)
           if(i_WaveNum ==0 .or. i_WaveNum==1)then
@@ -80,7 +80,6 @@ module timeInt
           E0 = 0.0 
           mu = 1.0/lambda
           angle_loop = 90.0
-          sigma = 0.01
           x1 = coord(1,Srcloc(1))
           y1 = coord(2,Srcloc(1))
           x2 = coord(1,Srcloc(2))
@@ -141,19 +140,12 @@ module timeInt
         end select
       
       ! call Efield_WholeSpace(t,t0, E0)
-      ! do itotv=1,ntotv
-        ! Uinit(itotv,1) = E0(itotv)
-      ! enddo
+      !do itotv=1,ntotv
+      !  ! Uinit(itotv,1) = E0(itotv)
+      !  print*,E0(itotv,1)
+      !enddo
+      !stop
       ! call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
-      
-      
-      
-      
-      
-      
-      
-      
-      
       
       
       
@@ -164,10 +156,6 @@ module timeInt
       
       
       
-      
-      
-      return
-      stop 
     end subroutine Initial_Condition
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -176,19 +164,26 @@ module timeInt
       !si esto es una sola variable de salida, puede quedar como una funcion
       
       implicit none
-      integer, intent(in)                               ::  i_WaveNum
-      integer                                           :: tw, t
+      integer, intent(in)                               :: i_WaveNum
+      integer                                           :: t
       double precision, dimension(t_steps)              :: u
       double precision, dimension(t_steps), intent(out) :: shapeTime
       
-      u  = 0.0
-      tw = 1 !time*width how strong the impulse is must be grather or equal to t_steps
+      ! u  = 6.6
+      ! twindow = 3 !time*width how strong the impulse is must be grather or equal to t_steps
       ! t  = 0
       
       select case(signal)
+        case(0)
+          if(i_WaveNum ==0 .or. i_WaveNum==1)then
+            print*, '- No transient waveform'
+            print*, '* * *'
+          endif
+          u = 1.0
+          
         case(1) !step-on (for test is a continuous turned on signal)
           if(i_WaveNum ==0 .or. i_WaveNum==1)then
-            print*, '- Step-on source waveform turned on till end of simulation'
+            print*, '- Step-on source waveform turned on at twindow'
             print*, '* * *'
           endif
           
@@ -197,26 +192,26 @@ module timeInt
           ! The fields then converge towards the DC value over time.
           
           do t = 1, t_steps
-            if(t.ge.tw)then
-              u(t) = 1.0
-            !elseif(t.gt.10*tw)then!.and.t.le.2*tw)then
-            !  u(t) = 0.0
-            !elseif(t.gt.2*tw)then
-            ! u(t) = 1.0
+            if(t.lt.twindow)then!Fuente apagada, campo igual a 0 everywhere
+              u(t) = 0.0
+            elseif(t.ge.twindow.and.t.le.4*twindow)then !se prende en t=twindow y dura prendida hasta t=3tw 
+              u(t) = 1.0   !8
+            elseif(t.gt.4*twindow)then! este seria si se volviera a prender
+              u(t) = 0.0  
             endif
           end do
         case(2) !step off
           if(i_WaveNum ==0 .or. i_WaveNum==1)then
-            print*, '- Step-off source waveform selected'
+            print'(A)', '- Step-off waveform selected turn off at twindow: '
             print*, ' '
           endif
           do t = 1, t_steps
-            if(t.le.tw)then
-              u(t) = 1.0
-            elseif(t.gt.tw.and.t.le.2*tw)then
-              u(t) = 0.0
-            elseif(t.gt.2*tw)then
-              u(t) = 0.0
+            if(t.le.twindow)then
+              u(t) = 1.0 !Se apaga
+            elseif(t.gt.twindow.and.t.le.2*twindow)then
+              u(t) = 0.0 !Se mantiene apagada
+            elseif(t.gt.2*twindow)then
+              u(t) = 0.0 !Se deberia volver a prender y mantener prendida hasta otro if
             endif
           end do
         case(3) !triangular
@@ -226,10 +221,10 @@ module timeInt
             print*, ' '
           endif
           do t = 1, t_steps
-            if(t.le.tw)then
-              u(t) = 1.0/tw * t
-            elseif(tw.lt.t.and.t.lt.2*tw)then
-              u(t) = 1. - 1./tw * (t-tw)
+            if(t.le.twindow)then
+              u(t) = 1.0/twindow * t
+            elseif(twindow.lt.t.and.t.lt.2*twindow)then
+              u(t) = 1. - 1./twindow * (t-twindow)
             else
              u(t) = 0.0
             endif
@@ -240,6 +235,9 @@ module timeInt
       end select
       shapeTime = u 
       
+      ! print*, shapeTime
+      !stop
+      !
     end subroutine ShapeTimeSignal
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -288,7 +286,7 @@ module timeInt
       allocate( LHS(ldAKban,ntotv))
       ! allocate(lhs_BDF2(ldAKban,ntotv))
       
-      if(i_WaveNum.gt.1)allocate(mesh_conductivity(nelem))
+      ! if(i_WaveNum.gt.2)allocate(mesh_conductivity(nelem))
       call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
       !allocate( RHS(ntotv,1), Jsource(ntotv,1), F_plus_MU(ntotv,1), rhs_BDF2(ntotv,1), u_init(ntotv,1) )
       !----- Setting MKL-Solver Parammeters -----!
@@ -313,7 +311,7 @@ module timeInt
       !Aqui deberia aplicar las condiciones de frontera para el U-inicial?
       ! call ApplyBVs(nofix,ifpre,presc,dummy,Uinit)
       deallocate(dummy)
-      u_pre  = u_init                                          !u in present time 
+      u_pre = u_init
       
       
       
@@ -334,16 +332,15 @@ module timeInt
       
       call GID_PostProcess(i_WaveNum, 1,u_pre, 'msh'    , time, nt, time_fin, Ex_field)
       call GID_PostProcess(i_WaveNum, 1,u_pre, 'res'    , time, nt, time_fin, Ex_field)
-      call GID_PostProcess(i_WaveNum, 1,u_pre, 'profile', time, nt, time_fin, Ex_field)
+      call GID_PostProcess(i_WaveNum, 1,u_pre, 'time_profile', time, nt, time_fin, Ex_field)
       ! call storeSpectrum('TIME',u_fut, time)
+      
       write(*,*) ' '
       if(i_WaveNum == 0)then
         print*, '- Progress. . . . .'
       else
         if(i_WaveNum ==1) print*, 'Starting time integration for all wavenumbers. . . . .'
       endif
-      ! print 100,' time step:',time,'  = ',time_ini,' is the value of u by the initial condiction'
-     
       select case(theta)
         !-------- 1st-order Backward Difference 
         case(2) 
@@ -359,22 +356,29 @@ module timeInt
           endif
           !do while(ttt < time_fin)
           time_stepping: do time = 1, t_steps
+           
             nt = nt + delta_t!,time_fin,delta_t
             !time = time+1
             
             call prevTime(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,S_ldsol,u_pre,Mu_pre)
             LHS  = (A_C + delta_t*A_K)
             call currDensity(i_WaveNum, Jsource,time,shapeTime(time)) 
+            
             if(oper == 'MAXW')then
               if( (TwoHalf=='Y'.or.TwoHalf=='N') .and. initCond.eq.0)then
                 !si se trata de un problema 2.5D sin condicion inicial, entonces usa esto:'
+                print*, 'Sin condicion inicial'
                 RHS = (Mu_pre - delta_t*Jsource)
               elseif((TwoHalf=='Y'.or.TwoHalf=='N') .and. initCond.ne.0)then
                 !si se trata de un problema 2.5D con condicion inicial, entonces Jsource=0 y se usa esto:'
+                print*, 'Con condicion inicial'
                 RHS = (Mu_pre )
               endif
             else
-              RHS = (delta_t*A_F + Mu_pre)
+              ! print*,'Aqui entra'
+              RHS = (Mu_pre )
+              ! RHS = (Mu_pre - delta_t*Jsource)
+              ! RHS = (delta_t*A_F + Mu_pre - delta_t*Jsource)
             endif
             ! RHS = ( Mu_pre - delta_t*Jsource )
             call ApplyBVs(nofix,ifpre,presc,LHS,RHS)
@@ -392,7 +396,7 @@ module timeInt
             call infoTime(time)
             ! print'(I0, 1x, e15.5)',time, nt
             call GID_PostProcess(i_WaveNum,1,u_fut, 'res'    , time, nt, time_fin, Ex_field)
-            call GID_PostProcess(i_WaveNum,1, u_fut, 'profile', time, nt, time_fin, Ex_field)
+            call GID_PostProcess(i_WaveNum,1, u_fut, 'time_profile', time, nt, time_fin, Ex_field)
             ! call GID_PostProcess(1, u_fut, 'spatial', time, nt, time_fin, Ex_field)
             
             !---------- Updating Variables ---------------------! 
@@ -404,6 +408,8 @@ module timeInt
                 store_Spec(ii,time+1) = u_pre(ii,1) 
               end do
               call storeSpectrum(i_WaveNum, store_Spec)
+            elseif(TwoHalf .eq. 'N')then
+              if(time.eq.t_steps)call spatialProfile_BubbleSort(u_fut)
             end if
             
           end do time_stepping
