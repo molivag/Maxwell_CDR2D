@@ -188,44 +188,59 @@ module sourceTerm
       allocate(Jsource(ntotv,1))
       Jsource = 0.0
       mu = 1./lambda
-      !print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
       
       ! select case(SRCType)
       ! case(0)
       ! Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
       if(present(eTime).and.present(time))then
-          do inode=1,nodalSrc 
-            !# # # # # # source: Time derivative of Density Current
-            if(time.eq.1.and.inode.eq.1.and.(i_WaveNum==0).and.(i_WaveNum==1))then
-              print*,'J type source'
-            endif
-            Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-            ! if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-            !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+          !* * * * * FUENTE CASO TRANSITORIO * * * * *!
+          if(TwoHalf.eq.'N')then
             
-           
-          !  !# # # # # # source: Magnetic Moment
-          !  if(time.eq.1.and.inode.eq.1)then
-          !    ! print*,time
-          !    print*,'M type source'
-          !  endif
-          !  theta_loop= 90.0
-          !  S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
-          !  theta_loop=theta_loop*pi/180. ! theta=-30 deg
-          !  Mr=Icurr(1)*S 
-          !  Mx=Mr*sin(theta_loop)
-          !  My=Mr*cos(theta_loop)
-          !  Curr_x= Mx/S
-          !  Curr_y= My/S
-          !  Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
-          !  if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
-          end do
+            do inode=1,nodalSrc 
+              ! print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
+              !  !# # # # # # source: Time derivative of Density Current
+              !  if(time.eq.1.and.inode.eq.1.and.((i_WaveNum==0).or.(i_WaveNum==1)))then
+              !    print*,'J type source'
+              !  endif
+              !  
+              !  !Esta Jsource es para ndfon=3 y solo componente Jx
+              !  Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+              !  ! if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+              !  !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+              
+              !# # # # # # source: Magnetic Moment
+              if(time.eq.1.and.inode.eq.1)then
+                ! print*,time
+                print*,'Magnetic moment source type'
+                print*, ' '
+              endif
+              theta_loop= 90.0
+              S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
+              theta_loop=theta_loop*pi/180. ! theta=-30 deg
+              Mr=Icurr(1)*S 
+              Mx=Mr*sin(theta_loop)
+              My=Mr*cos(theta_loop)
+              Curr_x= Mx/S
+              Curr_y= My/S
+              Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
+              if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+            end do
+            
+          elseif(TwoHalf.eq.'Y')then
+            if(ndofn.eq.8)continue
+            do inode=1,nodalSrc 
+              Jsource((srcLoc(inode))*ndofn-7,1) = -Icurr(1)*eTime  ! Jx_Re
+              Jsource((srcLoc(inode))*ndofn-3,1) = -Icurr(1)*eTime  ! Jx_Im
+            enddo
+            
+          endif
       else 
+        !* * * * * FUENTE CASO ESTATICO * * * * *!
         if(BCsProb.eq.5)then
+          !cavity Driven Flow case
           continue
         else
           ! if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
-          if((ndofn.eq.1).or.(ndofn.eq.3))then
             if(ndofn.eq.1)then 
               do ii=1,nodalSrc
               ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
@@ -242,7 +257,6 @@ module sourceTerm
               Jsource((srcLoc(ii))*ndofn-0,1) = Icurr(3)
               end do
             endif
-          end if
         endif
         !FIN fuente para el caso de corriente directa
       endif 
