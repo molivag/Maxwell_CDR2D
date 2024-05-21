@@ -10,16 +10,15 @@ module library
     ! 
     subroutine ReadFile(NumRows, NumCols, condition, condition_value)
       
-      integer :: i, j, stat1, stat2
-      integer, intent(in)            :: NumRows, NumCols
-      character(len=*), parameter    :: fileplace = "./"
-      character (len=9)              :: FileName1, FileName2
-      character(len=180) :: msg
-      integer, dimension(NumRows,NumCols-ndofn), intent (out) :: condition
-      double precision, dimension(NumRows,ndofn),intent (out) :: condition_value
+      character(len=*), parameter                                      :: fileplace = "./"
+      integer                                           , intent(in)   :: NumRows, NumCols
+      character(len=9)                                                 :: FileName1, FileName2
+      character(len=180)                                               :: msg
+      integer                                                          :: i, j, stat1, stat2
+      integer         , dimension(NumRows,NumCols-ndofn), intent (out) :: condition
+      double precision, dimension(NumRows,ndofn)        , intent (out) :: condition_value
       
-      FileName1 ='ifpre.dat' 
-      FileName2 ='BoVal.dat'
+      FileName1 ='ifpre.dat' ;      FileName2 ='BoVal.dat'
       
       open(unit=10,file=fileplace//FileName1, status='old', action='read', iostat=stat1, iomsg=msg)
       open(unit=20,file=fileplace//FileName2, status='old', action='read', iostat=stat2, iomsg=msg)
@@ -34,7 +33,6 @@ module library
       else
         continue
       end if
-      
       read(20,*,iostat=stat2,iomsg=msg) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
       if (stat2.ne.0) then
         print "(A38,I2)", "- Status while reading BoVal file is: ", stat2
@@ -43,7 +41,6 @@ module library
       else
         continue
       end if
-      
       
       close (10)
       close (20)
@@ -203,7 +200,7 @@ module library
           elcod(jdime,inode) = element_nodes(inode, jdime)
         end do
       end do
-     
+
       do inode = 1,nne
         derst(1,inode) = dN_dxi(inode,Gp) 
         derst(2,inode) = dN_deta(inode,Gp) 
@@ -211,7 +208,6 @@ module library
       !print*," " 
       !print"(A8, 9(1x,f9.5))","dN_dxi: ", (derst(1,inode), inode=1,nne)
       !print"(A9, 9(1x,f9.5))","dN_deta: ", (derst(2,inode), inode=1,nne)
-     
       ! Jacobian Matrix
       do idime=1,2
         do jdime=1,2
@@ -318,7 +314,7 @@ module library
       Hes_1 = spread(Hes_xixi(:,Gp),dim = 1, ncopies= 1)
       Hes_2 = spread(Hes_xieta(:,Gp),dim = 1, ncopies= 1)
       Hes_3 = spread(Hes_etaeta(:,Gp),dim = 1, ncopies= 1)
-     
+
       do inode = 1, nne
         Hesxieta(1,inode) = Hes_1(1,inode)
         Hesxieta(2,inode) = Hes_2(1,inode)
@@ -336,9 +332,8 @@ module library
           end do
         end do
       end do
-      
-      
-      !The Hessian matrix
+
+     !The Hessian matrix
       HesXY = 0.0
       do inode=1,nne
         HesXY(1,inode) = InvJaco(1,1)*InvJaco(1,1)*Hesxieta(1,inode)+&
@@ -525,11 +520,10 @@ module library
     function elemSize(InvJacobian)
       
       implicit none
-     
       double precision, dimension(DimPr,DimPr), intent(in) :: InvJacobian
       double precision :: hx, hy, elemSize
-     ! hx    = sqrt(xjaci(1,1)**2+xjaci(2,1)**2)
-     ! hy    = sqrt(xjaci(1,2)**2+xjaci(2,2)**2)
+      ! hx    = sqrt(xjaci(1,1)**2+xjaci(2,1)**2)
+      ! hy    = sqrt(xjaci(1,2)**2+xjaci(2,2)**2)
       
       hx    = sqrt(InvJacobian(1,1)**2+InvJacobian(2,1)**2)
       hy    = sqrt(InvJacobian(1,2)**2+InvJacobian(2,2)**2)
@@ -537,7 +531,6 @@ module library
       elemSize = hnatu/(min(hx,hy))     !hnatu = Reference element length en mod_param
       
       return
-      
     end function elemsize
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
@@ -564,8 +557,10 @@ module library
               diff=0.0
               x_difma_loop: do i=1,2
                 z_difma_loop: do j=1,2   
-                  !write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,e12.5)")&
-                  !&'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+                  
+                  ! write(*,"(A6,I2,A,I2,A,I2,A,I2,A3,f7.2)")&
+                  ! &'difma(',idofn,',',jdofn,',',i,',',j,') = ',difma(idofn,jdofn,i,j)
+
                   call param_stab('Diff', idofn, jdofn, i, j, hmaxi, coef)
                   ! print"(A8, e12.4)",'Product ', coef * difma(idofn,jdofn,i,j)
                   diff = diff + dNdxy(i,inode) * coef * difma(idofn,jdofn,i,j)* dNdxy(j,jnode)
@@ -574,11 +569,13 @@ module library
                   !print*, ' '
                 end do z_difma_loop
               end do x_difma_loop
+              
               convec=0.0
               conma_loop: do i=1,2
-                ! write(*,"(A6,I2,A,I2,A,I2,A,e12.5)") 'conma(',idofn,',',jdofn,',',i,') = ',conma(idofn,jdofn,i)
+                ! write(*,"(A6,I2,A,I2,A,I2,A,f7.2)") 'conma(',idofn,',',jdofn,',',i,') = ',conma(idofn,jdofn,i)
                 !print*,conma(idofn,jdofn,i)
                 call param_stab('Conv', idofn, jdofn, i, j, hmaxi, coef)
+                ! print*,coef
                 convec = convec + basis(inode) * conma(idofn,jdofn,i) * dNdxy(i,jnode)
                 ! convec = convec + basis(inode) * coef *  conma(idofn,jdofn,i) * dNdxy(i,jnode)
               end do conma_loop
@@ -602,11 +599,15 @@ module library
                 reac = basis(inode) * reama(idofn,jdofn) * basis(jnode)
               endif twoHalfProblem
               
+              ! write(*,"(A6,I2,A,I2,A,f7.2)") 'conma(',idofn,',',jdofn,') = ',reama(idofn,jdofn)
               cpcty = sigma * (basis(inode) * basis(jnode) )
               
               !elemental (local) Mass (conductivity) and Stiffnes (diffusivity) matrix
               Ke(ievab,jevab) = Ke(ievab,jevab) + (diff + convec + reac) * dvol
+              ! write(*,"(A6,I2,A,I2,A,f7.2)") 'Ke(',idofn,',',jdofn,') = ',Ke(ievab,jevab)
               Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol     !element Capacity (Mass) matrix
+              ! write(*,"(A6,I2,A,I2,A,f7.2)") 'ce(',idofn,',',jdofn,') = ',ce(ievab,jevab)
+              
             end do
           end do
           ! elemental (local) rhs vector
@@ -652,7 +653,7 @@ module library
       iota = lambda * k_y**2
       psi  = beta * k_y**2 
       chi  = alfa * k_y**2
-     
+
       select case(oper)
         case('LAPL')
           !no estoy seguroi que estos if asi, sea lo mismo que hacer primero el if de ndofn
@@ -689,7 +690,7 @@ module library
                       !print'(A9,F10.5)', 'elem_size_h  : ', elem_size_h
                       !print'(A2,e12.5)','Su', coeff
                     end if
-                   
+
                     if(i==2 .and. j==2)then                      !difma(1,1,2,2)
                       coeff = lambda
                       !print'(A2,e12.5)','λ ', coeff
@@ -1363,7 +1364,7 @@ module library
             do j=1,nBVs
               nofix(j)   = condition(j,1)
               ifpre(i,j) = condition(j,i+1) !El llenado de ifpre sera por grado de libertad
-              presc(i,j) = Bvs(j,1)
+              presc(i,j) = Bvs(j,i)
             end do
           end do
           
@@ -2673,7 +2674,7 @@ module library
         write(100,"(A)") 'End Elements'
         close(100)
         if(i_WaveNum==0 .or. i_WaveNum==1)then
-          print"(A11,A,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ '
+          print"(A11,A,A30)", ' Mesh file ',File_Nodal_Vals//ext1, 'written succesfully in Pos/ L2676'
         endif
        
       elseif(activity == "res")then
