@@ -82,15 +82,17 @@ module param
       !PHYSICAL_PROBLEM_OPTIONS(5), PHYSICAL_PROBLEM_OPTIONS(6),
       !
       !
-      read(5, 100,iostat=stat,iomsg=msg) &
-      ProbType,totGp,exacSol, srcRHS, BCsProb, postpro, sigma
+      do ii =1, 9
+        read(5, *) !Salto de lineas iniciales
+      end do
       do ii =1, 6
         read(5, *,iostat=stat,iomsg=msg) PHYSICAL_PROBLEM_OPTIONS(ii)
       end do
       do ii =1, 6
         print'(A)', PHYSICAL_PROBLEM_OPTIONS(ii)
       end do
-      
+      read(5, 100,iostat=stat,iomsg=msg) &
+      ProbType,totGp,exacSol, srcRHS, BCsProb, postpro, sigma
       read(5, 98,iostat=stat,iomsg=msg) &
       mesh_file, view ,initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, &
@@ -100,7 +102,7 @@ module param
       testID, File_Nodal_Vals, error_name, coord_name, conec_name,&
       time_profile_name, spatial_profile_name
       call checkStatus(0,stat,msg)
-      
+
       ! Iterar sobre las cadenas de caracteres y procesarlas
       do ii = 1, 6
           ! Buscar el carácter '>'
@@ -122,12 +124,13 @@ module param
           
         case ('Cavity_Driven_Flow')
           ! Código para el segundo problema
-          oper  = 'LAPL'
           mesh_file = 'Stokes_Flow.msh'
-          TwoHalf = 'N'
-          BCsProb = 5
-          ndofn = 3
-          kstab = 3     !0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
+          oper      = 'LAPL'
+          TwoHalf   = 'N'
+          BCsProb   = 5
+          ndofn     = 3
+          kstab     = 3     !0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
+          
           
         case ('Direct_Current_Electrical_Resistivity_in_2.5-D')
           ! Código para el tercer problema
@@ -273,7 +276,7 @@ module param
         k_y    = 1.0
       endif
       != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-     
+
       !delta_t  = time_ini
       !time_fin = 20*delta_t
       
@@ -328,13 +331,13 @@ module param
       !&
       !
       !
-      100 format(7/ ,11x, A4,/, 5(11x,I5,/), 11x,F15.7,/,                           3/)   !model parameters
-      98 format(6/,11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
+      100 format(5/ ,11x, A4,/, 5(11x,I5,/), 11x,F15.7,/,                           2/)   !model parameters
+      98 format(11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 2(11x,F15.5,/),                       2/,&  !stabi
       &          2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,2/, 2(11x,A,/),        2/,&  !Fourier Transform
       &          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                             2/,&  !time
       &          11x,A,/, 6(11x,A,/),                                               1/ )  !output files
-     
+
       !**Format for 1Dof tensors
       101 format(1/,F12.5,7/)
       !**Format for 2Dof tensors
@@ -366,9 +369,9 @@ module param
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     ! 
     subroutine SearchingNodes(file_mesh, recLoc, node_found_it)
-    ! subroutine SearchingNodes(recLoc, node_found_it)
+      ! subroutine SearchingNodes(recLoc, node_found_it)
       implicit none
-    
+
       character(len=*), parameter :: fileplace = "Msh/"
       integer         , parameter :: max_nodos = 10000
       character(len=:), allocatable, intent(in) :: file_mesh
@@ -381,7 +384,7 @@ module param
       integer                         :: nodo_mas_cercano
       integer                         :: i, ireceiver, num_nodos, stat
       double precision, dimension(nodalRec), intent(out) :: node_found_it
-    
+
       ! Leer el archivo de coordenadas (coor.dat)
       open(1, file=fileplace//file_mesh, status='old', action='read',IOSTAT=stat, IOMSG=msg)
       ! open(unit=1, file='coor.dat', status='old', action='read')
@@ -404,7 +407,7 @@ module param
 
       endif
       close(1)
-    
+
       loop_receiver: do ireceiver =1, nodalRec
         ! Leer las coordenadas a buscar
         ! write(*,*) "Ingrese la coordenada x:"
@@ -413,7 +416,7 @@ module param
         ! write(*,*) "Ingrese la coordenada y:"
         ! read(*,*) y = recLoc(2, ireceiver)
         y = recLoc(2, ireceiver)
-       
+
         ! Inicializar la distancia mínima
         distancia_minima = sqrt((x - coord_x(1))**2 + (y - coord_y(1))**2)
         nodo_mas_cercano = nodo(1)
