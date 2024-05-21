@@ -3,15 +3,6 @@
 ! Input data file                                         !                       nxE = 0       on  ∂Ω
 !                                  MAOG    Bcn, Dic. 2021 ! with:
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
- 
-# > > > > > > > Model Parameters
-ProbType = STAT           !Problem type TIME=transient, other=static
-totGp    = 3              !1,4,9 for Q, 1,3,7 for P
-exacSol  = 3              !0=None;   1=SinglrSol  ; 2=FullSpace; 3=Algebraic; 4=Double Line
-srcRHS   = 0              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
-BCsProb  = 2              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow; 6=Resistivity; 7=Douible-Line
-postpro  = 2              !Execution of post-processing routine 1=yes, 2=no 
-sigma    = 1.0            !Conductivity of the medium
 
 $********************************************************************************
 PHYSICAL_PROBLEM
@@ -26,9 +17,18 @@ $-------------------------------------------------------------------------------
 END_PHYSICAL_PROBLEM
 $*********************************************************************************
 
+# > > > > > > > Model Parameters
+ProbType = STAT           !Problem type TIME=transient, other=static
+totGp    = 3              !1,4,9 for Q, 1,3,7 for P
+exacSol  = 3              !0=None;   1=SinglrSol  ; 2=FullSpace; 3=Algebraic; 4=Double Line
+srcRHS   = 0              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
+BCsProb  = 2              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow; 6=Resistivity; 7=Douible-Line
+postpro  = 2              !Execution of post-processing routine 1=yes, 2=no 
+sigma    = 1.0            !Conductivity of the medium
+
 #***************Geometry
 #---------!File .msh that contains the mesh
-meshfile = TEM_VMD_ground_air.msh  
+meshfile = 02gmsh_EM.msh 
 view     = xy             !The 2D view x-y (distance) or x-z (depth)
 nne      = 3              !Nodes per element Q:4-9; P:3-6
 i_exp    = 0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
@@ -74,7 +74,7 @@ s_profi  = xx
 
 # > > > > > > > Source Configuration
 #electric Current Vectror
-10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 #Location
 nodalSrc = 2            !Number of nodes will contain the source
