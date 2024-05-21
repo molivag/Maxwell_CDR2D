@@ -254,7 +254,7 @@ module E0field
               E_field_exac(ndofn*inode-0,1) = ez
             end do
               !write(*,'(I5, e15.5, 3(E14.6))') i-1, t(i), E_field_exac( 
-              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
+              call GID_PostProcess(0,2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
               ii = ii+1.0
           end do
            
@@ -319,7 +319,7 @@ module E0field
               ez = -(mu*SrcCurr/4.0*sigma*t(i)) * ( exp(aa*theta**2) + exp(bb*theta**2) )
               E_field_exac(ndofn*inode-2,1) = ez
             end do
-              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
+              call GID_PostProcess(0,2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
               ii = ii+1.0
           end do
          
