@@ -1,12 +1,10 @@
 module sourceTerm
- use param 
- use tensor_inputs 
- use geometry
- !use library, only: WaveNumbers pasar wavenumber a mod_param pues se usa en varios lados
- ! use library, only: WaveNumbers
-
+  use param 
+  use tensor_inputs 
+  use geometry
+  !use library, only: WaveNumbers pasar wavenumber a mod_param pues se usa en varios lados
+  ! use library, only: WaveNumbers
   contains
-    
     
     subroutine source_term(ielem, basis, xi_cor, yi_cor, EMsource)
       implicit none
@@ -37,7 +35,7 @@ module sourceTerm
       end do
       
       select case(srcRHS)
-       
+
         case(0)
           if(ndofn.eq.1)then
             EMsource(1) = force(1)
@@ -151,7 +149,7 @@ module sourceTerm
         !    EMsource = 0.0
         !  endif
         !end do
-       
+
         ! - - Segunda opcion
         !EMsource = Icurr *dirac(xi_cor - xq)*dirac(yi_cor - yq)
         !print*, EMsource
@@ -166,22 +164,21 @@ module sourceTerm
       
       implicit none
       
-      double precision, parameter   :: pi = 4*atan(1.d0)
+      double precision, parameter            :: pi = 4*atan(1.d0)
       double precision, intent(in), optional :: eTime
       integer         , intent(in), optional :: time
       integer         , intent(in)           :: i_WaveNum
-      integer                       :: tw, inode, ii
-      double precision              :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S, mu
+      integer                                :: tw, inode, ii
+      double precision                       :: Curr_x, Curr_y, Mr, Mx, My, theta_loop, S, mu
       
       !declaracion para electric dipole in fullspace
-      double precision, dimension(ntotv, 1) :: E_field_full_space
+      ! double precision, dimension(ntotv, 1) :: E_field_full_space
       ! Declaración de una variable compleja de precisión doble
-      complex(kind=16), dimension(ntotv, 1) :: E_hat_y
-      complex(kind=16)                     :: inum
-      double precision     :: x, y, z
-      double precision     :: SrcCurr,ds, sigma, nt, arg, r_vec, spi, theta, aa, bb, cc, ee
-      double precision     :: dy,ex,ey,ez
-      integer              :: n,i,j,k
+      complex(kind=16), dimension(ntotv, 1)  :: E_hat_y
+      ! double precision                       :: x, y, z
+      double precision                       :: SrcCurr,ds, sigma, nt, arg, r_vec, spi, theta!, aa, bb, cc, ee
+      double precision                       :: dy,ex,ey,ez
+      integer                                :: n,i,j,k
 
       double precision, allocatable, dimension(:,:), intent(out)  :: Jsource
       
@@ -191,26 +188,14 @@ module sourceTerm
       
       ! select case(SRCType)
       ! case(0)
-      ! Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
-      if(present(eTime).and.present(time))then
-          !* * * * * FUENTE CASO TRANSITORIO * * * * *!
-          if(TwoHalf.eq.'N')then
-            
+      
+      if(present(eTime).and.present(time))then !* * * * * FUENTE CASO TRANSITORIO * * * * *!
+        
+        if(TwoHalf.eq.'N')then! * * * * * FUENTE CASO 2.5D * * * * * !
+          
+          if(PHYSICAL_PROBLEM =='Electric_Field_Excited_By_A_Double_Line_Source')then
             do inode=1,nodalSrc 
-              ! print"(A,I0,A3,f5.3)", 'u(',time,')= ', etime 
-              !  !# # # # # # source: Time derivative of Density Current
-              !  if(time.eq.1.and.inode.eq.1.and.((i_WaveNum==0).or.(i_WaveNum==1)))then
-              !    print*,'J type source'
-              !  endif
-              !  
-              !  !Esta Jsource es para ndfon=3 y solo componente Jx
-              !  Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-              !  ! if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
-              !  !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
-              
-              !# # # # # # source: Magnetic Moment
               if(time.eq.1.and.inode.eq.1)then
-                ! print*,time
                 print*,'Magnetic moment source type'
                 print*, ' '
               endif
@@ -225,99 +210,51 @@ module sourceTerm
               Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
               if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
             end do
+           
+          else! Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution
             
-          elseif(TwoHalf.eq.'Y')then
-            if(ndofn.eq.8)continue
             do inode=1,nodalSrc 
-              Jsource((srcLoc(inode))*ndofn-7,1) = -Icurr(1)*eTime  ! Jx_Re
-              Jsource((srcLoc(inode))*ndofn-3,1) = -Icurr(1)*eTime  ! Jx_Im
-            enddo
-            
+               if(time.eq.1.and.inode.eq.1.and.((i_WaveNum==0).or.(i_WaveNum==1)))then
+                 print*,'J type source'
+               endif
+               
+              !Esta Jsource es para ndfon=3 y solo componente Jx
+              Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+              ! if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -Icurr(1)*eTime
+              !if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+2,1) = -Icurr(2)*eTime
+            end do
           endif
-      else 
-        !* * * * * FUENTE CASO ESTATICO * * * * *!
-        if(BCsProb.eq.5)then
+          
+        elseif(TwoHalf.eq.'Y')then! Transient_Electromagnetic_in_2.5-D
+          do inode=1,nodalSrc 
+            Jsource((srcLoc(inode))*ndofn-7,1) = -Icurr(1)*eTime  ! Jx_Re
+            Jsource((srcLoc(inode))*ndofn-3,1) = -Icurr(1)*eTime  ! Jx_Im
+          enddo
+        endif
+        
+      else !* * * * * FUENTE CASO ESTATICO * * * * *!
+        
+        if(PHYSICAL_PROBLEM =='Cavity_Driven_Flow')then
           !cavity Driven Flow case
           continue
-        else
-          ! if(((ndofn.eq.1).or.(ndofn.eq.3)).and.((exacSol.eq.5).or.(exacSol.eq.2)))then
-            if(ndofn.eq.1)then 
-              do ii=1,nodalSrc
-              ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
-              !print*,Icurr
+        else!   Direct_Current_Electrical_Resistivity_in_2.5-D
+          ! Applying the source term for DC simulation  j = I*δ(x-x0)δ(y-y0)*δ(z-z0)
+          if(ndofn.eq.1)then 
+            do ii=1,nodalSrc
               ! Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)/2.0  !Transformada coseno Queralt et al. 1989
               Jsource((srcLoc(ii))*ndofn,1) = Icurr(1)        !Transformada coseno y completa 
-              end do
-            else !
-              print*,'Vector problem'
-              do ii=1,nodalSrc
-              ! if(ii.eq.2)Icurr(1) = -1.0*Icurr(1)
+            end do
+          else! Maxwell_In_Non_Convex_Domain
+            do ii=1,nodalSrc
               Jsource((srcLoc(ii))*ndofn-2,1) = Icurr(1)
-              Jsource((srcLoc(ii))*ndofn-1,1) = Icurr(2)
-              Jsource((srcLoc(ii))*ndofn-0,1) = Icurr(3)
-              end do
-            endif
+              Jsource((srcLoc(ii))*ndofn-1,1) = Icurr(1)
+              Jsource((srcLoc(ii))*ndofn-0,1) = Icurr(1)
+            end do
+          endif
+         
         endif
-        !FIN fuente para el caso de corriente directa
+
       endif 
-          
-      ! case(2)
-      !    
-      !    !La fuente es de la forma J(x,y,z,t) = sigma(x,z)*E(x,y,z,t) 
-      !    ! where:
-      !    ! E(x,y,z,t) is defined by eq. (2.50) of Nabighian 1988 EM Methods (p. 175).
-      !    ! Electric Dipole in a full space
-      !    
-      !    !----Begin Comput Electric Dipole in a full-space
-      !    ! I*ds = dipole moment, is set to I*ds=1
-      !    SrcCurr  =  Icurr(1)
-      !    ds       =  1.0
-      !    sigma    =  1.0
-      !    nt  = time_ini
-      !    arg = 0.0; aa = 0.0; bb = 0.0; cc = 0.0; ee  = 0.0
-      !    ex  = 0.0; ey = 0.0; ez = 0.0
-      !    E_field_full_space = 0.0 
-      !    spi = sqrt(pi)
-      !    
-      !    ! if(time==1)print'(A)', ' -Source term ---> Electric Dipole in full-space'
-      !    ! call WaveNumbers(1.0d-7,4.0d-2,10,ky); k_y = ky(idk_y)
-      !    ! k_y=1.0d-5
-      !    do inode = 1, nnodes  
-      !      x = coord(1,inode)
-      !      y = 1.0 !duda, cual es la popsicion de la fuente en y  
-      !      z = coord(2,inode)
-      !      
-      !      r_vec = sqrt(x*x+y*y+z*z)
-      !      cc    = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
-      !      theta = sqrt(mu*sigma/(4.0*time))
-      !      aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
-      !      arg   = -theta**2*r_vec**2
-      !      ee    = erfc(theta*r_vec)
-      !      aa    = aa*exp(arg)+3.0*ee
-      !      bb    = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
-      !      bb    = bb*exp(arg)+ee
-      !      
-      !      ! geometry term
-      !      ex    = cc * (aa*x**2/r_vec**2 - bb)
-      !      ey    = cc * aa*x*y/r_vec**2
-      !      ez    = cc * aa*x*z/r_vec**2
-      !      ! write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
-      !      E_field_full_space(ndofn*inode-2,1) = ex
-      !      E_field_full_space(ndofn*inode-1,1) = ey
-      !      E_field_full_space(ndofn*inode  ,1) = ez
-      !    end do
-      !    !----End Compute Electric Dipole in a full-space
-      !    ! # # # # # # source: sigma*E
-      !    do inode = 1, nnodes
-      !      Jsource(ndofn*inode-2,1) = 1.0 * E_field_full_space(ndofn*inode-2,1)
-      !      Jsource(ndofn*inode-1,1) = 1.0 * E_hat_y(ndofn*inode-1,1) 
-      !      Jsource(ndofn*inode  ,1) = 1.0 * E_field_full_space(ndofn*inode  ,1)
-      !    end do
-      !    
-      !  ! case default
-      !  !   write(*,'(A)') 'No geophysical source type defined on currDensity'
-      ! end select 
-      
       
     end subroutine   
     !          
@@ -364,8 +301,59 @@ module sourceTerm
     !          
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =                              
     !          
-    
-    
+    !    !La fuente es de la forma J(x,y,z,t) = sigma(x,z)*E(x,y,z,t) 
+    !    ! where:
+    !    ! E(x,y,z,t) is defined by eq. (2.50) of Nabighian 1988 EM Methods (p. 175).
+    !    ! Electric Dipole in a full space
+    !    
+    !    !----Begin Comput Electric Dipole in a full-space
+    !    ! I*ds = dipole moment, is set to I*ds=1
+    !    SrcCurr  =  Icurr(1)
+    !    ds       =  1.0
+    !    sigma    =  1.0
+    !    nt  = time_ini
+    !    arg = 0.0; aa = 0.0; bb = 0.0; cc = 0.0; ee  = 0.0
+    !    ex  = 0.0; ey = 0.0; ez = 0.0
+    !    E_field_full_space = 0.0 
+    !    spi = sqrt(pi)
+    !    
+    !    ! if(time==1)print'(A)', ' -Source term ---> Electric Dipole in full-space'
+    !    ! call WaveNumbers(1.0d-7,4.0d-2,10,ky); k_y = ky(idk_y)
+    !    ! k_y=1.0d-5
+    !    do inode = 1, nnodes  
+    !      x = coord(1,inode)
+    !      y = 1.0 !duda, cual es la popsicion de la fuente en y  
+    !      z = coord(2,inode)
+    !      
+    !      r_vec = sqrt(x*x+y*y+z*z)
+    !      cc    = SrcCurr*ds/(4.0*pi*sigma*r_vec**3)
+    !      theta = sqrt(mu*sigma/(4.0*time))
+    !      aa    = 4.0/spi*theta**3*r_vec**3 + 6.0/spi*theta*r_vec
+    !      arg   = -theta**2*r_vec**2
+    !      ee    = erfc(theta*r_vec)
+    !      aa    = aa*exp(arg)+3.0*ee
+    !      bb    = 4.0/spi*theta**3*r_vec**3 + 2.0/spi*theta*r_vec
+    !      bb    = bb*exp(arg)+ee
+    !      
+    !      ! geometry term
+    !      ex    = cc * (aa*x**2/r_vec**2 - bb)
+    !      ey    = cc * aa*x*y/r_vec**2
+    !      ez    = cc * aa*x*z/r_vec**2
+    !      ! write(*,'(2x,I5,1x,3(e15.6))') inode, ex, ey, ez 
+    !      E_field_full_space(ndofn*inode-2,1) = ex
+    !      E_field_full_space(ndofn*inode-1,1) = ey
+    !      E_field_full_space(ndofn*inode  ,1) = ez
+    !    end do
+    !    !----End Compute Electric Dipole in a full-space
+    !    ! # # # # # # source: sigma*E
+    !    do inode = 1, nnodes
+    !      Jsource(ndofn*inode-2,1) = 1.0 * E_field_full_space(ndofn*inode-2,1)
+    !      Jsource(ndofn*inode-1,1) = 1.0 * E_hat_y(ndofn*inode-1,1) 
+    !      Jsource(ndofn*inode  ,1) = 1.0 * E_field_full_space(ndofn*inode  ,1)
+    !    end do
+    !    
+    !  ! case default
+    !  !   write(*,'(A)') 'No geophysical source type defined on currDensity'
     
 end module sourceTerm
 
