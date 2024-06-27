@@ -13,7 +13,6 @@ module inputInfo
       character(len=*), parameter :: fileplace = "Info/"
       character(len=:), allocatable, intent(in)     :: geometry_File
       character(len=19)           :: name_inputFile
-      character(len=5)            :: file_name 
       character(len=24)           :: date
       character(len=4)            :: aaaa, cccc
       character(len=9)            :: Prob_Type
@@ -76,7 +75,8 @@ module inputInfo
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
       write(*,"(A29,3X,f11.4,1X,A10)") ' - Characteristic mesh size : ', helem,' '
       write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Length reference element : ', hnatu        ,' '
-      write(*,"(A30,6X,f9.5 ,1X,A10)") ' - Model condutivity (σ)    : ', sigma        ,' ' 
+      write(*,"(A30,4X,e12.2 ,1X,A10)") ' - Air condutivity (σ)      : ', sigma1        ,' ' 
+      write(*,"(A30,4X,e12.2 ,1X,A10)") ' - Medium condutivity (σ)   : ', sigma2        ,' ' 
       
       if(refiType.eq.'NO')then
         write(*,"(A30,2x,A7,3X,A10)") ' - Refinement type          : ','  NONE',' '
@@ -235,9 +235,8 @@ module inputInfo
       endif
       write(*,'(A)') 
       
-      file_name ="test_"
-      open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
-      
+      open(unit=100,file= fileplace//testID//'.txt', ACTION="write", STATUS="replace")
+
       if(refiType.eq.'NO')then
         bbbb = '    NONE'
       elseif(refiType.eq.'PS')then
@@ -250,12 +249,12 @@ module inputInfo
       
       write(100,'(A)')'- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
       write(100,'(A)')
-      write(100,'(A8,1x,A14)') 'test ID: ',testID
+      ! write(100,'(A8,1x,A14)') 'test ID: ',testID
       write(100,'(A)') " "
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
       write(100,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(100,"(A30,2x,a12  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(100,"(A30,2x,A  ,3X,A1 )")   ' - Mesh File                : ', geometry_File,''
       write(100,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(100,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', initelem,'   '
@@ -265,7 +264,8 @@ module inputInfo
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
       write(100,"(A29,3X,f11.4,1X,A10)") ' - Element size             : ', helem,' '
-      write(100,"(A30,6X,f9.5 ,1X,A10)") ' - Model condutivity (σ)    : ', sigma        ,' ' 
+      write(100,"(A30,4X,e12.2 ,1X,A10)") ' - Air condutivity (σ)      : ', sigma1        ,' ' 
+      write(100,"(A30,4X,e12.2 ,1X,A10)") ' - Medium condutivity (σ)   : ', sigma2        ,' ' 
       if(refiType.eq.'NO')then
         write(100,"(A30,2x,a7 ,3X,A10)") ' - Refinement type          : ', '  NONE',' '
         write(100,'(A)')
