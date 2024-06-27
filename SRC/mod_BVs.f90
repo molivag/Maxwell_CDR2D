@@ -4,7 +4,7 @@ module BoundVal
 
   contains
     
-    subroutine SetBoundVal( nBVs, nBVscol )
+    subroutine SetBoundVal( boundaryPoints, dataColumns )
       !========================================================================
       !Esta subroutina revisa todos los nodos de la malla y define el tipo de Dof de
       !los nodos en la frontera. Abre un archivo en donde comenzara a escribir, 
@@ -24,7 +24,7 @@ module BoundVal
       double precision     :: x, y, xmin, xmax, ymin, ymax, xmiddle, ymiddle
       double precision     :: ux, uy, exRe, eyRe, ezRe, exIm, eyIm, ezIm, pRe, pIm 
       double precision     :: aa, cc
-      integer, intent(out) :: nBVs, nBVscol
+      integer, intent(out) :: boundaryPoints, dataColumns
       
       
       open(unit=200, file=fileplace//'ifpre.dat',Status= 'replace', action= 'write',iostat=ierror)
@@ -99,7 +99,7 @@ module BoundVal
                 d = d+1
                
               end if
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
              
             end do
             
@@ -143,12 +143,12 @@ module BoundVal
                 d = d+1
                
               end if
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
              
             end do
             
         endselect
-        nBVscol = 3
+        dataColumns = 3
         
         
       elseif(ndofn .eq. 2) then
@@ -190,15 +190,15 @@ module BoundVal
            
           end if
           
-          nBVs = a+b+c+d+e
+          boundaryPoints = a+b+c+d+e
          
         end do
-        nBVs = nBVs/2
-        nBVscol = 5
+        boundaryPoints = nBVs/2
+        dataColumns = 5
         
       elseif(ndofn .eq. 3)then
         select case(BCsProb)
-          case(1)       !Singular Solution
+          case(1)       !---------------------------------------------> Singular Solution
             aa = (2.0/3.0)*n_val
             cc = (n_val/3.0) - (1.0/2.0)
             do i = 1, nnodes
@@ -225,10 +225,6 @@ module BoundVal
                   write(300,20)   ux, uy, 0.0                        !Top boundary
                 end if
                 
-                !if(x.eq.xmiddle)then
-                !  write(200,10) i, 1, 1, 1
-                !  write(300,20)   1.0, 0.0, 0.0                     !middle top preasure boundary
-                !end if
                 a = a+3
                 
               else if(y.eq.ymin)then
@@ -257,7 +253,7 @@ module BoundVal
                   uy = aa*(1.0+y**2)**cc *cos(aa*datan(y))  
                   write(200,10) i, 0, 1, 1                           !Right boundary
                   write(300,20)   ux, uy, 0.0
-                  
+                 
                 elseif(y.eq.ymiddle)then
                   ux = 0.0 
                   uy = aa*(1.0 )**cc
@@ -284,7 +280,7 @@ module BoundVal
                   write(200,10) i, 0, 1, 1                     !central vertical boundary (x=0)
                   write(300,20)   ux, uy, 0.0
                 end if
-                e = e+3
+                e = e+2
                
               else if(y.eq.ymiddle)then
                 if(x .gt. xmiddle)then
@@ -292,14 +288,14 @@ module BoundVal
                   write(200,10) i, 1, 0, 1
                   write(300,20)   ux, uy, 0.0                 !horizontal boundary at the middle
                 end if
-               
-                f = f+3
+                
+                f = f+1
               end if
               
-              nBVs = a+b+c+d+e+f
+              boundaryPoints = a+b+c+d+e+f
             end do
-            nBVs = nBVs/3
-            nBVscol = 7 
+            boundaryPoints = nBVs/3
+            dataColumns = 7 
             
           case(2)               !Maxwell Problem nxE = 0 
             print*,'Maxwel BVs'
@@ -317,12 +313,12 @@ module BoundVal
                   write(200,10) i, 1, 1, 1
                   write(300,20)   ux, uy, 0.0
                   a = a+1
-               else                                    !Upper Border
+                else                                    !Upper Border
                   write(200,10) i,  1, 0, 1  
                   write(300,20)   ux, uy, 0.0
                   a = a+1
                 end if
-                
+               
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then                     !left bottom corner  
                   write(200,10) i, 1, 1, 1
@@ -348,9 +344,9 @@ module BoundVal
                 d = d+1
               end if
               
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
             end do
-            nBVscol = 7 
+            dataColumns = 7 
             
           case(3)              !Maxwelll manufacture solution
             do i = 1, nnodes
@@ -414,9 +410,9 @@ module BoundVal
                 d = d+1
               end if
               
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
             end do
-            nBVscol = 7 
+            dataColumns = 7 
             
           case(4)       !Stokes manufacture solution
             do i = 1, nnodes
@@ -480,9 +476,9 @@ module BoundVal
                 d = d+1
               end if
               
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
             end do
-            nBVscol = 7 
+            dataColumns = 7 
             
           case(5)       !Cavitty Driven Flow/Stokes
             print*,'Cavitty Driven Flow Boundary Conditions'
@@ -545,9 +541,9 @@ module BoundVal
                 d = d+1
               end if
               
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
             end do
-            nBVscol = 7 
+            dataColumns = 7 
             
             
             
@@ -578,12 +574,12 @@ module BoundVal
                   write(200,11) i,  1,    1,    1,    1,  1,    1,    1,    1
                   write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm 
                   a = a+1
-               else                                    !Upper Border
+                else                                    !Upper Border
                   write(200,11) i, 1,    0,    0,    1,   1,    0,    0,    1
                   write(300,21)   exRe, eyRe, ezRe, pRe, exIm, eyIm, ezIm,  pIm  
                   a = a+1
                 end if
-                
+               
               else if(y.eq.ymin)then
                 if(x.eq.xmin)then                     !left bottom corner  
                   write(200,11) i,  1,    1,    1,    1,    1,    1,   1,   1
@@ -609,9 +605,9 @@ module BoundVal
                 d = d+1
               end if
               
-              nBVs = a+b+c+d
+              boundaryPoints = a+b+c+d
             end do
-            nBVscol = 17 
+            dataColumns = 17 
        
       else
         print*,"- Degrees of Freedom exceeded while setting Boundary COnditions"
@@ -626,17 +622,14 @@ module BoundVal
       
       !print*, 'Num. of Boundary nodes', nBVS 
       
-      
-     
       10 format(I6,2x,3(1x,I2))
       11 format(I6,2x,9(1x,I2))
       20 format(3(e15.7,2x))
       21 format(9(e15.7,2x))
       30 format(f12.5)
       40 format(2(f12.5,2x))
-      
+     
     end subroutine SetBoundVal 
-   
     
     
   !end contains 
