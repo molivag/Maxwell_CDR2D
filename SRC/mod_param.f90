@@ -2,38 +2,30 @@ module param
   
   implicit none
 
-  integer, parameter :: max_filename_length = 256
-  double precision   :: viscocity = 0.5
-  double precision   :: lambda = 1.0/1.256637061D-6 
-  integer, parameter :: DimPr = 2
-  ! character(len=20) :: shape_spec_file
-  ! character(len=14) :: testID
-  ! character(len=12) :: File_Nodal_Vals, error_name, coord_name, conec_name, time_profile_name, mesh_file
-  ! character(len=12) :: File_3DNodal_Vals
-  
+  integer         , parameter    :: max_filename_length = 256
+  integer         , parameter    :: DimPr = 2
+  double precision, parameter    :: viscocity = 0.5
+  double precision, parameter    :: lambda = 1.0/1.256637061D-6 
+  character(len=4)               :: ProbType, ElemType, initElemType, ky_id, oper
+  character(len=2)               :: refiType, splits, TwoHalf, view
   character(len=:), allocatable  :: shape_spec_file, testID, File_Nodal_Vals, error_name, coord_name
   character(len=:), allocatable  :: conec_name, time_profile_name, mesh_file, spatial_profile_name,spectrum_FileNames
   character(len=:), allocatable  :: File_3DNodal_Vals, File_Nodal_Vals_ky, PHYSICAL_PROBLEM
-  
-  
-  character(len=4)  :: ProbType, ElemType, initElemType, ky_id, oper
-  character(len=2)  :: refiType, splits, TwoHalf, view
-  integer           :: nBVs, nBVscol, nband, t_steps, exacSol, BCsProb
-  integer           :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
-  integer           :: initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, twindow
-  integer           :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
-  integer           :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS, initCond
-  real              :: hnatu, patau
-  double precision  :: Cu, ell, helem, n_val, time_ini, time_fin, delta_t
-  double precision  :: ky_min, ky_max, y_iFT,  k_y, sigma
+  character(len=8), allocatable, dimension(:) :: files_ky        
+  character(len=4), allocatable, dimension(:) :: nodal_ky 
+  character(len=99),allocatable, dimension(:) :: PHYSICAL_PROBLEM_OPTIONS 
+  integer                        :: nBVs, nBVscol, t_steps, exacSol, BCsProb
+  integer                        :: upban, lowban, totban, ldAKban  !variables defined in GlobalSystem
+  integer                        :: initnne, nne, ndofn, totGp, kstab, ktaum, maxband, theta, twindow
+  integer                        :: nelem, nnodes, nevab, ntotv, initnevab, initntotv, initNodes, initElem, tot_ky, idk_y
+  integer                        :: i_exp, nodalSrc, nodalRec, postpro, signal, srcType, srcRHS, initCond
+  real                           :: hnatu, patau
+  double precision               :: Cu, ell, helem, n_val, time_ini, time_fin, delta_t
+  double precision               :: ky_min, ky_max, y_iFT,  k_y, sigma1, sigma2
+  double precision  , allocatable, dimension(:)       :: Icurr, WaveNumbers !Force and Current vector (respectively)
   double precision  , allocatable, dimension(:,:)     :: ngaus, weigp
-
   double precision  , allocatable, dimension(:,:)     :: coord 
   integer           , allocatable, dimension(:,:)     :: lnods
-  double precision  , allocatable, dimension(:)       :: Icurr, WaveNumbers !Force and Current vector (respectively)
-  character(len=8)  , allocatable, dimension(:)       :: files_ky        
-  character(len=4)  , allocatable, dimension(:)       :: nodal_ky 
-  character(len=99) , allocatable, dimension(:)       :: PHYSICAL_PROBLEM_OPTIONS 
   integer           , allocatable, dimension(:)       :: receivers, srcLoc, mesh_conductivity
 
   contains
@@ -92,7 +84,7 @@ module param
         print'(A)', PHYSICAL_PROBLEM_OPTIONS(ii)
       end do
       read(5, 100,iostat=stat,iomsg=msg) &
-      ProbType,totGp,exacSol, srcRHS, BCsProb, postpro, sigma
+      ProbType,totGp,exacSol, srcRHS, BCsProb, postpro, sigma1, sigma2
       read(5, 98,iostat=stat,iomsg=msg) &
       mesh_file, view ,initnne, i_exp, hnatu, refiType,&
       kstab, ktaum, patau, n_val, helem, Cu, ell, &
@@ -149,7 +141,7 @@ module param
           oper  = 'LAPL'
           mesh_file = 'Double_Line_2_EM.msh'
           ! nodalSrc = 2
-          ! srcLoc = (/116, 119 /)
+          ! srcLoc = (/116, 119 /) !Hasta que no acomode Icur no puedo usar estas opciones
           TwoHalf = 'N'
           ndofn = 1
           BCsProb = 7
@@ -286,7 +278,6 @@ module param
       
       
       
-      
       ! delta_t = (time_fin - time_ini)/t_steps
       
       !print*, 'delta_t', delta_t
@@ -331,8 +322,8 @@ module param
       !&
       !
       !
-      100 format(5/ ,11x, A4,/, 5(11x,I5,/), 11x,F15.7,/,                           2/)   !model parameters
-      98 format(11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&  !geometry
+      100 format(5/ ,11x, A4,/, 5(11x,I5,/), 2(11x,E15.7,/),                        2/)   !model parameters
+      98 format(11x,A,/, 11x,A2,/, 2(11x,I7,/), 11x,F7.2,/, 11x,A2,/,            2/,&     !geometry
       &          2(11x,I5,/), 3(11x,F10.5,/), 2(11x,F15.5,/),                       2/,&  !stabi
       &          2(11x,e12.5,/), 11x,I3,/,11x,A,/, 11x,F10.3,2/, 2(11x,A,/),        2/,&  !Fourier Transform
       &          11x,I1,/, 2(11x,e14.7,/), 4(11x,I5,/),                             2/,&  !time
