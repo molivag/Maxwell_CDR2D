@@ -7,8 +7,8 @@
 $********************************************************************************
 PHYSICAL_PROBLEM
 $----------------------------------------------------------------------------------
-  Maxwell_In_Non_Convex_Domain
- >Cavity_Driven_Flow
+ >Maxwell_In_Non_Convex_Domain
+  Cavity_Driven_Flow
   Direct_Current_Electrical_Resistivity_in_2.5-D
   Electric_Field_Excited_By_A_Double_Line_Source
   Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution
@@ -21,28 +21,29 @@ $*******************************************************************************
 ProbType = STAT           !Problem type TIME=transient, other=static
 totGp    = 3              !1,4,9 for Q, 1,3,7 for P
 exacSol  = 3              !0=None;   1=SinglrSol  ; 2=FullSpace; 3=Algebraic; 4=Double Line
-srcRHS   = 0              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
-BCsProb  = 2              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow; 6=Resistivity; 7=Douible-Line
+srcRHS   = 1              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
+BCsProb  = 1              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow; 6=Resistivity; 7=Douible-Line
 postpro  = 2              !Execution of post-processing routine 1=yes, 2=no 
-sigma    = 1.0            !Conductivity of the medium
+sigma1   = 1.0E+0         !Conductivity of medium 1
+sigma2   = 1.0E+0         !Conductivity of medium 2
 
 #***************Geometry
 #---------!File .msh that contains the mesh
-meshfile = 02gmsh_EM.msh 
+meshfile = SingularSolution.msh
 view     = xy             !The 2D view x-y (distance) or x-z (depth)
-nne      = 3              !Nodes per element Q:4-9; P:3-6
-i_exp    = 0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
+nne      = 4              !Nodes per element Q:4-9; P:3-6
+i_exp    = 3              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 1.0            !Reference element length
-refiType = NO             !NONE; PS=Powell-Sabin; CC=Criss-Cross
+refiType = CC             !NONE; PS=Powell-Sabin; CC=Criss-Cross
 
 # > > > > > > > Stabilization
-kstab    = 0              !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
+kstab    = 6              !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
 ktaum    = 1              !Tau matrix: 0, 1, 2 
 patau    = 2.0            !Parameter to obtain tau
-n_val    = 0.0            !n parameter in exact solution, for simul=1
+n_val    = 1.0            !n parameter in exact solution, for simul=1
 helem    = 1.0            !Characteristic mesh size (maximum element size among the mesh)
-Cu       = 500.0           !Algorithmic constant
-ell      = 1000.0          !Constante de longitud  
+Cu       = 5.0            !Algorithmic constant
+ell      = 1.0            !Constante de longitud  
 
 # > > > > > > > Fourier Transform     
 ky_min   = 1.0e-3         !Smallest wave number
@@ -58,28 +59,27 @@ File_iFT = Real_and_Imaginary_TEM_in_3D
 theta    = 2              !BDF1=2 ;CN=3; BDF2=4
 time_ini = 1.42000e-8     !Starting time simulation (simulation always starts at 0?)
 time_fin = 6.12800e-2     !Total time simulated in [s]  --> 1800 microseconds
-t_steps  = 300            !Number of time steps
+t_steps  = 200            !Number of time steps
 twindow  = 20             !Time window in waveform signal--> ON->small, OFF->large
-signal   = 0              !Source waveform: 0=None; 1=step-on; 2=step-off; 3=triangular
-initCond = 1              !Initial Condition: 0=None; 1=Double-Line; 2=VMD
+signal   = 1              !Source waveform: 0=None; 1=step-on; 2=step-off; 3=triangular
+initCond = 0              !Initial Condition: 0=None; 1=Double-Line; 2=VMD
 
 # > > > > > > > Name outPut Files
-testID   = data_3D2D_TEM_test_05
-postpro  = CavityDrivenFlow 
+testID   = data_Singular_sol
+postpro  = Maxwell_Singular_Sol_test_01
 Error    = xxxxxxxx@xxx
 Cordina  = xxxxxxxxxxxx
 Conecti  = xxxxxxxxxxxx
-t_profi  = xx
-s_profi  = xx
+t_profi  = xxxxxxxxxxxx
+s_profi  = xxxxxxxxxxxx
 
 # > > > > > > > Source Configuration
 #electric Current Vectror
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 #Location
-nodalSrc = 2            !Number of nodes will contain the source
-116
-119
+nodalSrc = 1            !Number of nodes will contain the source
+16
 
 #Receivers
 nodalRec = 1            !Number of nodes as a receiver
