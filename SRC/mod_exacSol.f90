@@ -30,7 +30,7 @@ module E0field
       Ez_r = 0.0 
       mu = 1.0/lambda
       angle_loop = 90.0
-      sigma = 0.01
+      sigma = sigma2
       x1 = coord(1,Srcloc(1))
       y1 = coord(2,Srcloc(1))
       x2 = coord(1,Srcloc(2))
@@ -205,7 +205,7 @@ module E0field
           ! I*ds = dipole moment, is set to I*ds=1
           SrcCurr  =  Icurr(1)
           ds       =  1.0
-          sigma    =  1.0
+          sigma    =  sigma2
           mu       =  1.0/lambda 
           
           nt  = time_ini
@@ -291,7 +291,7 @@ module E0field
           print*,'Double Line Source exact solution'
           E_field_exac  = 0.0 
           SrcCurr = Icurr(1)
-          sigma = 1.0
+          sigma = sigma2
           mu    = 1.0/lambda 
           ez    = 0.0
           ii    = 0.0

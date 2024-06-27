@@ -36,7 +36,7 @@ module inputInfo
       else
         write(*,'(A)') '> > >Error in stabilization method'
       endif
-     
+
       if(ProbType.ne.'TIME')then
         Prob_Type = 'STATIC'
       else
@@ -52,9 +52,7 @@ module inputInfo
       elseif((ElemType.eq.'TRIA').and.(nne.eq.6))then
         OrderElemType = 'TRIANGULAR P2'
       end if
-      
-      
-     
+
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
