@@ -9,22 +9,19 @@ module sourceTerm
     subroutine source_term(ielem, basis, xi_cor, yi_cor, EMsource)
       implicit none
       
-      
-      double precision, parameter :: pi = 4*atan(1.d0)
-      
-      double precision,dimension(nne), intent(in) :: basis, xi_cor, yi_cor
-      integer                        , intent(in) :: ielem
-      double precision :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy,   dey_dx2,dex_dxdy,dex_dydx,dey_dy2
-      double precision :: x, y, alpha, beta, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
-      double precision :: itan, senn, coss
-      integer          :: ibase
-      real             :: n
+      double precision, parameter                     :: pi = 4*atan(1.d0)
+      double precision,dimension(nne), intent(in)     :: basis, xi_cor, yi_cor
+      integer                        , intent(in)     :: ielem
+      double precision                                :: dey_dydx,dex_dy2,dex_dx2,dey_dxdy
+      double precision                                :: dey_dx2,dex_dxdy,dex_dydx,dey_dy2
+      double precision                                :: x, y, alpha, beta, aa, bb, cc, dd, ee, ff, gg, hh, ii, jj, kk
+      double precision                                :: itan, senn, coss
+      integer                                         :: ibase
+      real                                            :: n
       double precision, dimension(ndofn), intent(out) :: EMsource
-      !double precision :: xq, yq, Icurr
       
       
       EMsource = 0.0
-      
       x = 0.0
       y = 0.0
       
@@ -59,9 +56,9 @@ module sourceTerm
           !                                                           !
           !***********************************************************!
           
-          !beta  = Cu*lambda*(helem**2/ell**2)
+          beta  = Cu*lambda*(helem**2/ell**2)
           alpha = ell**2/lambda
-          n = n_val
+          n     = n_val
           
           !terms for derivatives
           aa   = (2.0/27.0)*n
@@ -176,7 +173,7 @@ module sourceTerm
       ! Declaración de una variable compleja de precisión doble
       complex(kind=16), dimension(ntotv, 1)  :: E_hat_y
       ! double precision                       :: x, y, z
-      double precision                       :: SrcCurr,ds, sigma, nt, arg, r_vec, spi, theta!, aa, bb, cc, ee
+      double precision                       :: SrcCurr,ds, nt, arg, r_vec, spi, angle!, aa, bb, cc, ee
       double precision                       :: dy,ex,ey,ez
       integer                                :: n,i,j,k
 
@@ -201,14 +198,14 @@ module sourceTerm
               endif
               theta_loop= 90.0
               S = abs(coord(1,Srcloc(1))*coord(1,Srcloc(2)))! 10.0*10.0 ! not needed, cancels out
-              theta_loop=theta_loop*pi/180. ! theta=-30 deg
+              theta_loop=theta_loop*pi/180. ! angle=-30 deg
               Mr=Icurr(1)*S 
               Mx=Mr*sin(theta_loop)
               My=Mr*cos(theta_loop)
               Curr_x= Mx/S
               Curr_y= My/S
-              Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)*eTime
-              if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)*eTime
+              Jsource((srcLoc(inode)-1)*ndofn+1,1) = (Curr_x+Curr_y)!*eTime
+              if(inode.eq.2)Jsource((srcLoc(inode)-1)*ndofn+1,1) = -(Curr_x+Curr_y)!*eTime
             end do
            
           else! Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution
@@ -310,7 +307,7 @@ module sourceTerm
     !    ! I*ds = dipole moment, is set to I*ds=1
     !    SrcCurr  =  Icurr(1)
     !    ds       =  1.0
-    !    sigma    =  1.0
+    !    sigma    =  sigma2
     !    nt  = time_ini
     !    arg = 0.0; aa = 0.0; bb = 0.0; cc = 0.0; ee  = 0.0
     !    ex  = 0.0; ey = 0.0; ez = 0.0
