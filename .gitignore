@@ -17,3 +17,5 @@ DS_Store/
 Old_Pos/
 gdblinux
 Exact_Sol_TEM/
+token.c
+tests_python
