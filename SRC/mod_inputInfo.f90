@@ -1,5 +1,6 @@
 module inputInfo
   use param
+  use tensor_inputs 
   use geometry
 
   contains
@@ -10,12 +11,12 @@ module inputInfo
       external :: fdate
       
       character(len=*), parameter :: fileplace = "Info/"
+      character(len=:), allocatable, intent(in)     :: geometry_File
       character(len=19)           :: name_inputFile
-      character(len=5)            :: file_name 
       character(len=24)           :: date
       character(len=4)            :: aaaa, cccc
       character(len=9)            :: Prob_Type
-      character(len=12)           :: bbbb, geometry_File
+      character(len=12)           :: bbbb
       character(len=16)           :: dddd, OrderElemType
       !double precision            :: delta_t
       integer :: i,j, k, l
@@ -35,7 +36,7 @@ module inputInfo
       else
         write(*,'(A)') '> > >Error in stabilization method'
       endif
-     
+
       if(ProbType.ne.'TIME')then
         Prob_Type = 'STATIC'
       else
@@ -51,9 +52,7 @@ module inputInfo
       elseif((ElemType.eq.'TRIA').and.(nne.eq.6))then
         OrderElemType = 'TRIANGULAR P2'
       end if
-      
-      
-     
+
       call fdate(date)
       print*, ' '
       print*, '- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
@@ -61,7 +60,7 @@ module inputInfo
       print*,' ',date
       print*,'!================= GENERAL INFO ===============!'
       write(*,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(*,"(A30,2x,a13  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(*,"(A30,2x,A  ,3X,A1 )")   ' - Mesh File                : ', geometry_File,''
       write(*,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(*,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Problem dimension        : ', DimPr, '  '
@@ -74,7 +73,8 @@ module inputInfo
       write(*,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
       write(*,"(A29,3X,f11.4,1X,A10)") ' - Characteristic mesh size : ', helem,' '
       write(*,"(A30,2X,f9.2 ,1X,A10)") ' - Length reference element : ', hnatu        ,' '
-      write(*,"(A30,6X,f9.5 ,1X,A10)") ' - Model condutivity (σ)    : ', sigma        ,' ' 
+      write(*,"(A30,4X,e12.2 ,1X,A10)") ' - Air condutivity (σ)      : ', sigma1        ,' ' 
+      write(*,"(A30,4X,e12.2 ,1X,A10)") ' - Medium condutivity (σ)   : ', sigma2        ,' ' 
       
       if(refiType.eq.'NO')then
         write(*,"(A30,2x,A7,3X,A10)") ' - Refinement type          : ','  NONE',' '
@@ -169,7 +169,7 @@ module inputInfo
           print*, ' '
           write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           print*, ' '
-          write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+          write(*,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         else
           write(*,*)'              Begining                End' 
           write(*,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
@@ -179,7 +179,7 @@ module inputInfo
           write(*,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           !write(*,'(I6)') nodalSrc 
           print*, ' '
-          write(*,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+          write(*,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
           !write(*,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         end if
         print*, ' '
@@ -188,6 +188,8 @@ module inputInfo
           write(*,"(1(f10.3,1x))") Icurr(1)
         elseif(ndofn.eq.3)then
           write(*,"(3(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3)
+        elseif(ndofn.eq.8)then
+          write(*,"(8(f10.3,1x))") Icurr(1), Icurr(2), Icurr(3), Icurr(4), Icurr(5), Icurr(6), Icurr(7), Icurr(8)
         endif
       else
         write(*,'(A)') ' - Not geophysical source'
@@ -200,7 +202,7 @@ module inputInfo
         do j = 1,DimPr
           print"(A,2I1)", 'k_',i,j
           do k = 1,ndofn
-            print"(e15.7,1x,e15.7, 1x, e15.7)",( difma(k,l,i,j), l=1,ndofn)
+            print"(8(f10.5,1x))",( difma(k,l,i,j), l=1,ndofn)
           end do
           !print*,' '
         end do
@@ -210,13 +212,13 @@ module inputInfo
       do k = 1, DimPr
         print"(A,2I1)",'A_',k
         do i = 1, ndofn
-          write(*, "(f10.5, 1x, f10.5, 1x, f15.5)")( conma(i,j,k) ,j=1, ndofn)
+          write(*, "(8(f10.5, 1x))")( conma(i,j,k) ,j=1, ndofn)
         end do
       end do
         print*,' '
       print*,'Reaction'
       do i=1,ndofn
-        write(*,"(f10.5, 1x, f10.5, 1x, f15.5)" )( reama(i,j) ,j=1,ndofn)
+        write(*,"(8(f10.5, 1x))" )( reama(i,j) ,j=1,ndofn)
       end do
       print*, ' '
       print*, 'External Forces'
@@ -224,14 +226,15 @@ module inputInfo
         write(*,"(3(f10.5,1x))") force(1)
       elseif(ndofn.eq.2)then
         write(*,"(2(f10.5,1x))") force(1), force(2)
-      else
+      elseif(ndofn.eq.3)then
         write(*,"(3(f10.5,1x))") force(1), force(2), force(3)
+      else
+        write(*,"(8(f10.5,1x))") force(1), force(2), force(3), force(4), force(5), force(6), force(7), force(8)
       endif
       write(*,'(A)') 
       
-      file_name ="test_"
-      open(unit=100,file= fileplace//file_name//testID//'.txt', ACTION="write", STATUS="replace")
-      
+      open(unit=100,file= fileplace//testID//'.txt', ACTION="write", STATUS="replace")
+
       if(refiType.eq.'NO')then
         bbbb = '    NONE'
       elseif(refiType.eq.'PS')then
@@ -244,12 +247,12 @@ module inputInfo
       
       write(100,'(A)')'- - - - 2D Convection-Diffusion-Reaction Simulation - - - - '
       write(100,'(A)')
-      write(100,'(A8,1x,A14)') 'test ID: ',testID
+      ! write(100,'(A8,1x,A14)') 'test ID: ',testID
       write(100,'(A)') " "
       write(100,'(A)') date
       write(100,'(A)')'!================= GENERAL INFO ===============!'
       write(100,"(A30,2x,a19  ,3X,A1 )") ' - Input File               : ', name_inputFile,''
-      write(100,"(A30,2x,a12  ,3X,A1 )") ' - Mesh File                : ', geometry_File,''
+      write(100,"(A30,2x,A  ,3X,A1 )")   ' - Mesh File                : ', geometry_File,''
       write(100,"(A30,2x,a16  ,3X,A1 )") ' - Element type             : ', OrderElemType,''
       write(100,"(A30,2x,a9   ,3X,A1 )") ' - Problem Type             : ', Prob_Type,''
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Elements                 : ', initelem,'   '
@@ -259,7 +262,8 @@ module inputInfo
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total Gauss points       : ', totGp,'   '
       write(100,"(A30,2X,I6   ,1X,A10)") ' - Total unknowns           : ', initntotv    ,'  '
       write(100,"(A29,3X,f11.4,1X,A10)") ' - Element size             : ', helem,' '
-      write(100,"(A30,6X,f9.5 ,1X,A10)") ' - Model condutivity (σ)    : ', sigma        ,' ' 
+      write(100,"(A30,4X,e12.2 ,1X,A10)") ' - Air condutivity (σ)      : ', sigma1        ,' ' 
+      write(100,"(A30,4X,e12.2 ,1X,A10)") ' - Medium condutivity (σ)   : ', sigma2        ,' ' 
       if(refiType.eq.'NO')then
         write(100,"(A30,2x,a7 ,3X,A10)") ' - Refinement type          : ', '  NONE',' '
         write(100,'(A)')
@@ -345,7 +349,7 @@ module inputInfo
           write(100,'(A)') 
           write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           write(100,'(A)') 
-          write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
+          write(100,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         else
           write(100,'(A)')'              Begining                End' 
           write(100,'(A,F8.3,A,F8.3,A,A,F8.3,A,F8.3,A)') &
@@ -355,7 +359,7 @@ module inputInfo
           write(100,'(A25,99(I0,4x))')' -Nodes involves source: ', (Srcloc(i), i=1,nodalSrc) 
           !write(100,'(I6)') nodalSrc 
           write(100,'(A)') 
-          write(100,'(A17,f5.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
+          write(100,'(A17,f9.2)') ' -Dipole lenght: ', abs(coord(1,Srcloc(nodalSrc)) - coord(1,Srcloc(1))) 
           !write(100,'(f8.2)')  abs(coord(1,Srcloc(2)) - coord(1,Srcloc(1))) 
         end if
       else

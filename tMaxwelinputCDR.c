@@ -3,109 +3,85 @@
 ! Input data file                                         !                       nxE = 0       on  ∂Ω
 !                                  MAOG    Bcn, Dic. 2021 ! with:
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !       λ, β, ɣ coefficients.    
- 
+
+$********************************************************************************
+PHYSICAL_PROBLEM
+$----------------------------------------------------------------------------------
+ >Maxwell_In_Non_Convex_Domain
+  Cavity_Driven_Flow
+  Direct_Current_Electrical_Resistivity_in_2.5-D
+  Electric_Field_Excited_By_A_Double_Line_Source
+  Horizontal_Electric_Dipole_in_3-D_A_Wrong_capture_of_solution
+  Transient_Electromagnetic_in_2.5-D
+$----------------------------------------------------------------------------------
+END_PHYSICAL_PROBLEM
+$*********************************************************************************
+
 # > > > > > > > Model Parameters
 ProbType = STAT           !Problem type TIME=transient, other=static
-DimPr    = 2              !Dimension del problema
-ndofn    = 1              !Degrees of freedom
 totGp    = 3              !1,4,9 for Q, 1,3,7 for P
 exacSol  = 3              !0=None;   1=SinglrSol  ; 2=FullSpace; 3=Algebraic; 4=Double Line
-srcRHS   = 0              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
-BCsProb  = 0              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow 
+srcRHS   = 1              !0=scalar; 1=SingularSol; 2=Maxwell_Polynom; 3=Lapalace_Polynom
+BCsProb  = 1              !1=Ldomain; 2=Maxwell; 3=MaxwellPoly; 4=Lapalace_Poly; 5=Cavity-Driven Flow; 6=Resistivity; 7=Douible-Line
 postpro  = 2              !Execution of post-processing routine 1=yes, 2=no 
-sigma    = 0.03333        !Conductivity of the medium
-operator = LAPL           !PDE being solved LAP=Laplacian; MAX=curl-curl
+sigma1   = 1.0E+0         !Conductivity of medium 1
+sigma2   = 1.0E+0         !Conductivity of medium 2
 
-# > > > > > > > Geometry
-meshfile = AXgmsh_EM.msh  !File .msh that contains the mesh
-view     = xz             !The 2D view x-y (distance) or x-z (depth)
-nne      = 3              !Nodes per element Q:4-9; P:3-6
-i_exp    = 0              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
+#***************Geometry
+#---------!File .msh that contains the mesh
+meshfile = SingularSolution.msh
+view     = xy             !The 2D view x-y (distance) or x-z (depth)
+nne      = 4              !Nodes per element Q:4-9; P:3-6
+i_exp    = 3              !Exponent of characteristic mesh size 3,4,5 or 6 2^(-i)
 hnatu    = 1.0            !Reference element length
-refiType = NO             !NONE; PS=Powell-Sabin; CC=Criss-Cross
+refiType = CC             !NONE; PS=Powell-Sabin; CC=Criss-Cross
 
 # > > > > > > > Stabilization
-kstab    = 0              !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
+kstab    = 6              !Stabilization: 0(NONE), 1(SUPG), 2(GLS), 3/5(SGS/TG), 4(CG), 6(MVAF)
 ktaum    = 1              !Tau matrix: 0, 1, 2 
 patau    = 2.0            !Parameter to obtain tau
-n_val    = 0.0            !n parameter in exact solution, for simul=1
-helem    = 0.0            !Characteristic mesh size (maximum element size among the mesh)
-Cu       = 0.0            !Algorithmic constant
-ell      = 0.0            !Constante de longitud  
-1/mu=λ   = 0.0            !795774.71545   !Reluctivity of the medium 1/µ0=795774.71545 [T•m•A^-1]
+n_val    = 1.0            !n parameter in exact solution, for simul=1
+helem    = 1.0            !Characteristic mesh size (maximum element size among the mesh)
+Cu       = 5.0            !Algorithmic constant
+ell      = 1.0            !Constante de longitud  
 
 # > > > > > > > Fourier Transform     
-TwoHalf  = N              !If it is dealing with a 2.5D modeling (Y) or not (N)
 ky_min   = 1.0e-3         !Smallest wave number
 ky_max   = 1.0e0          !Grater wave number
-tot_ky   = 14             !Total wave numbers
+tot_ky   = 4              !Total wave numbers
 splits   = N              !If the problem is splited then run as kind of parallel
 y_iFT    = 0.0            !Position at y-coordinate where the IFT will be computed.
+#------------!Filenames for plot the spectrums and store the field after inverse FT
+s_spectr = TEM_vs_wavenumber
+File_iFT = Real_and_Imaginary_TEM_in_3D 
 
-# > > > > > > > Time Discretization
+# > > > > > > > Transient Parameters
 theta    = 2              !BDF1=2 ;CN=3; BDF2=4
-time_ini = 1.42000e-7     !Starting time simulation (simulation always starts at 0?)
-time_fin = 6.12800e-5     !Total time simulated in [s]  --> 1800 microseconds
-t_steps  = 45             !Number of time steps
-Src_ON   = 2              !Time at Source is turned ON
+time_ini = 1.42000e-8     !Starting time simulation (simulation always starts at 0?)
+time_fin = 6.12800e-2     !Total time simulated in [s]  --> 1800 microseconds
+t_steps  = 200            !Number of time steps
+twindow  = 20             !Time window in waveform signal--> ON->small, OFF->large
+signal   = 1              !Source waveform: 0=None; 1=step-on; 2=step-off; 3=triangular
+initCond = 0              !Initial Condition: 0=None; 1=Double-Line; 2=VMD
 
 # > > > > > > > Name outPut Files
-testID   = Testlog10DC_3D_      !data file with input parameters in each iteration Res/results
-Postpro  = DirectDC3Dtst 
+testID   = data_Singular_sol
+postpro  = Maxwell_Singular_Sol_test_01
 Error    = xxxxxxxx@xxx
 Cordina  = xxxxxxxxxxxx
 Conecti  = xxxxxxxxxxxx
-Profile  = xxxxxxxxxxxx
-
-# > > > > > > > Physical Properties
-#DIFMA_xx                  !Diffusion tensor
-1.0  , 0.0  , 0.0
-0.0  , 0.0 , 0.0
-0.0  , 0.0  , 0.0
-#DIFMA_xz
-0.0  , 0.0  , 0.0
--0.0 , 0.0  , 0.0 
-0.0  , 0.0  , 0.0 
-#DIFMA_zx
-0.0  , -0.0 , 0.0 
-0.0 , 0.0  , 0.0
-0.0  , 0.0  , 0.0
-#DIFMA_zz
-1.0 , 0.0  , 0.0
-0.0  , 0.0  , 0.0
-0.0  , 0.0  , 0.0
-#COMAT_x                   !Convection tensor
-0.0  , 0.0 , 0.0
-0.0  , 0.0 , 0.0
-0.0  , 0.0 , 0.0
-#COMAT_z
-0.0 , 0.0  , 0.0
-0.0 , 0.0  , 0.0
-0.0 , 0.0  , 0.0
-#REAMA                     !Reaction tensor
-0.0 , 0.0 , 0.0
-0.0 , 0.0 , 0.0
-0.0 , 0.0 , 0.0
-#FORCE                     !Force tensor
-0.0 , 0.0 , 0.0 
+t_profi  = xxxxxxxxxxxx
+s_profi  = xxxxxxxxxxxx
 
 # > > > > > > > Source Configuration
-#Icurr
-0.025 , 0.0 , 0.0
+#electric Current Vectror
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-#Nodal source Location
+#Location
 nodalSrc = 1            !Number of nodes will contain the source
-7
+16
 
-#Time waveform
-signal   = 1            !Signal in time: 1=step-on; 2=step-off; 3=triangular
-
-# > > > > > > > Receiver Locations
-nodalRec = 6            !Number of nodes as a receiver
-2.0   , 0.0
-7.0   , 0.0
-21.0  , 0.0
-50.0  , 0.0
-150.0 , 0.0
-500.0 , 0.0
+#Receivers
+nodalRec = 1            !Number of nodes as a receiver
+300.0 ,-20.0, 0.0
 

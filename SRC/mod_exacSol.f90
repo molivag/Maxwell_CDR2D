@@ -30,7 +30,7 @@ module E0field
       Ez_r = 0.0 
       mu = 1.0/lambda
       angle_loop = 90.0
-      sigma = 0.01
+      sigma = sigma2
       x1 = coord(1,Srcloc(1))
       y1 = coord(2,Srcloc(1))
       x2 = coord(1,Srcloc(2))
@@ -205,7 +205,7 @@ module E0field
           ! I*ds = dipole moment, is set to I*ds=1
           SrcCurr  =  Icurr(1)
           ds       =  1.0
-          sigma    =  1.0
+          sigma    =  sigma2
           mu       =  1.0/lambda 
           
           nt  = time_ini
@@ -254,7 +254,7 @@ module E0field
               E_field_exac(ndofn*inode-0,1) = ez
             end do
               !write(*,'(I5, e15.5, 3(E14.6))') i-1, t(i), E_field_exac( 
-              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
+              call GID_PostProcess(0,2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
               ii = ii+1.0
           end do
            
@@ -291,7 +291,7 @@ module E0field
           print*,'Double Line Source exact solution'
           E_field_exac  = 0.0 
           SrcCurr = Icurr(1)
-          sigma = 1.0
+          sigma = sigma2
           mu    = 1.0/lambda 
           ez    = 0.0
           ii    = 0.0
@@ -319,7 +319,7 @@ module E0field
               ez = -(mu*SrcCurr/4.0*sigma*t(i)) * ( exp(aa*theta**2) + exp(bb*theta**2) )
               E_field_exac(ndofn*inode-2,1) = ez
             end do
-              call GID_PostProcess(2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
+              call GID_PostProcess(0,2,E_field_exac, 'res', i-1, t(i), time_fin, Ex_field) 
               ii = ii+1.0
           end do
          

@@ -1,44 +1,42 @@
 program main_CDR3d
-  use param; use geometry; use biunit; use inputInfo
-  use library; use boundVal; use timeInt; use sourceTerm
+  use param     ; use tensor_inputs ; use geometry
+  use biunit    ; use inputInfo     ; use library
+  use boundVal  ; use timeInt       ; use sourceTerm
 
   implicit none
 
-  external :: fdate
+  double precision                                  :: start, finish
+  external                                          :: fdate
+  external                                          :: dgbtrf, dgbtrs, dgbrfs
   ! - - - - - - - - - - * * * Variable declaration * * * * * * * - - - - - - - - - -!
   character(len=19)                                 :: name_inputFile
-  character(len=13)                                 :: geometry_File
+  character(len=24)                                 :: date
+  character(len=1)                                  :: S_trans
+  character(len=:), allocatable                     :: geometry_File
   double precision, allocatable, dimension(:,:)     :: A_K, A_C, A_F, presc
-  double precision, allocatable,  dimension(:,:)     :: Jsource
+  double precision, allocatable, dimension(:,:)     :: Jsource
   double precision, allocatable, dimension(:,:)     :: basfun, dN_dxi, dN_deta
   double precision, allocatable, dimension(:,:)     :: hes_xixi, hes_xieta, hes_etaeta
-  !double precision,              dimension(3,4) :: Hesxieta
-  double precision, allocatable, dimension(:,:)     :: Bvs
-  integer,          allocatable, dimension(:,:)     :: condition, ifpre
-  integer,          allocatable, dimension(:)       :: nofix
-  double precision                                              :: start, finish
-  ! - - - - - - - - * * * Variable declaration (SOLVER) * * * * * * * - - - - - - - !
+  !double precision,              dimension(3,4)     :: Hesxieta
   double precision, allocatable, dimension(:,:,:)   :: grad_u_sol
-  double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol, E_3D
+  double precision, allocatable, dimension(:,:)     :: AK_LU, u_sol, E_3D, Bvs, store_Spec
   double precision, allocatable, dimension(:)       :: Ex_field
-  external                                          :: dgbtrf, dgbtrs, dgbrfs
-  integer,          allocatable, dimension(:)       :: S_ipiv!, S_iwork
-  character(len=1)                                  :: S_trans
-  character(len=24)           :: date
+  integer,          allocatable, dimension(:,:)     :: condition, ifpre
+  integer,          allocatable, dimension(:)       :: nofix, S_ipiv!, S_iwork
   integer                                           :: S_m, S_n, S_nrhs, info, S_ldSol, ii_ky, ii
-  double precision, allocatable, dimension(:,:)     :: store_Spec
   
   !-----Input File
   call cpu_time(start)
   name_inputFile = 'tMaxwelinputCDR.c' 
   
   !--------------- Input Data ---------------!
-  call inputData(name_inputFile, geometry_file)
+  call inputData(name_inputFile, geometry_File)
+  call PDE_Coefficients 
 
   !--------------- Geometry -----------------!
   call readMesh(geometry_File)
   call GeneralInfo(name_inputFile, geometry_File)
-
+  
   !---------- Shape Functions ---------------!
   call GaussQuadrature(ngaus, weigp)
   call ShapeFunctions(ngaus, basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta)
@@ -56,36 +54,52 @@ program main_CDR3d
   allocate( nofix(nBVs), ifpre(ndofn,nBVs), presc(ndofn,nBVs) )
   call VinculBVs( condition,  BVs, nofix, ifpre, presc )
 
-  stop
 
   !====================== Hasta aqui iria la parte general de todas las simulaciones para cada ky
   !-------- Problem Type Definition ----------!
-  print*, ' '
-  print'(A)', " !=============== Computation of 2D problems for each wave number =============! "
+  if(TwoHalf.eq.'Y')then
+    print*, ' '
+    print'(A)', " !=============== Computation of 2D problems for each wave number =============! "
+  elseif(TwoHalf.eq.'N')then
+    print*, ' '
+    print'(A)', " !================ Starting Time Discretization  ==============! "
+  endif
+
   select case(ProbType)
     case('TIME')
-      ! varPrimerSet = 10 -5 = 5
-      ! varSeconSet = varPrimerSet+1 = 6
-      if(splits == 'N')then
-        print*,'completo'
-        do ii_ky = 1,tot_ky-5 !First running of the code with tot_ky = 5
+      ! 
+      !Debo agregar un if para el caso de que sea un problema transitorio no 2.5D como el caSO ESTATICO
+      if(TwoHalf=='N')then
+        ii_ky = 0 !Aqui es para que si no es 2.5D los prints en pantalla igualmente salgan
         call TimeIntegration(ii_ky, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, nofix, ifpre, presc, Ex_field)
-        end do
-        !---------- Memory Relase -----------!
-        deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
-        deallocate(hes_xixi, hes_xieta, hes_etaeta) 
-        if((ii_ky==size(nodal_ky)+1) .and. (TwoHalf=='Y')) call invDFT(E_3D) !if para test cortos pero sin dividir la ejecucion
-        
-      elseif(splits == 'Y')then !If the problem split run as kind of parallel
-        print*,'dividido'
-        do ii_ky = tot_ky-4, tot_ky! this do for the case of 10 ky, will go from 6 to 10
+      else
+        ! varPrimerSet = 10 -5 = 5
+        ! varSeconSet = varPrimerSet+1 = 6
+        if(splits == 'N')then
+          ! do ii_ky = 1,tot_ky-5 !First running of the code with tot_ky = 5
+          do ii_ky = 1,tot_ky 
           call TimeIntegration(ii_ky, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, nofix, ifpre, presc, Ex_field)
-        end do
-        !---------- Memory Relase -----------!
-        deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
-        deallocate(hes_xixi, hes_xieta, hes_etaeta) 
-        call invDFT(E_3D) 
+          end do
+          !---------- Memory Relase -----------!
+          deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+          deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+          !if((ii_ky==size(nodal_ky)+1) .and. (TwoHalf=='Y')) call invDFT(E_3D) !if para test cortos sin dividir la ejecucion
+          
+        elseif(splits == 'Y')then !If the problem split run as kind of parallel
+          print*,'dividido'
+          do ii_ky = tot_ky-4, tot_ky! this do for the case of 10 ky, will go from 6 to 10
+            call TimeIntegration(ii_ky, basfun, dN_dxi, dN_deta,hes_xixi,hes_xieta,hes_etaeta, nofix, ifpre, presc, Ex_field)
+          end do
+          !---------- Memory Relase -----------!
+          deallocate( basfun, dN_dxi, dN_deta, BVs, nofix, ifpre, presc)
+          deallocate(hes_xixi, hes_xieta, hes_etaeta) 
+        endif
         
+        ! Aqui deberia ir el Ex_field como variable de entrada para invDFT, la variable de entrada debe de considerar
+        ! en la dimension, el tiempo y para el caso STAT sera de 1
+        
+        ! if(TwoHalf=='Y')call invDFT(E_3D) 
+        ! File_Nodal_Vals = File_3DNodal_Vals
       endif
       
     case('STAT')
@@ -105,8 +119,9 @@ program main_CDR3d
           !the allocation of A_K and A_F are inside of GlobalSystem
           call GlobalSystem(basfun, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, A_C, A_K, A_F)
           call ApplyBVs(nofix,ifpre,presc,A_K, A_F)
-          call currDensity(Jsource) 
+          call currDensity(ii_ky, Jsource) 
           Jsource = Jsource+A_F
+          
           !----- Setting MKL-Solver Parammeters -----!
           S_m     = size(A_K,2)  !antes ntotv
           S_n     = size(A_K,2)  !antes ntotv
@@ -120,7 +135,9 @@ program main_CDR3d
           print*, '!================ MKL Solver ==================!'
           print*,'  •SETTING VARIABLES FOR MKL LIBRARY.....'
           AK_LU = A_K      !AK_band(ldab,*) contains the matrix A_K in band storage
+          ! u_sol = A_F  !u_sol gonna be rewrited by LAPACK avoiding lose Jsource
           u_sol = Jsource  !u_sol gonna be rewrited by LAPACK avoiding lose Jsource
+          
           !---------- Solving System of Equations by INTEL MKL solver -----------!
           print*,'  •PERFORMING LU BAND DECOMPOSITION.....'
           call dgbtrf(S_m, S_n, lowban, upban, AK_LU, ldAKban, S_ipiv, info)  
@@ -159,6 +176,10 @@ program main_CDR3d
       call PostPro_EMfield(basfun,dN_dxi,dN_deta,hes_xixi,hes_xieta,hes_etaeta,E_3D,grad_u_sol)
       deallocate(hes_xixi, hes_xieta, hes_etaeta) 
       deallocate( basfun, dN_dxi, dN_deta)
+      
+      !Build a spatial Profile
+      print*,'Entra a BubbleSort'
+      pause(1)
       call spatialProfile_BubbleSort(E_3D)
       TwoHalf = 'N'
       File_Nodal_Vals = File_3DNodal_Vals
@@ -177,7 +198,7 @@ program main_CDR3d
   10 write(*,*)
   ! u_sol = 10.0**(u_sol)
   print*, 'Writing spatial profile at z=0'
-  call spatialProfile_BubbleSort(u_sol)
+  ! call spatialProfile_BubbleSort(u_sol)
 
   call cpu_time(finish); call fdate(date)
   print*, ' '
@@ -186,8 +207,8 @@ program main_CDR3d
     &CPU-Time =', finish,' ~',((finish-start)/60.0)/10.0,' minutes. Finished on: ', date
   ! primero entre 10 p[ara pasar de cientos de segundos a decenas de segundos y luego dividir esas decenas
   ! en segmentos de sesenta  segundos que serian un minuto, por eso de ambas divisiones
-  print*,' ', finish-start
-  print*,' ', ((finish-start)/10.0)/60
+  write(*,*) 'Computation finished. Run-time is ', finish-start, 'seconds.'
+  write(*,*) 'Esto es en minutos',  ((finish-start)/60.0)
 end program main_CDR3d
 
 
