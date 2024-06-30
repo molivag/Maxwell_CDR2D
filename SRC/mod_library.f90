@@ -35,6 +35,7 @@ module library
       end if
       read(20,*,iostat=stat2,iomsg=msg) ((condition_value(i,j), j=1,ndofn), i=1,NumRows)
       if (stat2.ne.0) then
+        print*, ' '
         print "(A38,I2)", "- Status while reading BoVal file is: ", stat2
         print*, ' '
         print'(A8,1x,A180)','iomsg= ',msg
@@ -333,7 +334,7 @@ module library
         end do
       end do
 
-     !The Hessian matrix
+      !The Hessian matrix
       HesXY = 0.0
       do inode=1,nne
         HesXY(1,inode) = InvJaco(1,1)*InvJaco(1,1)*Hesxieta(1,inode)+&
@@ -485,7 +486,7 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine gather(lnods, vecgl, veclo)
+    subroutine gather(listOFnodes, vecgl, veclo)
       !        gather(vecgl,veclo,lnods,ndofn,nnode)
       !   call gather(coord,elcod,lnods(1,ielem),2,nnode)
       !*****************************************************************************
@@ -500,12 +501,12 @@ module library
       implicit none
       
       double precision, dimension(*), intent(in) :: vecgl(*)
-      integer, intent(in) ::   lnods(nne)
+      integer, intent(in) ::   listOFnodes(nne)
       integer   inode,idofn,ipoin,ievab,itotv
       double precision, dimension(nevab), intent(out) :: veclo
       
       do inode=1,nne
-        ipoin=lnods(inode)
+        ipoin=listOFnodes(inode)
         do idofn=1,ndofn
           ievab=(inode-1)*ndofn+idofn
           itotv=(ipoin-1)*ndofn+idofn
@@ -535,12 +536,12 @@ module library
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =    
     !
-    subroutine Galerkin(hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
+    subroutine Galerkin(sigma, hmaxi, dvol, basis, dNdxy, EMsource, Ke, Ce, Fe)
       
       implicit none
       
       double precision, intent(in)     :: basis(nne), EMsource(ndofn), dNdxy(DimPr,nne)
-      double precision, intent(in)     :: dvol, hmaxi
+      double precision, intent(in)     :: dvol, hmaxi, sigma
       double precision                 :: diff, convec, reac, cpcty, coef
       integer                          :: inode, idofn, ievab, jevab, jnode, jdofn, i, j
       double precision, intent(in out) :: Ke(nevab,nevab), Fe(nevab), Ce(nevab,nevab)
@@ -641,7 +642,7 @@ module library
       integer         , intent(in)           :: idofn, jdofn, i, j
       character(len=4), intent(in)           :: matrix
       double precision, intent(in)           :: elem_size_h
-      double precision                       :: alfa, beta, gama, iota, psi, chi
+      double precision                       :: alfa, beta, gama, iota, psi, chi, sigma
       double precision, intent(out)          :: coeff
       
       
@@ -668,7 +669,7 @@ module library
               if((PHYSICAL_PROBLEM.eq."Electric_Field_Excited_By_A_Double_Line_Source"))then
                 coeff = lambda
               elseif(PHYSICAL_PROBLEM.eq."Direct_Current_Electrical_Resistivity_in_2.5-D")then
-                coeff = sigma
+                coeff = sigma2 !Pero que pasa cuando sigma1 y sigma 2 se juntan en un elemento? se promedian?
               elseif(PHYSICAL_PROBLEM.eq."Cavity_Driven_Flow")then
                 coeff = viscocity
               endif
@@ -1332,9 +1333,9 @@ module library
       implicit none
       
       !integer, intent(in)      :: nBvs, nBVscol ya no se ponen estan en el modulo parameter y se comunica el valor
-      integer, intent(in) :: condition( nBvs, nBVscol-ndofn)
-      double precision, intent(in) :: BVs( nBvs, ndofn)
-      integer             :: i, j
+      integer, intent(in)           :: condition( nBvs, nBVscol-ndofn)
+      double precision, intent(in)  :: BVs( nBvs, ndofn)
+      integer                       :: i, j
       double precision, intent(out) :: presc(ndofn,nBVs)
       integer, intent(out)          :: ifpre(ndofn,nBVs)
       integer, intent(out)          :: nofix(nBVs)
@@ -1437,7 +1438,7 @@ module library
       double precision, dimension(nevab)                          :: Fe
       double precision, dimension(3,3)                            :: tauma
       double precision, dimension(nne,DimPr)                      :: element_nodes
-      double precision                                            :: dvol, hmaxi, detJ
+      double precision                                            :: dvol, hmaxi, detJ, sigma
       integer         , dimension(nne)                            :: nodeIDmap
       integer                                                     :: igaus, ibase, ielem, medium, iii, jjj
       double precision, allocatable, dimension(:,:), intent(out)  :: A_K, A_C, A_F
@@ -1451,11 +1452,11 @@ module library
         !sigma no se declara pues esta en PARAM como global
         medium = mesh_conductivity(ielem)
         if(medium.eq.300)then
-          !Air Layer
-          sigma = 0.00000003
+          sigma = sigma1
+          ! print*, '!Air Layer ', sigma
         elseif(medium.eq.100)then
-          !Subsurface layer
-          sigma = 0.1
+          sigma = sigma2 
+          ! print*, '!Subsurface layer ', sigma
         endif
         
         Ke = 0.0; Fe = 0.0; Ce = 0.0   
@@ -1472,7 +1473,7 @@ module library
           
           call source_term(ielem, basis, xi_cor, yi_cor, EMsource)
           ! print"(A12,I3,A26,3f15.5)",'for element',ielem,' the RHS contribution is: ', EMsource
-          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(sigma, hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           if(kstab.eq.6.or.kstab.eq.0)then
@@ -1660,11 +1661,10 @@ module library
     !  end do
 
     !end subroutine ApplyBoundCond
-   
     !
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
-    subroutine Assemb_Glob_Mat(lnods,Ke,A_K)
+    subroutine Assemb_Glob_Mat(listOFnodes,Ke,A_K)
       !subroutine Assemb_Glob_Mat(ielem,lnods,Ke,A_K)
       !*****************************************************************************
       !
@@ -1674,20 +1674,20 @@ module library
 
       implicit none
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
-      double precision, intent(in) :: Ke(nevab,nevab)
-      integer, intent(in) :: lnods(nne)
-      integer :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband !, i,j,k,l
-      double precision, intent(in out) :: A_K(ldAKban,ntotv)
-     !                                        ldAKban= 2*lowban + upban + 1
-     !                                          totban = lowban + upban + 1
+      double precision, intent(in)      :: Ke(nevab,nevab)
+      integer, intent(in)               :: listOFnodes(nne)
+      integer                           :: inode, ipoin, idofn, ievab, itotv, jnode, jpoin, jdofn, jevab, jtotv, jband 
+      double precision, intent(in out)  :: A_K(ldAKban,ntotv)
+      !                                        ldAKban= 2*lowban + upban + 1
+      !                                        totban = lowban + upban + 1
       do inode=1,nne    !nne = number of node in the element
-        ipoin=lnods(inode)
+        ipoin=listOFnodes(inode)
         !print*,'ipoin',ipoin
         do idofn=1,ndofn
           ievab=(inode-1)*ndofn+idofn
           itotv=(ipoin-1)*ndofn+idofn
           do jnode=1,nne
-            jpoin=lnods(jnode)
+            jpoin=listOFnodes(jnode)
             do jdofn=1,ndofn
               jevab=(jnode-1)*ndofn+jdofn
               jtotv=(jpoin-1)*ndofn+jdofn
@@ -1743,12 +1743,12 @@ module library
       
       !Agregar un common a BVs para guardar nBVs y nBVscol asi como nband.
       !Ya se hizo y se uso el modulo mod_param para guardarlos ahi y el valor se comparte
-      double precision,intent(in) :: presc(ndofn,nBVs)
-      integer, intent(in)         :: nofix(nBVs), ifpre(ndofn,nBVs)
+      double precision,intent(in)       :: presc(ndofn,nBVs)
+      integer, intent(in)               :: nofix(nBVs), ifpre(ndofn,nBVs)
       !                                    nvfix             ,nvfix
       !common /contrl/ npoin,nelem,nmats,nvfix,nload,nband,ntotv
-      integer :: ivfix, idofn, itotv, jband, nvfix, ktotv, ipoin
-      double precision,intent(inout)  :: rigid(ldAKban,ntotv), gload(ntotv)
+      integer                           :: ivfix, idofn, itotv, jband, nvfix, ktotv, ipoin
+      double precision,intent(inout)    :: rigid(ldAKban,ntotv), gload(ntotv)
       
       nvfix = nBVs
       
@@ -1990,17 +1990,16 @@ module library
       double precision, dimension(ldAKban ,ntotv ), intent(in) :: Matrix
       !double precision, dimension(ntotv), intent(in) :: Vector
       integer, dimension(ntotv), intent(in) :: Vector
-     
-     
+
       mrow = size(Matrix,1)
       ncol = size(Matrix,2)
       open(unit=10, file= fileplace//name1, ACTION="write", STATUS="replace")
-     
+      
       do i=1,mrow
         write(10, 100)( Matrix(i,j) ,j=1,ncol)
       end do
       close(10)
-     
+
       open(unit=20, file= fileplace//name2, ACTION="write", STATUS="replace")
       do i=1,ncol
         !write(unit2, 100) Vector(i,1)
@@ -2049,7 +2048,7 @@ module library
         write(*,'(A)') 'No postrocess option defined'
         goto 110
       end if
-     
+
       open(unit=100, file= fileplace//'electric_field'//'.dat', ACTION="write", STATUS="replace")
       
       write(100,50) 'ielem','igaus','ex','ey','x', 'y'
@@ -2059,7 +2058,7 @@ module library
         call gather(nodeIDmap, glob_potential, elem_potential) 
         
         !grad_sol = 0.0
-       do igaus = 1, TotGp
+        do igaus = 1, TotGp
           du_dx = 0.0 
           du_dy = 0.0 
           x = 0.0
@@ -2240,7 +2239,7 @@ module library
       !    print'(99(E11.3))', (E_hat_ky(iwn,ii,jj), jj=1,ntotv)
       !  end do
       !end do
-     
+      
       call fdate(date) 
       
       !For the spectrum profile, we define a spatial point (a single receiver location) and a specific time an then it
@@ -2301,8 +2300,6 @@ module library
         
       endif
       close(300)
-     
-     
       
       ! = = = = = = = = = = = = = PERFORMING INVERSE FOURIER TRANSFORM = = = = = = = = = = = = = = 
       !                            1  __∞_
@@ -2348,14 +2345,16 @@ module library
       
       
       
-      !Impresion del archivo final en el dominio espacial (x,y,z) del campo tridimensional sobre medio bidimensional 
+      !Impresion del archivo final en el dominio espacial (x,y,z) 
+      !del campo tridimensional sobre medio bidimensional 
       E_3D = 0.0
       i_WaveNum = 0
       if(ProbType == 'TIME')then
-        !Este N es para que en la siguiente llamada a la rutina GID_PostProcess, se deje de concatenar el nombre 
-        !del archivo con ky_id y se escriba un nuevo archivo tras la transformada inversa. 
+        !Este N es para que en la siguiente llamada a la rutina GID_PostProcess, se deje de concatenar 
+        !el nombre del archivo con ky_id y se escriba un nuevo archivo tras la 
+        !transformada inversa. 
+
         !Este nombre de archivo se designa en el input file. 
-        
         File_Nodal_Vals = File_3DNodal_Vals
         TwoHalf = 'N'           
         dt      = time_ini
@@ -2371,8 +2370,9 @@ module library
         end do time_loop2
         call GID_PostProcess(i_WaveNum, 1, E_3D, 'msh', 0, dt, time_fin, dummy)
       else
-        !Sino es un problema dinamico, entonces la impresion del archivo final se realiza en main y de aqui scale
-        !el nuevo vector de (ntotv,1)
+        !Sino es un problema dinamico, entonces la impresion del archivo final se realiza en main 
+        ! y de aqui sale el nuevo vector de (ntotv,1)
+
         nodes_loop3: do jj =1,nnodes
           totv = jj*ndofn
           DoF_loop3: do kk = idDoF,0,- 1
@@ -2410,7 +2410,7 @@ module library
     != = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     !
     subroutine GID_results(solution, grad_sol)
-    ! subroutine GID_results(solution, grad_sol,profile)
+      ! subroutine GID_results(solution, grad_sol,profile)
       
       implicit none
       
@@ -2428,7 +2428,7 @@ module library
       xcor  = spread(coord(1,:),dim = 1, ncopies= 1)
       ycor  = spread(coord(2,:),dim = 1, ncopies= 1)
       if(TwoHalf=='Y')File_Nodal_Vals=File_Nodal_Vals_ky//ky_id
-     
+      
       print*, ' '
       print*, '!============== Output files ==================!'
       
@@ -2589,7 +2589,6 @@ module library
       919 format(I7,2(4x,E15.5)) !format for res velocity
       
     end subroutine GID_results 
-   
     
     
     
@@ -2678,7 +2677,7 @@ module library
         endif
        
       elseif(activity == "res")then
-       
+
         if(time == 0)then
           open(unit=200, file= fileplace//File_Nodal_Vals//ext2, ACTION="write", STATUS="replace")
           write(200,"(A)") 'GiD Post Results File 1.0'
@@ -2731,10 +2730,10 @@ module library
               write(200,"(A)") 'ComponentNames "Ex" "Ey" "Ez" "" '
               write(200,"(A)") 'Values'
               write(200,*) '#',   'No    ','             ex ','               ey'
-           !   do ipoin = 1, nnodes
-           !     write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
-           !   end do
-              do ipoin = 1, nnodes
+              !   do ipoin = 1, nnodes
+              !     write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1), Sol_T(1,ndofn*ipoin)
+              !   end do
+            do ipoin = 1, nnodes
                 write(200,919) ipoin, Sol_T(1, ndofn*ipoin-2), Sol_T(1,ndofn*ipoin-1)
               end do
               write(200,"(A)") 'End Values'
@@ -3046,7 +3045,7 @@ module library
       double precision, dimension(3,3)          :: tauma
       double precision, dimension(nne,DimPr)    :: element_nodes
       integer, dimension(nne)                   :: nodeIDmap
-      double precision                          :: dvol, hmaxi, detJ!, delta_t
+      double precision                          :: dvol, hmaxi, detJ, sigma!, delta_t
       integer                                   :: igaus, ibase, ielem, medium
       double precision, allocatable, dimension(:,:), intent(out)  :: A_M
       
@@ -3059,12 +3058,14 @@ module library
         medium = mesh_conductivity(ielem)
         if(medium.eq.300)then
           !Air Layer
-          sigma = 0.00000003 
+          sigma = sigma1
+          ! print*, '!prevTime Air Layer ', sigma
         elseif(medium.eq.100)then
           !Subsurface layer
-          sigma = 0.1 
+          sigma = sigma2 
+          ! print*, '!prevTime Subsurface layer ', sigma
         endif
-       
+
         Ke = 0.0; Ce = 0.0; Fe = 0.0; Mu_time = 0.0 
         call SetElementNodes(ielem, element_nodes, nodeIDmap, xi_cor, yi_cor)
         !gather
@@ -3086,7 +3087,7 @@ module library
           !En este Galerkin deberia quitar la construccion de la matriz Ke para evitar Calculamos
           !inecesarios pues solo se calcula Ce y Fe y Ke ya no, REVISA RUTINA Galerkin_prevTime 
           !y ver si esa se puede implementar tal cual aqui en lugar de Galerkin completo
-          call Galerkin(hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
+          call Galerkin(sigma, hmaxi, dvol, basis, dN_dxy, EMsource, Ke, Ce, Fe) !amate lo llame Ke
           !call Galerkin(dvol, basis, dN_dxy, Ke, Ce, Fe) 
           !!call Stabilization(dvol, basis, dN_dxy, HesXY, tauma, Ke, Fe, pertu,workm,resid)
           
@@ -3139,18 +3140,16 @@ module library
             do jdofn=1,ndofn
               jevab=jevab+1
               cpcty = basis(inode) * basis(jnode)
-              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol                                 !element Capacity (Mass) matrix
+              Ce(ievab,jevab) = Ce(ievab,jevab) + cpcty * dvol      !element Capacity (Mass) matrix
             end do
           end do
           Fe(ievab) = Fe(ievab) + basis(inode) * force(idofn) * dvol
         end do
       end do
-    
     end subroutine Galerkin_prevTime
-   
-    
-    
-    
+
+
+
     !subroutine TimeLevels(N, dN_dxi, dN_deta, hes_xixi, hes_xieta, hes_etaeta, delta_t, Ucurr, Uprev, F_plus_MU)
     !  
     !  use sourceTerm
